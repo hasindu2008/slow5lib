@@ -1,6 +1,6 @@
 CC       = gcc
 AR 		 = ar
-CFLAGS   += -g -Wall -O2
+CFLAGS   += -g -Wall -O2 -std=gnu99
 LDFLAGS  +=  -lz
 BUILD_DIR = build
 

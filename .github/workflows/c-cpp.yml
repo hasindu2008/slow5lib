@@ -67,9 +67,9 @@ jobs:
       run: make -j8
     - name: test
       run: make test
-  pyslow5_ubuntu_16:
-    name: pyslow5 Ubuntu 16
-    runs-on: ubuntu-16.04
+  pyslow5_ubuntu_18:
+    name: pyslow5 Ubuntu 18
+    runs-on: ubuntu-18.04
     steps:
     - uses: actions/checkout@v2
     - name: install packages
