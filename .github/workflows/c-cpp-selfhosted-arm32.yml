@@ -16,7 +16,6 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: build
-      run: autoreconf && ./configure && make -j8
+      run: make -j8
     - name: test
       run: make test
-      
