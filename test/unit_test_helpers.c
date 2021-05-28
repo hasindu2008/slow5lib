@@ -210,71 +210,6 @@ int strtod_check_invalid(void) {
     return EXIT_SUCCESS;
 }
 
-int has_fast5_ext_valid(void) {
-
-    ASSERT(has_fast5_ext("test.fast5"));
-    ASSERT(has_fast5_ext("hithere/test.fast5"));
-    ASSERT(has_fast5_ext("testaskdj.fast5"));
-    ASSERT(has_fast5_ext("fast5.fast5"));
-    ASSERT(has_fast5_ext("slow5.fast5"));
-    ASSERT(has_fast5_ext("hi...fast5.fast5"));
-    ASSERT(has_fast5_ext("1234.fast5"));
-    ASSERT(has_fast5_ext("myfast5.fast5"));
-    ASSERT(has_fast5_ext("hithere///test.fast5"));
-    ASSERT(has_fast5_ext("hithere///test.fast5/test.fast5"));
-    ASSERT(has_fast5_ext("testaslkdjlaskjdfalsdifaslkfdj234.fast5"));
-    ASSERT(has_fast5_ext(".fast5"));
-
-    return EXIT_SUCCESS;
-}
-
-int has_fast5_ext_invalid(void) {
-
-    ASSERT(!has_fast5_ext("."));
-    ASSERT(!has_fast5_ext("..."));
-    ASSERT(!has_fast5_ext("fast5"));
-    ASSERT(!has_fast5_ext("fast5."));
-    ASSERT(!has_fast5_ext("blow5"));
-    ASSERT(!has_fast5_ext("blablabla"));
-    ASSERT(!has_fast5_ext(""));
-    ASSERT(!has_fast5_ext(NULL));
-
-    return EXIT_SUCCESS;
-}
-
-int is_dir_valid(void) {
-
-    ASSERT(is_dir("/"));
-    ASSERT(is_dir("////////"));
-    ASSERT(is_dir("."));
-    ASSERT(is_dir("./"));
-    ASSERT(is_dir(".."));
-    ASSERT(is_dir("../"));
-    ASSERT(is_dir("../test"));
-    ASSERT(is_dir("../test/"));
-    ASSERT(is_dir("data///"));
-    ASSERT(is_dir("../src"));
-    ASSERT(is_dir("random"));
-    ASSERT(is_dir("data/exp/one_fast5"));
-
-    return EXIT_SUCCESS;
-}
-
-int is_dir_invalid(void) {
-
-    ASSERT(!is_dir("./unit_test"));
-    ASSERT(!is_dir("notadir"));
-    ASSERT(!is_dir("lolwhat"));
-    ASSERT(!is_dir("///lolwhat///"));
-    ASSERT(!is_dir("./unit_test.c"));
-    ASSERT(!is_dir(""));
-    ASSERT(!is_dir("../Make"));
-    ASSERT(!is_dir("../Makefile"));
-    ASSERT(!is_dir(NULL));
-
-    return EXIT_SUCCESS;
-}
-
 int path_get_slow5_fmt_test(void) {
 
     ASSERT(FORMAT_ASCII == path_get_slow5_fmt("test.slow5"));
@@ -388,12 +323,6 @@ int main(void) {
 
         CMD(strtod_check_valid)
         CMD(strtod_check_invalid)
-
-        CMD(has_fast5_ext_valid)
-        CMD(has_fast5_ext_invalid)
-
-        CMD(has_fast5_ext_valid)
-        CMD(has_fast5_ext_invalid)
 
         CMD(path_get_slow5_fmt_test)
         CMD(name_get_slow5_fmt_test)

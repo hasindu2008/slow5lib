@@ -383,7 +383,7 @@ static size_t fwrite_compress_gzip(struct gzip_stream *gzip, const void *ptr, si
 
 void *fread_depress(struct press *comp, size_t count, FILE *fp, size_t *n) {
     void *raw = (void *) malloc(count);
-    MALLOC_CHK(raw);
+    SLOW5_MALLOC_CHK(raw);
 
     if (fread(raw, count, 1, fp) != 1) {
         free(raw);
@@ -398,7 +398,7 @@ void *fread_depress(struct press *comp, size_t count, FILE *fp, size_t *n) {
 
 void *fread_depress_multi(press_method_t method, size_t count, FILE *fp, size_t *n) {
     void *raw = (void *) malloc(count);
-    MALLOC_CHK(raw);
+    SLOW5_MALLOC_CHK(raw);
 
     if (fread(raw, count, 1, fp) != 1) {
         free(raw);
@@ -413,7 +413,7 @@ void *fread_depress_multi(press_method_t method, size_t count, FILE *fp, size_t 
 
 void *pread_depress(struct press *comp, int fd, size_t count, off_t offset, size_t *n) {
     void *raw = (void *) malloc(count);
-    MALLOC_CHK(raw);
+    SLOW5_MALLOC_CHK(raw);
 
     if (pread(fd, raw, count, offset) == -1) {
         free(raw);
@@ -428,7 +428,7 @@ void *pread_depress(struct press *comp, int fd, size_t count, off_t offset, size
 
 void *pread_depress_multi(press_method_t method, int fd, size_t count, off_t offset, size_t *n) {
     void *raw = (void *) malloc(count);
-    MALLOC_CHK(raw);
+    SLOW5_MALLOC_CHK(raw);
 
     if (pread(fd, raw, count, offset) == -1) {
         SLOW5_WARNING("pread could not read %ld bytes as expected.",(long)count);

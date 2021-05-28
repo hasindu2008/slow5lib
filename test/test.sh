@@ -57,10 +57,6 @@ prep_unit() {
     cp 'test/data/exp/one_fast5/exp_1_default.slow5' 'test/data/out/exp_1_default_add_duplicate.slow5'
 }
 
-prep_cli() {
-    rm test/data/out/one_fast5/*
-}
-
 ret=0
 
 prep
@@ -72,18 +68,6 @@ else
     not_compiled
 fi
 
-prep_cli
-
-echo_test 'cli test'
-if [ $mem -eq 1 ]; then
-    if ! ./test/test_cli.sh mem; then
-        fail
-    fi
-else
-    if ! ./test/test_cli.sh; then
-        fail
-    fi
-fi
 
 prep_unit
 

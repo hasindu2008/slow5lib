@@ -1589,7 +1589,9 @@ int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struc
                 case COL_raw_signal:
                     size = read->len_raw_signal * sizeof *read->raw_signal;
                     read->raw_signal = (int16_t *) realloc(read->raw_signal, size);
-                    NULL_CHK(read->raw_signal);
+                    if(read->raw_signal == NULL){
+                        SLOW5_ERROR("%s", "Raw signal returned was NULL");
+                    }
                     memcpy(read->raw_signal, read_mem + offset, size);
                     offset += size;
                     break;

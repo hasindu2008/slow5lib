@@ -5,7 +5,11 @@
 #include "slow5.h"
 #include "slow5_extra.h"
 #include "slow5_misc.h"
+#include "slow5_error.h"
 //TODO MALLOC_CHK for testing
+
+extern enum slow5_log_level_opt  slow5_log_level;
+extern enum slow5_exit_condition_opt  slow5_exit_condition;
 
 #define BUF_INIT_CAP (20*1024*1024)
 #define SLOW5_INDEX_BUF_INIT_CAP (64) // 2^6 TODO is this too little?
@@ -17,7 +21,7 @@ static void slow5_idx_read(struct slow5_idx *index);
 static inline struct slow5_idx *slow5_idx_init_empty(void) {
 
     struct slow5_idx *index = (struct slow5_idx *) calloc(1, sizeof *index);
-    MALLOC_CHK(index);
+    SLOW5_MALLOC_CHK(index);
     index->hash = kh_init(s2i);
 
     return index;
@@ -86,7 +90,7 @@ static int slow5_idx_build(struct slow5_idx *index, struct slow5_file *s5p) {
     if (s5p->format == FORMAT_ASCII) {
         size_t cap = BUF_INIT_CAP;
         char *buf = (char *) malloc(cap * sizeof *buf);
-        MALLOC_CHK(buf);
+        SLOW5_MALLOC_CHK(buf);
         ssize_t buf_len;
         char *bufp;
 
@@ -126,7 +130,7 @@ static int slow5_idx_build(struct slow5_idx *index, struct slow5_file *s5p) {
             size = sizeof record_size + record_size;
 
             uint8_t *read_comp = (uint8_t *) malloc(record_size);
-            MALLOC_CHK(read_comp);
+            SLOW5_MALLOC_CHK(read_comp);
             if (fread(read_comp, record_size, 1, s5p->fp) != 1) {
                 free(read_comp);
                 return -1;
@@ -148,7 +152,7 @@ static int slow5_idx_build(struct slow5_idx *index, struct slow5_file *s5p) {
 
             // Get read id
             char *read_id = (char *) malloc((read_id_len + 1) * sizeof *read_id); // +1 for '\0'
-            MALLOC_CHK(read_id);
+            SLOW5_MALLOC_CHK(read_id);
             memcpy(read_id, read_decomp + cur_len, read_id_len * sizeof *read_id);
             read_id[read_id_len] = '\0';
 
@@ -244,7 +248,10 @@ static void slow5_idx_read(struct slow5_idx *index) {
         slow5_rid_len_t read_id_len;
         assert(fread(&read_id_len, sizeof read_id_len, 1, index->fp) == 1);
         char *read_id = (char *) malloc((read_id_len + 1) * sizeof *read_id); // +1 for '\0'
-        NULL_CHK(read_id);
+        if(read_id == NULL){
+            SLOW5_ERROR("%s","Reads_id returned was NULL");
+        }
+
         assert(fread(read_id, sizeof *read_id, read_id_len, index->fp) == read_id_len);
         read_id[read_id_len] = '\0'; // Add null byte
 
@@ -274,7 +281,7 @@ void slow5_idx_insert(struct slow5_idx *index, char *read_id, uint64_t offset, u
         index->cap_ids = index->cap_ids ? index->cap_ids << 1 : 16; // TODO possibly integer overflow
 
         char **tmp = (char **) realloc(index->ids, index->cap_ids * sizeof *tmp);
-        MALLOC_CHK(tmp);
+        SLOW5_MALLOC_CHK(tmp);
 
         index->ids = tmp;
     }

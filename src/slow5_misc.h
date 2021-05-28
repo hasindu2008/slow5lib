@@ -16,7 +16,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include "error.h"
+#include "slow5_error.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -71,11 +71,6 @@ static inline long slow5_peakrss(void) {
 }
 
 
-// FAST5
-
-bool has_fast5_ext(const char *f_path);
-
-
 // Other
 
 // Prints to the provided buffer a nice number of bytes (KB, MB, GB, etc)
@@ -103,16 +98,6 @@ static inline void slow5_print_size(const char* name, uint64_t bytes)
         fprintf(stderr, "[%s] %s : %.1f %s\n", __func__, name, count, suffixes[s]);
 }
 
-// adapted from https://stackoverflow.com/questions/4553012/checking-if-a-file-is-a-directory-or-just-a-file
-static inline bool is_dir(const char *path) {
-    struct stat path_stat;
-    if (stat(path, &path_stat) == -1) {
-        ERROR("Stat failed to retrive file information%s", "");
-        return false;
-    }
-
-    return S_ISDIR(path_stat.st_mode);
-}
 
 static inline int slow5_is_big_endian(void)
 {

@@ -333,6 +333,10 @@ int blow5_gzip_get_aux_array(void) {
 
 int main(void) {
 
+
+    slow5_set_log_level(SLOW5_LOG_OFF);
+    slow5_set_exit_condition(SLOW5_EXIT_OFF);
+
     struct command tests[] = {
         CMD(slow5_open_valid)
         CMD(slow5_get_valid)

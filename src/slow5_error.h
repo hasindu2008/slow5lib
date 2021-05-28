@@ -54,6 +54,17 @@ enum slow5_exit_condition_opt {
         } \
 }
 
+#define SLOW5_MALLOC_CHK(ret) { \
+        if (slow5_log_level >= SLOW5_LOG_ERR) { \
+                fprintf(stderr, SLOW5_ERROR_PREFIX "Failed to allocate memory." SLOW5_NO_COLOUR, __func__); \
+                fprintf(stderr, "At %s:%d\n", __FILE__, __LINE__ - 1); \
+        } \
+        if (slow5_exit_condition == SLOW5_EXIT_ON_ERR){ \
+                fprintf(stderr,"Exiting on error.\n"); \
+                exit(EXIT_FAILURE); \
+        } \
+}
+
 #ifdef __cplusplus
 }
 #endif

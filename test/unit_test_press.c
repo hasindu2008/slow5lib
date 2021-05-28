@@ -1,5 +1,6 @@
 #include "unit_test.h"
 #include "slow5_press.h"
+#include "slow5.h"
 #include <string.h>
 
 int press_init_valid(void) {
@@ -104,6 +105,9 @@ int press_printf_valid(void) {
 
 
 int main(void) {
+
+    slow5_set_log_level(SLOW5_LOG_OFF);
+    slow5_set_exit_condition(SLOW5_EXIT_OFF);
 
     struct command tests[] = {
         CMD(press_init_valid)

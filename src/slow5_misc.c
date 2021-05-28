@@ -12,8 +12,7 @@
 #include <ctype.h>
 #include <inttypes.h>
 #include "slow5_misc.h"
-#include "error.h"
-#include "fast5.h"
+#include "slow5_error.h"
 
 #define DBL_STRING_BUF_FIXED_CAP (64) // 2^6
 #define FLT_STRING_BUF_FIXED_CAP (64) // 2^6
@@ -21,29 +20,6 @@
 int uint_check(const char *str);
 int int_check(const char *str);
 int float_check(const char *str);
-
-// FAST5
-
-/* Check if path has the fast5 extension
- *
- * @param       file path
- * @return      whether path has the fast5 extension
- */
-bool has_fast5_ext(const char *f_path) {
-    bool ret = false;
-
-    if (f_path != NULL) {
-        size_t f_path_len = strlen(f_path);
-        size_t fast5_ext_len = strlen(FAST5_EXTENSION);
-
-        if (f_path_len >= fast5_ext_len &&
-                strcmp(f_path + (f_path_len - fast5_ext_len), FAST5_EXTENSION) == 0) {
-            ret = true;
-        }
-    }
-
-    return ret;
-}
 
 // From https://stackoverflow.com/questions/3774417/sprintf-with-automatic-memory-allocation
 int vasprintf_mine(char **strp, const char *fmt, va_list ap) {
