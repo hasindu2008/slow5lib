@@ -8,7 +8,7 @@ on:
 
 jobs:
   hdf5_compile:
-    name: Linux hdf5 install script
+    name: install
     runs-on: ${{ matrix.runners }}
     strategy:
       matrix:

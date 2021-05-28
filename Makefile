@@ -1,12 +1,8 @@
 CC       = gcc
-CXX      = g++
 AR 		 = ar
-CFLAGS   += -g -rdynamic -Wall -O2
-LANG 	 = -x c++ -std=c++11
-LDFLAGS  += $(LIBS) -lpthread -lz
+CFLAGS   += -g -Wall -O2
+LDFLAGS  +=  -lz
 BUILD_DIR = build
-
-BINARY = slow5tools
 
 
 OBJ_LIB = $(BUILD_DIR)/slow5.o \
