@@ -19,7 +19,7 @@ VERSION = `git describe --tags`
 slow5lib: $(BUILD_DIR)/libslow5.so $(BUILD_DIR)/libslow5.a
 
 $(BUILD_DIR)/libslow5.so: $(OBJ_LIB)
-	$(CC) $(CFLAGS) -shared $^  -o $@
+	$(CC) $(CFLAGS) -shared $^  -o $@ $(LDFLAGS)
 
 $(BUILD_DIR)/libslow5.a: $(OBJ_LIB)
 	$(AR) rcs $@ $^
