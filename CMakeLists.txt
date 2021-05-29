@@ -10,18 +10,10 @@ ENDIF()
 
 project(slow5lib)
 
-#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -fPIC -rdynamic -Wall -O2")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -rdynamic -Wall -O2 -std=c++11 ")
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -Wall -O2 -std=gnu99")
 
 include_directories(${PROJECT_SOURCE_DIR}/src)
 include_directories(${PROJECT_SOURCE_DIR}/test)
-
-set_source_files_properties(src/klib/kstring.c PROPERTIES LANGUAGE CXX)
-set_source_files_properties(src/slow5.c PROPERTIES LANGUAGE CXX)
-set_source_files_properties(src/slow5_idx.c PROPERTIES LANGUAGE CXX)
-set_source_files_properties(src/slow5_misc.c PROPERTIES LANGUAGE CXX)
-set_source_files_properties(src/slow5_press.c PROPERTIES LANGUAGE CXX)
 
 set(kstring src/klib/kstring.c)
 set(slow5_ src/slow5.c)
