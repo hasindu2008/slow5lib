@@ -1,3 +1,4 @@
+#define _XOPEN_SOURCE 700
 #include <zlib.h>
 #include <stdlib.h>
 #include <string.h>
@@ -5,7 +6,7 @@
 #include <stdarg.h>
 #include "slow5_error.h"
 #include "slow5_press.h"
-
+#include "slow5_misc.h"
 
 extern enum slow5_log_level_opt  slow5_log_level;
 extern enum slow5_exit_condition_opt  slow5_exit_condition;

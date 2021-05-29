@@ -1,3 +1,4 @@
+#define _XOPEN_SOURCE 700
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -7,12 +8,12 @@
 #include "slow5.h"
 #include "slow5_extra.h"
 #include "slow5_idx.h"
-#include "slow5_error.h"
-#include "slow5_press.h"
+//#include "slow5_error.h"
+//#include "slow5_press.h"
 #include "slow5_misc.h"
 #include "klib/ksort.h"
-#include "klib/kvec.h"
-#include "klib/khash.h"
+//#include "klib/kvec.h"
+//#include "klib/khash.h"
 
 KSORT_INIT_STR
 
@@ -2797,7 +2798,7 @@ enum slow5_fmt path_get_slow5_fmt(const char *path) {
 
     // TODO change type from size_t
     if (path != NULL) {
-        size_t i;
+        int64_t i;
         for (i = strlen(path) - 1; i >= 0; -- i) {
             if (path[i] == '.') {
                 const char *ext = path + i + 1;

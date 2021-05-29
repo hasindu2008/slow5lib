@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
-#include "slow5_misc.h"
+//#include "slow5_misc.h"
 
 #ifdef __cplusplus
 extern "C" {

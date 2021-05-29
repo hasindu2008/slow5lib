@@ -1,11 +1,13 @@
+#define _XOPEN_SOURCE 700
 #include <unistd.h>
 #include <inttypes.h>
-#include "klib/khash.h"
+#include <assert.h>
+//#include "klib/khash.h"
 #include "slow5_idx.h"
-#include "slow5.h"
+//#include "slow5.h"
 #include "slow5_extra.h"
 #include "slow5_misc.h"
-#include "slow5_error.h"
+//#include "slow5_error.h"
 //TODO MALLOC_CHK for testing
 
 extern enum slow5_log_level_opt  slow5_log_level;
