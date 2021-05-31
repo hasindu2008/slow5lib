@@ -2,7 +2,7 @@ CC			= gcc
 AR			= ar
 CFLAGS		+= -g -Wall -O2 -std=c99
 LDFLAGS		+=  -lz
-BUILD_DIR	= build
+BUILD_DIR	= lib
 
 OBJ_LIB = $(BUILD_DIR)/slow5.o \
 		$(BUILD_DIR)/slow5_idx.o	\
