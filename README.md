@@ -1,6 +1,17 @@
 # slow5lib
 
-A library for reading SLOW5 files.
+Slow5lib is a sofware library for reading & writing SLOW5 files.
+
+Slow5lib is designed to facilitate use of data in SLOW5 format by third-party software packages. Exisiting packages that read/write data in FAST5 format can be easily modified to use SLOW5 simply by replacing the existing FAST5 API with slow5lib.
+
+About SLOW5:
+
+SLOW5 is a new file format for storting signal data from Oxford Nanopore Technologies (ONT) devices. SLOW5 was developed to overcome inherent limitations in the standard FAST5 signal data format that prevent efficient, scalable analysis and cause many headaches for developers.
+
+SLOW5 is a simple tab-separated values (TSV) file encoding metadata and time-series signal data for one nanopore read per line, with global metadata stored in a file header. Parallel file access is facilitated by an accompanying index file, also in TSV format, that specifies the position of each read (in Bytes) within the main SLOW5 file. SLOW5 can be encoded in human-readable ASCII format, or a more compact and efficient binary format (BLOW5) - this is analogous to the seminal SAM/BAM format for storing DNA sequence alignments. The BLOW5 binary format can be compressed using standard gzip compression, or other compression methods, thereby minimising the data storage footprint while still permitting efficient parallel access.
+
+Detailed benchmarking experiments have shown that SLOW5 format is up to X-fold faster and X% smaller than FAST5 [SLOW5 paper].
+
 <todo>
 
 <!--- [![Build Status](https://travis-ci.com/hasindu2008/slow5.svg?token=pN7xnsxgLrRxbAn8WLVQ&branch=master)](https://travis-ci.com/hasindu2008/slow5) -->
