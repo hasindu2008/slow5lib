@@ -16,10 +16,14 @@ cmdclass['build_ext'] = build_ext
 
 #TODO add all
 sources=[module_src, 'src/slow5.c', 'src/slow5_press.c', 'src/slow5_misc.c', 'src/slow5_idx.c' ]
-depends=['python/pyslow5.pxd', 'python/pyslow5.h', 'src/config.h', 'src/error.h', 'src/slow5.h', 'src/misc.h', 'src/press.h', 'src/slow5idx.h']
+depends=['python/pyslow5.pxd', 'python/pyslow5.h',  'slow5/slow5.h',
+            'slow5/klib/khash.h', 'slow5/klib/kvec.h',
+            'slow5/slow5_defs.h', 'slow5/slow5_error.h', 'slow5/slow5_press.h',
+            'src/slow5_extra.h', 'src/slow5_idx.h', 'src/slow5_misc.h',
+            'src/klib/ksort.h' ]
 extra_compile_args = ['-g', '-Wall', '-O2',]
-libraries = ['z','m']
-include_dirs = ['.']
+libraries = ['z']
+include_dirs = ['include/']
 library_dirs = ['.']
 
 #py_inc = [get_python_inc()]
@@ -45,7 +49,7 @@ extensions = [Extension('pyslow5',
 #TODO ad all
 setup(name = 'slow5',
       version='0.0',
-      url = 'https://github.com/hasindu2008/slow5',
+      url = 'https://github.com/hasindu2008/slow5lib',
       #requires=['numpy (>=1.3.0)'],
       description='f5c python binding',
       author='Hasindu Gamaarachchi, Sasha Jenner, James ferguson ...',

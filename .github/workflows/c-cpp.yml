@@ -45,6 +45,8 @@ jobs:
       run: make test
     - name: test valgrind
       run: ./test/test.sh mem
+    - name: examples
+      run: make examples
   ubuntu_20:
     name: Ubuntu 20
     runs-on: ubuntu-20.04
@@ -67,6 +69,8 @@ jobs:
       run: make -j8
     - name: test
       run: make test
+    - name: examples
+      run: make examples
   pyslow5_ubuntu_18:
     name: pyslow5 Ubuntu 18
     runs-on: ubuntu-18.04
