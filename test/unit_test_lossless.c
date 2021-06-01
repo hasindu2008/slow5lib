@@ -1,6 +1,6 @@
 #include <float.h>
 #include "unit_test.h"
-#include "slow5.h"
+#include <slow5/slow5.h>
 
 int slow5_open_valid(void) {
     struct slow5_file *s5p = slow5_open("test/data/exp/one_fast5/exp_1_lossless.slow5", "r");

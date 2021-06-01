@@ -4,7 +4,7 @@
 #include <float.h>
 #include <math.h> // TODO need this?
 #include "unit_test.h"
-#include "slow5.h"
+#include <slow5/slow5.h>
 #include "slow5_extra.h"
 #include "slow5_misc.h"
 

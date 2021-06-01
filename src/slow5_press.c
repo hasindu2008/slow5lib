@@ -4,8 +4,8 @@
 #include <string.h>
 #include <assert.h>
 #include <stdarg.h>
-#include "slow5_error.h"
-#include "slow5_press.h"
+#include <slow5/slow5_error.h>
+#include <slow5/slow5_press.h>
 #include "slow5_misc.h"
 
 extern enum slow5_log_level_opt  slow5_log_level;

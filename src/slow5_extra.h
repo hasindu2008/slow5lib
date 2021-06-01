@@ -2,7 +2,7 @@
 #define SLOW5_EXTRA_H
 
 #include <dirent.h>
-#include "slow5.h"
+#include <slow5/slow5.h>
 
 #ifdef __cplusplus
 extern "C" {

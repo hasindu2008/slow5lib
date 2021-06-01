@@ -1,5 +1,5 @@
 #include "unit_test.h"
-#include "slow5.h"
+#include <slow5/slow5.h>
 #include "slow5_extra.h"
 
 int slow5_open_valid(void) {

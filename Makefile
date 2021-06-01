@@ -1,5 +1,6 @@
 CC			= gcc
 AR			= ar
+CPPFLAGS	+= -I include/
 CFLAGS		+= -g -Wall -O2 -std=c99
 LDFLAGS		+=  -lz
 BUILD_DIR	= lib
@@ -12,7 +13,7 @@ OBJ_LIB = $(BUILD_DIR)/slow5.o \
 PREFIX = /usr/local
 VERSION = `git describe --tags`
 
-SLOW5_H = src/slow5.h src/klib/khash.h src/klib/kvec.h src/slow5_defs.h src/slow5_error.h src/slow5_press.h
+SLOW5_H = include/slow5/slow5.h include/slow5/klib/khash.h include/slow5/klib/kvec.h include/slow5/slow5_defs.h include/slow5/slow5_error.h include/slow5/slow5_press.h
 
 .PHONY: clean distclean test install uninstall slow5lib
 
@@ -31,10 +32,10 @@ $(BUILD_DIR)/slow5.o: src/slow5.c src/slow5_extra.h src/slow5_idx.h src/slow5_mi
 $(BUILD_DIR)/slow5_idx.o: src/slow5_idx.c src/slow5_idx.h src/slow5_extra.h src/slow5_misc.h $(SLOW5_H)
 	$(CC) $(CFLAGS) $(CPPFLAGS) $< -c -fpic -o $@
 
-$(BUILD_DIR)/slow5_misc.o: src/slow5_misc.c src/slow5_misc.h src/slow5_error.h
+$(BUILD_DIR)/slow5_misc.o: src/slow5_misc.c src/slow5_misc.h include/slow5/slow5_error.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) $< -c -fpic -o $@
 
-$(BUILD_DIR)/slow5_press.o: src/slow5_press.c src/slow5_press.h src/slow5_misc.h src/slow5_error.h
+$(BUILD_DIR)/slow5_press.o: src/slow5_press.c include/slow5/slow5_press.h src/slow5_misc.h include/slow5/slow5_error.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) $< -c -fpic -o $@
 
 clean:

@@ -1,6 +1,6 @@
 #include "unit_test.h"
-#include "../src/slow5.h"
-#include "../src/slow5_press.h"
+#include <slow5/slow5.h>
+
 
 int slow5_to_blow5_uncomp(void) {
     struct slow5_file *from = slow5_open("test/data/exp/one_fast5/exp_1_default.slow5", "r");

@@ -12,7 +12,7 @@
 #include <ctype.h>
 #include <inttypes.h>
 #include "slow5_misc.h"
-#include "slow5_error.h"
+#include <slow5/slow5_error.h>
 
 #define DBL_STRING_BUF_FIXED_CAP (64) // 2^6
 #define FLT_STRING_BUF_FIXED_CAP (64) // 2^6

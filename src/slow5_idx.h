@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdint.h>
 //#include "klib/khash.h"
-#include "slow5.h"
+#include <slow5/slow5.h>
 
 #ifdef __cplusplus
 extern "C" {
