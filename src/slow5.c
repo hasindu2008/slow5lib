@@ -3,6 +3,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#ifdef NDEBUG
+    #undef NDEBUG
+#endif
 #include <assert.h> // TODO use better error handling?
 #include <float.h>
 #include <slow5/slow5.h>
