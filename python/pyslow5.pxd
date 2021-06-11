@@ -5,9 +5,16 @@ cdef extern from "pyslow5.h":
 
     ctypedef signed char FILE
 
+    ctypedef struct slow5_version:
+        uint8_t major
+        uint8_t minor
+        uint8_t patch
+
     ctypedef struct press_t:
         pass
     ctypedef struct slow5_hdr_t:
+        slow5_version version;
+        uint32_t num_read_groups;
         pass
     ctypedef struct slow5_idx_t:
         pass
@@ -40,6 +47,9 @@ cdef extern from "pyslow5.h":
 
     # Open a slow5 file
     slow5_file_t *slow5_open(const char *pathname, const char *mode)
+    char *slow5_hdr_get(const char *attr, uint32_t read_group, const slow5_hdr_t *header);
     int slow5_close(slow5_file_t *s5p)
     int slow5_idx_load(slow5_file_t *s5p)
     int slow5_get(const char *read_id, slow5_rec_t **read, slow5_file_t *s5p)
+    int slow5_get_next(slow5_rec_t **read, slow5_file_t *s5p)
+    void slow5_rec_free(slow5_rec_t *read)
