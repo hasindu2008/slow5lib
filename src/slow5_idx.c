@@ -1,7 +1,9 @@
 #define _XOPEN_SOURCE 700
 #include <unistd.h>
 #include <inttypes.h>
-NDEBUG
+#ifdef NDEBUG
+    #undef NDEBUG
+#endif
 #include <assert.h>
 //#include "klib/khash.h"
 #include "slow5_idx.h"
