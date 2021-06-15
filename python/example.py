@@ -35,9 +35,9 @@ print("pylen of signal:", len(read['signal']))
 print("==============================================")
 
 # Get data for ANOTHER ONE individual read, random access, check memory
-print("get_read check, r4")
+print("get_read check, r4, converte to pA")
 start_time = time.time()
-read = s5p.get_read("r4")
+read = s5p.get_read("r4", pA=True)
 ttime = round(time.time() - start_time, 4)
 print("get_read in: {} seconds".format(ttime))
 
@@ -55,18 +55,16 @@ print("pylen of signal:", len(read['signal']))
 print("==============================================")
 
 # get yield object and iterate through reads sequentially
-print("Yield check, all reads")
+print("sequential_reads check, all reads")
 start_time = time.time()
-print("yielded readIDs:")
-reads = s5p.yield_reads()
-# s4p = pyslow5.slow5py('examples/example.slow5','r')
-# reads = s4p.yield_reads()
+print("sequential_reads readIDs:")
+reads = s5p.sequential_reads()
 print("type check reads:", type(reads))
 for read in reads:
     print(read['read_id'])
 
 ttime = round(time.time() - start_time, 4)
-print("yield_reads in: {} seconds".format(ttime))
+print("sequential_reads in: {} seconds".format(ttime))
 
 print("==============================================")
 
@@ -86,7 +84,20 @@ for r, read in zip(read_list,selected_reads):
 
 
 print("==============================================")
+# Get header attributes
+print("Get headder attributes")
+attr = "flow_cell_id"
+val = s5p.get_header_value(attr)
+print(f"flow_cell_id: {val}")
+attr = "exp_start_time"
+val = s5p.get_header_value(attr)
+print(f"exp_start_time: {val}")
+attr = "heatsink_temp"
+val = s5p.get_header_value(attr)
+print(f"heatsink_temp: {val}")
 
 
 
+
+print("==============================================")
 print("done")

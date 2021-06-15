@@ -7,6 +7,9 @@ from libc.stdlib cimport malloc, free
 from libc.string cimport strdup
 cimport pyslow5
 
+#
+# Class slow5py is for read-only of slow5 files.
+#
 
 
 cdef class slow5py:
@@ -58,6 +61,25 @@ cdef class slow5py:
             pyslow5.slow5_close(self.s5p)
 
 
+    def _convert_to_pA(self, d):
+        '''
+        convert raw signal data to pA using digitisation, offset, and range
+        float raw_unit = range / digitisation;
+        for (int32_t j = 0; j < nsample; j++) {
+            rawptr[j] = (rawptr[j] + offset) * raw_unit;
+        }
+        '''
+        digitisation = d['digitisation']
+        range = d['range']
+        offset = d['offset']
+        raw_unit = range / digitisation
+        new_raw = []
+        for i in d['signal']:
+            j = (i + offset) * raw_unit
+            new_raw.append("{0:.2f}".format(round(j,2)))
+        return new_raw
+
+
     def _get_read(self, read_id, pA=False):
         dic = {}
         ID = str.encode(read_id)
@@ -86,8 +108,7 @@ cdef class slow5py:
         #     dic['signal'].append(self.rec.raw_signal[i])
         # if pA=True, convert signal to pA
         if pA:
-            # call some conversion function
-            pass
+            dic['signal'] = self._convert_to_pA(dic)
 
         return dic
 
@@ -95,7 +116,7 @@ cdef class slow5py:
         return self._get_read(read_id, pA=pA)
 
 
-    def yield_reads(self, pA=False):
+    def sequential_reads(self, pA=False):
         '''
         returns generator for sequential reading of slow5 file
         if pa=True, do pA conversion of signal here.
@@ -128,8 +149,7 @@ cdef class slow5py:
 
             # if pA=True, convert signal to pA
             if pA:
-                # call some conversion function
-                pass
+                row['signal'] = self._convert_to_pA(row)
 
             yield row
 
@@ -141,3 +161,23 @@ cdef class slow5py:
         '''
         for r in read_list:
             yield self._get_read(r, pA=pA)
+
+
+    def get_header_names(self, read_group=0):
+        '''
+        TODO
+        get all header names and return list
+        '''
+        headers = []
+        # ret = slow5_header_names(self.s5p.header)
+        return headers
+
+    def get_header_value(self, attr, read_group=0):
+        '''
+        get header attribute value
+        '''
+        a = str.encode(attr)
+        ret = slow5_hdr_get(a, read_group, self.s5p.header).decode()
+
+        self.logger.debug(f"get_header ret: {ret}")
+        return ret
