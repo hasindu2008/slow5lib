@@ -15,23 +15,28 @@ cdef class slow5py:
     cdef const char* m
 
     def __cinit__(self, pathname, mode):
-        # self.s5p = NULL
+        self.s5p = NULL
+        self.rec = NULL
+        self.read = NULL
         p = str.encode(pathname)
         self.p=p
         m = str.encode(mode)
         self.m=m
         print(self.p, self.m, file=sys.stderr)
         self.s5p = pyslow5.slow5_open(self.p, self.m)
-        print("file pointer", self.s5p.fp)
-        print("Number of read_groups:", self.s5p.header.num_read_groups)
         if not self.s5p:
             raise MemoryError()
         # load or create and load index
+        print("Number of read_groups:", self.s5p.header.num_read_groups)
         print("Creating/loading index...", file=sys.stderr)
         ret = slow5_idx_load(self.s5p)
         print("Index returned: ", ret, file=sys.stderr)
 
     def __dealloc__(self):
+        if self.rec is not NULL:
+            slow5_rec_free(self.rec)
+        if self.read is not NULL:
+            slow5_rec_free(self.read)
         if self.s5p is not NULL:
             pyslow5.slow5_close(self.s5p)
 
@@ -54,7 +59,7 @@ cdef class slow5py:
         dic['signal'] = []
         for i in range(self.rec.len_raw_signal):
             dic['signal'].append(self.rec.raw_signal[i])
-        slow5_rec_free(self.rec)
+        
         return dic
 
 
@@ -88,4 +93,3 @@ cdef class slow5py:
                 # call some conversion function
                 pass
             yield row
-        slow5_rec_free(self.read)

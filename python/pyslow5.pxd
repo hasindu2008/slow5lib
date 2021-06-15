@@ -1,9 +1,8 @@
+from libc.stdio cimport *
 from libc.stdint cimport *
 
 
 cdef extern from "pyslow5.h":
-
-    ctypedef signed char FILE
 
     ctypedef struct slow5_version:
         uint8_t major
