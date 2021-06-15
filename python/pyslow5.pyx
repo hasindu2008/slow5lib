@@ -2,9 +2,11 @@
 # distutils: language = c++
 # cython: language_level=3
 import sys
+import logging
 from libc.stdlib cimport malloc, free
 from libc.string cimport strdup
 cimport pyslow5
+
 
 
 cdef class slow5py:
@@ -13,25 +15,39 @@ cdef class slow5py:
     cdef pyslow5.slow5_rec_t *read
     cdef const char* p
     cdef const char* m
+    cdef int V
+    cdef object logger
 
-    def __cinit__(self, pathname, mode):
+    def __cinit__(self, pathname, mode, DEBUG=0):
+
+        # Set NULL for cleanup check end MemoryError check
         self.s5p = NULL
         self.rec = NULL
         self.read = NULL
+        self.V = DEBUG
+        self.logger = logging.getLogger(__name__)
+        if self.V ==1:
+            lev = logging.DEBUG
+        else:
+            lev = logging.WARNING
+
+        logging.basicConfig(format='%(asctime)s - [%(levelname)s]: %(message)s',
+                            datefmt='%d-%b-%y %H:%M:%S', level=lev)
+
         p = str.encode(pathname)
         self.p=p
         m = str.encode(mode)
         self.m=m
         print(self.p, self.m, file=sys.stderr)
         self.s5p = pyslow5.slow5_open(self.p, self.m)
-        if not self.s5p:
+        if self.s5p is NULL:
             raise MemoryError()
         # load or create and load index
-        print("Number of read_groups:", self.s5p.header.num_read_groups)
-        print("Creating/loading index...", file=sys.stderr)
+        self.logger.debug(f"Number of read_groups: {self.s5p.header.num_read_groups}")
+        self.logger.debug(f"Creating/loading index...")
         ret = slow5_idx_load(self.s5p)
         if ret != 0:
-            print("slow5_idx_load return not 0:", ret, file=sys.stderr)
+            self.logger.debug(f"slow5_idx_load return not 0: {ret}")
 
     def __dealloc__(self):
         if self.rec is not NULL:
@@ -48,11 +64,14 @@ cdef class slow5py:
         # rec = NULL
         ret = slow5_get(ID, &self.rec, self.s5p)
         if ret != 0:
-            print("get_read return not 0:", ret, file=sys.stderr)
+            self.logger.debug(f"get_read return not 0: {ret}")
             return None
         # for i in range(20):
         #     print(self.rec.raw_signal[i])
-        dic['read_id'] = self.rec.read_id
+        if type(self.rec.read_id) is bytes:
+            dic['read_id'] = self.rec.read_id.decode()
+        else:
+            dic['read_id'] = self.rec.read_id
         dic['read_group'] = self.rec.read_group
         dic['digitisation'] = self.rec.digitisation
         dic['offset'] = self.rec.offset
@@ -84,23 +103,26 @@ cdef class slow5py:
         ret = 0
         while ret == 0:
             ret = slow5_get_next(&self.read, self.s5p)
-            print("TEST READID", self.read.read_id)
-            print("slow5_get_next return:", ret, file=sys.stderr)
+            self.logger.debug(f"slow5_get_next return: {ret}")
             # need a ret code for EOF to handle better
             # -2 is the current ret when EOF is hit, but it's not specific
             if ret != 0:
-                print("slow5_get_next reached end of record (-2):", ret, file=sys.stderr)
+                self.logger.debug(f"slow5_get_next reached end of record (-2): {ret}")
                 break
-            row = {}
 
-            row['read_id'] = self.read.read_id
+            row = {}
+            if type(self.read.read_id) is bytes:
+                row['read_id'] = self.read.read_id.decode()
+            else:
+                row['read_id'] = self.read.read_id
+            # row['read_id'] = self.read.read_id.decode()
             row['read_group'] = self.read.read_group
             row['digitisation'] = self.read.digitisation
             row['offset'] = self.read.offset
             row['range'] = self.read.range
             row['sampling_rate'] = self.read.sampling_rate
             row['len_raw_signal'] = self.read.len_raw_signal
-            row['signal'] = [self.rec.raw_signal[i] for i in range(self.rec.len_raw_signal)]
+            row['signal'] = [self.read.raw_signal[i] for i in range(self.read.len_raw_signal)]
             # for i in range(self.read.len_raw_signal):
             #     row['signal'].append(self.read.raw_signal[i])
 
@@ -108,6 +130,7 @@ cdef class slow5py:
             if pA:
                 # call some conversion function
                 pass
+
             yield row
 
 

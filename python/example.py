@@ -9,7 +9,7 @@ print("|==============================================|")
 
 # open file and create object
 start_time = time.time()
-s5p = pyslow5.slow5py('examples/example.slow5','r')
+s5p = pyslow5.slow5py('examples/example.slow5','r', DEBUG=1)
 ttime = round(time.time() - start_time, 4)
 print("slow5 file opened and object created in: {} seconds".format(ttime))
 print("==============================================")
@@ -57,18 +57,22 @@ print("==============================================")
 # get yield object and iterate through reads sequentially
 print("Yield check, all reads")
 start_time = time.time()
-reads = s5p.yield_reads()
-ttime = round(time.time() - start_time, 4)
-print("yield_reads in: {} seconds".format(ttime))
 print("yielded readIDs:")
+reads = s5p.yield_reads()
+# s4p = pyslow5.slow5py('examples/example.slow5','r')
+# reads = s4p.yield_reads()
+print("type check reads:", type(reads))
 for read in reads:
     print(read['read_id'])
+
+ttime = round(time.time() - start_time, 4)
+print("yield_reads in: {} seconds".format(ttime))
 
 print("==============================================")
 
 # get yield object and iterate through selected reads with random access
 print("Yield check, selected reads")
-read_list = ["r1", "r3", "null_read", "r5"]
+read_list = ["r1", "r3", "null_read", "r5", "r2", "r1"]
 start_time = time.time()
 selected_reads = s5p.yield_read_list(read_list)
 ttime = round(time.time() - start_time, 4)
