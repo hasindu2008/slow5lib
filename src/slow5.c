@@ -357,6 +357,28 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, press_method_t
     return header;
 }
 
+
+//get the list of hdr data keys in sorted order (the returned pointer must be freed)
+//returns null if no attributes
+const char **slow5_list_hdr_keys(const slow5_hdr_t *header){
+    if(header->data.num_attrs == 0){
+        return NULL;
+    }
+    const char **data_attrs = (const char **) malloc(header->data.num_attrs * sizeof *data_attrs);
+    uint32_t i = 0;
+    for (khint_t j = kh_begin(header->data.attrs); j != kh_end(header->data.attrs); ++ j) {
+        if (kh_exist(header->data.attrs, j)) {
+            data_attrs[i] = kh_key(header->data.attrs, j);
+            ++ i;
+        }
+    }
+
+    // Sort header data attributes alphabetically
+    ks_mergesort(str, header->data.num_attrs, data_attrs, 0);
+
+    return data_attrs;
+}
+
 /**
  * Get the header as a string in the specified format.
  *
@@ -434,17 +456,7 @@ void *slow5_hdr_to_mem(struct slow5_hdr *header, enum slow5_fmt format, press_me
     size_t len_to_cp;
     // Get unsorted list of header data attributes.
     if (header->data.num_attrs != 0) {
-        const char **data_attrs = (const char **) malloc(header->data.num_attrs * sizeof *data_attrs);
-        uint32_t i = 0;
-        for (khint_t j = kh_begin(header->data.attrs); j != kh_end(header->data.attrs); ++ j) {
-            if (kh_exist(header->data.attrs, j)) {
-                data_attrs[i] = kh_key(header->data.attrs, j);
-                ++ i;
-            }
-        }
-
-        // Sort header data attributes alphabetically
-        ks_mergesort(str, header->data.num_attrs, data_attrs, 0);
+        const char **data_attrs = slow5_list_hdr_keys(header);
 
         // Write header data attributes to string
         for (size_t i = 0; i < header->data.num_attrs; ++ i) {

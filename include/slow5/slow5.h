@@ -639,23 +639,14 @@ static inline ssize_t slow5_eof_print(void) {
 void slow5_set_log_level(enum slow5_log_level_opt log_level);
 void slow5_set_exit_condition(enum slow5_exit_condition_opt exit_condition);
 
+const char **slow5_list_hdr_keys(const slow5_hdr_t *header);
+
 
 // Return
 // 0    success
 // -1   input invalid
 // -2   failure
 int slow5_convert(slow5_file_t *from, FILE *to_fp, enum slow5_fmt to_format, press_method_t to_compress);
-
-// Merge slow5 files to another slow5 file
-// TODO Just a merge for 2 -> 1?
-// TODO compile time 2 args in ...
-int8_t slow5_merge(slow5_file_t *s5p_to, ...); // TODO
-int8_t slow5_vmerge(slow5_file_t *s5p_to, va_list ap); // TODO
-
-// Split a slow5 file to a dir
-// TODO split into multiple slow5 files from same rg
-int8_t slow5_split(const char *dirname_to, slow5_file_t *s5p_from); // TODO
-
 
 #ifdef __cplusplus
 }
