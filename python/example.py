@@ -51,6 +51,7 @@ print("sampling_rate:", read['sampling_rate'])
 print("len_raw_signal:", read['len_raw_signal'])
 print("signal:", read['signal'][:10])
 print("pylen of signal:", len(read['signal']))
+print("signal value type:", type(read['signal'][0]))
 
 print("==============================================")
 

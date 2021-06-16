@@ -76,11 +76,11 @@ cdef class slow5py:
         new_raw = []
         for i in d['signal']:
             j = (i + offset) * raw_unit
-            new_raw.append("{0:.2f}".format(round(j,2)))
+            new_raw.append(float("{0:.2f}".format(round(j,2))))
         return new_raw
 
 
-    def _get_read(self, read_id, pA=False):
+    def _get_read(self, read_id, pA):
         dic = {}
         ID = str.encode(read_id)
         # rec = NULL
@@ -113,7 +113,7 @@ cdef class slow5py:
         return dic
 
     def get_read(self, read_id, pA=False):
-        return self._get_read(read_id, pA=pA)
+        return self._get_read(read_id, pA)
 
 
     def seq_reads(self, pA=False):
@@ -161,7 +161,7 @@ cdef class slow5py:
         if pa=True, do pA conversion of signal here.
         '''
         for r in read_list:
-            yield self._get_read(r, pA=pA)
+            yield self._get_read(r, pA)
 
 
     def get_header_names(self, read_group=0):
