@@ -55,16 +55,16 @@ print("pylen of signal:", len(read['signal']))
 print("==============================================")
 
 # get yield object and iterate through reads sequentially
-print("sequential_reads check, all reads")
+print("seq_reads check, all reads")
 start_time = time.time()
-print("sequential_reads readIDs:")
-reads = s5p.sequential_reads()
+print("seq_reads readIDs:")
+reads = s5p.seq_reads()
 print("type check reads:", type(reads))
 for read in reads:
     print(read['read_id'])
 
 ttime = round(time.time() - start_time, 4)
-print("sequential_reads in: {} seconds".format(ttime))
+print("seq_reads in: {} seconds".format(ttime))
 
 print("==============================================")
 
@@ -72,9 +72,9 @@ print("==============================================")
 print("Yield check, selected reads")
 read_list = ["r1", "r3", "null_read", "r5", "r2", "r1"]
 start_time = time.time()
-selected_reads = s5p.yield_read_list(read_list)
+selected_reads = s5p.get_read_list(read_list)
 ttime = round(time.time() - start_time, 4)
-print("yield_read_list in: {} seconds".format(ttime))
+print("get_read_list in: {} seconds".format(ttime))
 print("yielded readIDs:")
 for r, read in zip(read_list,selected_reads):
     if read is not None:

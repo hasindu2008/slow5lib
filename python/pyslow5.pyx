@@ -116,10 +116,11 @@ cdef class slow5py:
         return self._get_read(read_id, pA=pA)
 
 
-    def sequential_reads(self, pA=False):
+    def seq_reads(self, pA=False):
         '''
         returns generator for sequential reading of slow5 file
         if pa=True, do pA conversion of signal here.
+        TODO: Add aux=None, take single, list, "all" for aux fields
         '''
         ret = 0
         while ret == 0:
@@ -154,7 +155,7 @@ cdef class slow5py:
             yield row
 
 
-    def yield_read_list(self, read_list, pA=False):
+    def get_read_list(self, read_list, pA=False):
         '''
         returns generator for sequential reading of slow5 file
         if pa=True, do pA conversion of signal here.
