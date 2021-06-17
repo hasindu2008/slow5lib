@@ -181,7 +181,7 @@ KHASH_SET_INIT_STR(s)
 */
 struct slow5_hdr_data {
     uint32_t num_attrs;	            ///< Number of data attributes
-    khash_t(s) *attrs;              ///< Set of the data attribute keys (incase of multiple read groups, the union of keys from all read groups)
+    khash_t(s) *attrs;              ///< Set of the data attribute keys for internal access(incase of multiple read groups, the union of keys from all read groups)
     kvec_t(khash_t(s2s) *) maps;    ///< Dynamic vector of hash maps (attribute key string -> attribute value string). Length of the vector is requal to  num_read_groups. Index in the vector corresponds to the read group number. The keys that are not relevant to a particular read group are not stored in this hash map.
 };
 typedef struct slow5_hdr_data slow5_hdr_data_t;
@@ -639,7 +639,15 @@ static inline ssize_t slow5_eof_print(void) {
 void slow5_set_log_level(enum slow5_log_level_opt log_level);
 void slow5_set_exit_condition(enum slow5_exit_condition_opt exit_condition);
 
-const char **slow5_list_hdr_keys(const slow5_hdr_t *header);
+//get the list of hdr data keys in sorted order (only the returned pointer must be freed, not the ones inside - subjet to change)
+//len is the numberof elements
+//returns null if no attributes
+const char **slow5_get_hdr_keys(const slow5_hdr_t *header,uint64_t *len);
+
+//get the pointer to auxilliary field names
+char **slow5_get_aux_names(const slow5_hdr_t *header,uint64_t *len);
+//get the pointer to auxilliary field types
+enum aux_type *slow5_get_aux_types(const slow5_hdr_t *header,uint64_t *len);
 
 
 // Return

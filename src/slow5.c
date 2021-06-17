@@ -358,9 +358,13 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, press_method_t
 }
 
 
-//get the list of hdr data keys in sorted order (the returned pointer must be freed)
+//get the list of hdr data keys in sorted order (only the returned pointer must be freed, not the ones inside - subjet to change)
+//len is the numberof elements
 //returns null if no attributes
-const char **slow5_list_hdr_keys(const slow5_hdr_t *header){
+const char **slow5_get_hdr_keys(const slow5_hdr_t *header,uint64_t *len){
+    if(len!=NULL){
+        *len = header->data.num_attrs;
+    }
     if(header->data.num_attrs == 0){
         return NULL;
     }
@@ -456,7 +460,7 @@ void *slow5_hdr_to_mem(struct slow5_hdr *header, enum slow5_fmt format, press_me
     size_t len_to_cp;
     // Get unsorted list of header data attributes.
     if (header->data.num_attrs != 0) {
-        const char **data_attrs = slow5_list_hdr_keys(header);
+        const char **data_attrs = slow5_get_hdr_keys(header,NULL);
 
         // Write header data attributes to string
         for (size_t i = 0; i < header->data.num_attrs; ++ i) {
@@ -748,6 +752,20 @@ char *slow5_hdr_get(const char *attr, uint32_t read_group, const struct slow5_hd
     return value;
 }
 
+char **slow5_get_aux_names(const slow5_hdr_t *header,uint64_t *len){
+    if(len !=NULL){
+        *len = header->aux_meta->num;
+    }
+    return (header->aux_meta->attrs);
+}
+
+
+enum aux_type *slow5_get_aux_types(const slow5_hdr_t *header,uint64_t *len){
+    if(len !=NULL){
+        *len = header->aux_meta->num;
+    }
+    return (header->aux_meta->types);
+}
 /**
  * Add a new header data attribute.
  *
