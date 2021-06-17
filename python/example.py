@@ -85,6 +85,13 @@ for r, read in zip(read_list,selected_reads):
 
 
 print("==============================================")
+# get header names
+print("Get headder names")
+names = s5p.get_header_names()
+print("header names:")
+print(names)
+
+print("==============================================")
 # Get header attributes
 print("Get headder attributes")
 attr = "flow_cell_id"
@@ -96,8 +103,9 @@ print(f"exp_start_time: {val}")
 attr = "heatsink_temp"
 val = s5p.get_header_value(attr)
 print(f"heatsink_temp: {val}")
-
-
+for attr in names:
+    val = s5p.get_header_value(attr)
+    print(f"{attr}: {val}")
 
 
 print("==============================================")

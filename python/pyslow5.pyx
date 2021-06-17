@@ -16,6 +16,7 @@ cdef class slow5py:
     cdef pyslow5.slow5_file_t *s5p
     cdef pyslow5.slow5_rec_t *rec
     cdef pyslow5.slow5_rec_t *read
+    cdef pyslow5.uint64_t head_len
     cdef const char* p
     cdef const char* m
     cdef int V
@@ -27,6 +28,7 @@ cdef class slow5py:
         self.s5p = NULL
         self.rec = NULL
         self.read = NULL
+        self.head_len = 0
         self.V = DEBUG
         self.logger = logging.getLogger(__name__)
         if self.V ==1:
@@ -164,13 +166,21 @@ cdef class slow5py:
             yield self._get_read(r, pA)
 
 
-    def get_header_names(self, read_group=0):
+    def get_header_names(self):
         '''
         TODO
         get all header names and return list
         '''
         headers = []
         # ret = slow5_header_names(self.s5p.header)
+        ret = slow5_get_hdr_keys(self.s5p.header, &self.head_len)
+
+        self.logger.debug(f"slow5_get_hdr_keys head_len: {self.head_len}")
+        if ret == NULL:
+            self.logger.debug(f"slow5_get_hdr_keys ret is NULL")
+            return headers
+
+        headers = [ret[i].decode() for i in range(self.head_len)]
         return headers
 
     def get_header_value(self, attr, read_group=0):
@@ -179,6 +189,4 @@ cdef class slow5py:
         '''
         a = str.encode(attr)
         ret = slow5_hdr_get(a, read_group, self.s5p.header).decode()
-
-        self.logger.debug(f"get_header ret: {ret}")
         return ret
