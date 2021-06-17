@@ -753,18 +753,35 @@ char *slow5_hdr_get(const char *attr, uint32_t read_group, const struct slow5_hd
 }
 
 char **slow5_get_aux_names(const slow5_hdr_t *header,uint64_t *len){
-    if(len !=NULL){
-        *len = header->aux_meta->num;
+
+    u_int64_t my_len = (header->aux_meta == NULL) ? 0 : header->aux_meta->num;
+
+    if(len){
+        *len = my_len;
     }
-    return (header->aux_meta->attrs);
+
+    if(my_len==0){
+        return NULL;
+    }
+    else {
+        return (header->aux_meta->attrs);
+    }
 }
 
 
 enum aux_type *slow5_get_aux_types(const slow5_hdr_t *header,uint64_t *len){
-    if(len !=NULL){
-        *len = header->aux_meta->num;
+    u_int64_t my_len = (header->aux_meta == NULL) ? 0 : header->aux_meta->num;
+
+    if(len){
+        *len = my_len;
     }
-    return (header->aux_meta->types);
+
+    if(my_len==0){
+        return NULL;
+    }
+    else {
+        return (header->aux_meta->types);
+    }
 }
 /**
  * Add a new header data attribute.
