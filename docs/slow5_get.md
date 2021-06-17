@@ -1,4 +1,4 @@
-# slow5lib
+# slow5_get
 
 ## NAME
 
