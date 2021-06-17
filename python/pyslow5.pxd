@@ -46,6 +46,7 @@ cdef extern from "pyslow5.h":
 
     # Open a slow5 file
     slow5_file_t *slow5_open(const char *pathname, const char *mode)
+    const char **slow5_get_hdr_keys(const slow5_hdr_t *header, uint64_t *len);
     char *slow5_hdr_get(const char *attr, uint32_t read_group, const slow5_hdr_t *header);
     int slow5_close(slow5_file_t *s5p)
     int slow5_idx_load(slow5_file_t *s5p)
