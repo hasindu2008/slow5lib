@@ -2,7 +2,7 @@
 
 ## NAME
 
-slow5_get - get a read entry from a slow5 file corresponding to a read_id
+slow5_get - Get a read entry from a slow5 file corresponding to a read_id
 
 ## SYNOPSYS
 
@@ -14,9 +14,9 @@ slow5_get - get a read entry from a slow5 file corresponding to a read_id
 
 The argument  *read_id* points to a read identifier string.
 
-If **read* is set to NULL before the call, then `slow5_get()` will allocate a *slow5_rec_t* for storing the record.
+If ***read* is set to NULL before the call, then `slow5_get()` will allocate a *slow5_rec_t* for storing the record.
 This slow5_rec_t should be freed by the user program using `slow5_rec_free()`.
-Alternatively, before calling `slow5_get()`, **read* can contain a pointer to an allocated *slow5_rec_t* from a previous `slow5_get()` call.
+Alternatively, before calling `slow5_get()`, ***read* can contain a pointer to an allocated *slow5_rec_t* from a previous `slow5_get()` call.
 If the allocated *slow5_rec_t* is not large enough to hold the record, `slow5_get()` will resize it internally.
 
 The argument *s5p* points to a *slow5_file_t* opened using `slow5_open()`. `slow5_get()` requires the SLOW index to be pre-loaded to *s5p* using `slow5_idx_load()`.
