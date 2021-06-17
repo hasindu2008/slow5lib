@@ -1,28 +1,26 @@
 # slow5lib
 
 ## NAME
-slow5_open - Opens a SLOW5 file.
+slow5_open_with - Opens a slow5 file of a specific format with a mode given it's pathname.
 
 ## SYNOPSYS
-`slow5_file_t *slow5_open(const char *pathname, const char *mode)`
+`slow5_file_t *slow5_open_with(const char *pathname, const char *mode, enum slow5_fmt format)`
 
 ## DESCRIPTION
-Attempt to guess the file's slow5 format (ASCII and binary) from extension of the argument *pathname*. 
-
-This function at the moment should only be used to open a file for reading. The user is expected to give `r` or `rb` as the *mode* for ASCII and binary respectively.
-
-Since the function can detect the file type internally the user can simply give `r` as the *mode*.
+This function at the moment should only be used to open a file for reading. The user is expected to give `r` or `rb` as the *mode* for ASCII and binary respectively along with the correct *format*. 
 
 An open slow5 file should be closed using `slow5_close()`
 
-
 ## RETURN VALUE
-Upon successful completion, `slow_open()` returns a *slow5_file_t* pointer. Otherwise, NULL is returned.
+Upon successful completion, `slow5_open_with()` returns a *slow5_file_t* pointer. Otherwise, NULL is returned, e.g., if *pathname* or *mode* is NULL, or if the *format* specified doesn't match the file format.
+                                                                 
 
 ## NOTES
 This function at the moment should only be used to open a file for reading. The user is expected to give `r` or `rb` as the *mode* for ASCII and binary respectively.
 
-Also see `slow5_open_with()`
+`slow5_open_with(pathname, mode, FORMAT_UNKNOWN)` is equivalent to `slow5_open(pathname, mode)`.
+
+Also see `slow5_open()`
 
 ## EXAMPLES
 
@@ -37,7 +35,7 @@ Also see `slow5_open_with()`
 
 int main(){
 
-    slow5_file_t *sp = slow5_open(FILE_PATH,"r");
+    slow5_file_t *sp = slow5_open_with(FILE_PATH,"r",FORMAT_ASCII);
     if(sp==NULL){
        fprintf(stderr,"Error in opening file\n");
        exit(EXIT_FAILURE);

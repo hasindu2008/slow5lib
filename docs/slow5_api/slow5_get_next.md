@@ -1,7 +1,7 @@
 # slow5lib
 
 ## NAME
-slow5_get_next - Get the read entry under the current file pointer of a slow5 file.
+slow5_get_next - Gets the read entry under the current file pointer of a slow5 file.
 
 ## SYNOPSYS
 `int slow5_get_next(slow5_rec_t **read, slow5_file_t *s5p)`

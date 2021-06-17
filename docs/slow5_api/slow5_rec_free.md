@@ -1,28 +1,20 @@
 # slow5lib
 
 ## NAME
-slow5_open - Opens a SLOW5 file.
+slow5_rec_free - Frees a slow5 record.
 
 ## SYNOPSYS
-`slow5_file_t *slow5_open(const char *pathname, const char *mode)`
+`void slow5_rec_free(slow5_rec_t *read)`
 
 ## DESCRIPTION
-Attempt to guess the file's slow5 format (ASCII and binary) from extension of the argument *pathname*. 
-
-This function at the moment should only be used to open a file for reading. The user is expected to give `r` or `rb` as the *mode* for ASCII and binary respectively.
-
-Since the function can detect the file type internally the user can simply give `r` as the *mode*.
-
-An open slow5 file should be closed using `slow5_close()`
-
+This is a wrapper function around standard C library function `free()`
+`slow5_rec_free()` safely closes attributes defined in *slow5_rec_t*
 
 ## RETURN VALUE
-Upon successful completion, `slow_open()` returns a *slow5_file_t* pointer. Otherwise, NULL is returned.
+Same as the behavior observed in standard C library function `free()`.
 
 ## NOTES
-This function at the moment should only be used to open a file for reading. The user is expected to give `r` or `rb` as the *mode* for ASCII and binary respectively.
-
-Also see `slow5_open_with()`
+Also see `slow5_get()` and `slow5_get_next()`
 
 ## EXAMPLES
 

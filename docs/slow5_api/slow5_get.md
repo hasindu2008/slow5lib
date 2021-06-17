@@ -2,7 +2,7 @@
 
 ## NAME
 
-slow5_get - Get a read entry from a slow5 file corresponding to a read_id.
+slow5_get - Gets a read entry from a slow5 file corresponding to a read_id.
 
 ## SYNOPSYS
 
@@ -43,6 +43,8 @@ A negative return value indicates an error as follows.
 ## NOTES
 
 Error codes are not finalised and subject to change.
+
+See also `slow5_get_next()` and `slow5_rec_free()` 
 
 ## EXAMPLES
 

@@ -1,28 +1,27 @@
 # slow5lib
 
 ## NAME
-slow5_open - Opens a SLOW5 file.
+slow5_idx_load - Loads the index file for slow5 file into memory. Creates the index if not found.
 
 ## SYNOPSYS
-`slow5_file_t *slow5_open(const char *pathname, const char *mode)`
+`int slow5_idx_load(slow5_file_t *s5p)`
 
 ## DESCRIPTION
-Attempt to guess the file's slow5 format (ASCII and binary) from extension of the argument *pathname*. 
+`slow5_idx_load()` is used to load an index file into the memory. If the index is missing the index is first created and then loaded.
 
-This function at the moment should only be used to open a file for reading. The user is expected to give `r` or `rb` as the *mode* for ASCII and binary respectively.
-
-Since the function can detect the file type internally the user can simply give `r` as the *mode*.
-
-An open slow5 file should be closed using `slow5_close()`
-
+`slow5_idx_load()` should be called successfully before using `slow5_get()`.
 
 ## RETURN VALUE
-Upon successful completion, `slow_open()` returns a *slow5_file_t* pointer. Otherwise, NULL is returned.
+Upon successful completion, `slow5_idx_load()` returns 0. Otherwise, a negative value is returned that indicates the error.
+
+## ERRORS
+A negative return value indicates an error as follows.
+
+* `-1`
+    for all errors encountered
 
 ## NOTES
-This function at the moment should only be used to open a file for reading. The user is expected to give `r` or `rb` as the *mode* for ASCII and binary respectively.
-
-Also see `slow5_open_with()`
+Also see `slow5_idx_create()` and `slow5_idx_unload`.
 
 ## EXAMPLES
 

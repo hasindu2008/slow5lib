@@ -1,28 +1,23 @@
 # slow5lib
 
 ## NAME
-slow5_open - Opens a SLOW5 file.
+slow5_close - Closes a slow5 file and free its memory.
 
 ## SYNOPSYS
-`slow5_file_t *slow5_open(const char *pathname, const char *mode)`
+`int slow5_close(slow5_file_t *s5p)`
 
 ## DESCRIPTION
-Attempt to guess the file's slow5 format (ASCII and binary) from extension of the argument *pathname*. 
+This is a wrapper function around standard C library function `fclose()`
+`slow5_close()` safely closes attributes defined in *slow5_file_t*
 
-This function at the moment should only be used to open a file for reading. The user is expected to give `r` or `rb` as the *mode* for ASCII and binary respectively.
-
-Since the function can detect the file type internally the user can simply give `r` as the *mode*.
-
-An open slow5 file should be closed using `slow5_close()`
-
+A SLOW5 file *s5p* that was opened using `slow5_open()` or `slow5_open_with()` should be passed to `slow5_close()` to close the file .
 
 ## RETURN VALUE
-Upon successful completion, `slow_open()` returns a *slow5_file_t* pointer. Otherwise, NULL is returned.
+Same as the behavior observed in standard C library function `fclose()`.
 
 ## NOTES
-This function at the moment should only be used to open a file for reading. The user is expected to give `r` or `rb` as the *mode* for ASCII and binary respectively.
 
-Also see `slow5_open_with()`
+Also see `slow5_open_with()` and `slow5_open()`.
 
 ## EXAMPLES
 
