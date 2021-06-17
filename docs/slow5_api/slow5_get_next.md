@@ -1,48 +1,38 @@
-# slow5_get
+# slow5lib
 
 ## NAME
-
-slow5_get - Get a read entry from a slow5 file corresponding to a read_id.
+slow5_get_next - Get the read entry under the current file pointer of a slow5 file.
 
 ## SYNOPSYS
-
-`int slow5_get(const char *read_id, slow5_rec_t **read, slow5_file_t *s5p)`
+`int slow5_get_next(slow5_rec_t **read, slow5_file_t *s5p)`
 
 ## DESCRIPTION
-
-`slow5_get()` fetches a record from a SLOW5 file *s5p* for a specified *read_id* into a *slow5_rec_t* and stores the address of the *slow5_rec_t* in **read*.
-
-The argument  *read_id* points to a read identifier string.
+`slow5_get_next()` fetches a record from a SLOW5 file *s5p* at the current file pointer into a *slow5_rec_t* and stores the address of the *slow5_rec_t* in **read*.
 
 If **read* is set to NULL before the call, then `slow5_get()` will allocate a *slow5_rec_t* for storing the record.
 This *slow5_rec_t* should be freed by the user program using `slow5_rec_free()`.
 Alternatively, before calling `slow5_get()`, **read* can contain a pointer to an allocated *slow5_rec_t* from a previous `slow5_get()` call.
 If the allocated *slow5_rec_t* is not large enough to hold the record, `slow5_get()` will resize it internally.
 
-The argument *s5p* points to a *slow5_file_t* opened using `slow5_open()`. `slow5_get()` requires the SLOW index to be pre-loaded to *s5p* using `slow5_idx_load()`.
+The argument *s5p* points to a *slow5_file_t* opened using `slow5_open()`.
 
 ## RETURN VALUE
-
-Upon successful completion, `slow_get()` returns 0. Otherwise, a negative value is returned that indicates the error.
+Upon successful completion, `slow5_get_next()` returns 0. Otherwise, a negative value is returned that indicates the error.
 
 ## ERRORS
-
 A negative return value indicates an error as follows.
 
 * `-1`
     read_id, read or s5p is NULL
 * `-2`
-    the index has not been loaded
-* `-3`
-    read_id was not found in the index
-* `-4`
     reading error when reading the slow5 file
-* `-5`
+* `-3`
     parsing error
 
 ## NOTES
+ As opposed to `slow5_get()` which requires the SLOW index to be pre-loaded to *s5p* using `slow5_idx_load()`, `slow5_get_next` does not require an index.
 
-Error codes are not finalised and subject to change.
+Also see `slow5_get()`
 
 ## EXAMPLES
 
@@ -65,13 +55,7 @@ int main(){
     slow5_rec_t *rec = NULL;
     int ret=0;
 
-    ret = slow5_idx_load(sp);
-    if(ret<0){
-        fprintf(stderr,"Error in loading index\n");
-        exit(EXIT_FAILURE);
-    }
-
-    ret = slow5_get("r3", &rec, sp);
+    ret = slow5_get_next(&rec, sp);
     if(ret < 0){
         fprintf(stderr,"Error in locating read\n");
     }
@@ -84,8 +68,6 @@ int main(){
         }
         printf("\n");
     }
-
-    slow5_idx_unload(sp);
 
     slow5_close(sp);
 
