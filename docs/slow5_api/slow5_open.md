@@ -1,75 +1,37 @@
-# slow5lib
+# slow5_open
 
 ## NAME
 slow5_open - Opens a SLOW5 file.
 
 ## SYNOPSYS
-`slow5_file_t *slow5_open(const char *pathname, const char *mode)`
+```
+#include <slow5/slow5.h>
+slow5_file_t *slow5_open(const char *pathname, const char *mode)`
+```
 
 ## DESCRIPTION
-Attempt to guess the file's slow5 format (ASCII and binary) from extension of the argument *pathname*. 
 
-This function at the moment should only be used to open a file for reading. The user is expected to give `r` or `rb` as the *mode* for ASCII and binary respectively.
+The `slow_open()` function opens a SLOW5 file (ASCII and binary) pointed by the argument *pathname*, parses and populates the SLOW5 header. `slow_open()` determines if the file is SLOW5 ASCII or SLOW5 Binary from extension of the argument *pathname* (*.slow5* for SLOW5 ASCII and *.blow5* for SLOW5 binary).
 
-Since the function can detect the file type internally the user can simply give `r` as the *mode*.
+The argument *mode* points to a string beginning with the following sequence. Additional modes will be introduced later.
+- *r* Open SLOW5 file for reading
 
-An open slow5 file should be closed using `slow5_close()`
+`slow_open()`
+
+An open slow5 file should be closed at the end using `slow5_close()` function.
 
 
 ## RETURN VALUE
 Upon successful completion, `slow_open()` returns a *slow5_file_t* pointer. Otherwise, NULL is returned.
 
+## ERRORS
+
+`slow_open()` fails and returns NULL in the following occasions:
+- pathname or mode is NULL
+- pathname is invalid (i.e., internally `fopen()` failed on the pathname)
+- wrong file extension that is neither .slow5 or .blow5
+- parsing and populating the header failed
+- `fileno()` failed internally
+
 ## NOTES
-This function at the moment should only be used to open a file for reading. The user is expected to give `r` or `rb` as the *mode* for ASCII and binary respectively.
-
-Also see `slow5_open_with()`
-
-## EXAMPLES
-
-```
-#include <stdio.h>
-#include <stdlib.h>
-#include <slow5/slow5.h>
-
-#define FILE_PATH "examples/example.slow5"
-
-#define TO_PICOAMPS(RAW_VAL,DIGITISATION,OFFSET,RANGE) (((RAW_VAL)+(OFFSET))*((RANGE)/(DIGITISATION)))
-
-int main(){
-
-    slow5_file_t *sp = slow5_open(FILE_PATH,"r");
-    if(sp==NULL){
-       fprintf(stderr,"Error in opening file\n");
-       exit(EXIT_FAILURE);
-    }
-    slow5_rec_t *rec = NULL;
-    int ret=0;
-
-    ret = slow5_idx_load(sp);
-    if(ret<0){
-        fprintf(stderr,"Error in loading index\n");
-        exit(EXIT_FAILURE);
-    }
-
-    ret = slow5_get("r3", &rec, sp);
-    if(ret < 0){
-        fprintf(stderr,"Error in locating read\n");
-    }
-    else{
-        printf("%s\t",rec->read_id);
-        uint64_t len_raw_signal = rec->len_raw_signal;
-        for(uint64_t i=0;i<len_raw_signal;i++){
-            double pA = TO_PICOAMPS(rec->raw_signal[i],rec->digitisation,rec->offset,rec->range);
-            printf("%f ",pA);
-        }
-        printf("\n");
-    }
-
-    slow5_rec_free(rec);
-
-    slow5_idx_unload(sp);
-
-    slow5_close(sp);
-
-}
-```
+Internally uses `fopen()`. The stream is positioned at the beginning of the data records.

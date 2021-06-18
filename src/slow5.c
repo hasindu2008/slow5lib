@@ -58,7 +58,7 @@ enum slow5_exit_condition_opt  slow5_exit_condition = SLOW5_EXIT_OFF;
 struct slow5_file *slow5_init(FILE *fp, const char *pathname, enum slow5_fmt format) {
     // Pathname cannot be NULL at this point
     if (fp == NULL) {
-        SLOW5_WARNING("%s","Cannot initialise with NULL file pointer.");
+        SLOW5_WARNING("%s","Cannot initialise a SLOW5 file with a NULL file pointer.");
         return NULL;
     }
 
@@ -68,7 +68,7 @@ struct slow5_file *slow5_init(FILE *fp, const char *pathname, enum slow5_fmt for
         // from pathname
         if ((format = path_get_slow5_fmt(pathname)) == FORMAT_UNKNOWN) {
             fclose(fp);
-            SLOW5_WARNING("%s","Could not determine SLOW5 file format.");
+            SLOW5_ERROR("%s","Could not determine SLOW5 file format. Extension must be .slow5 or .blow5");
             return NULL;
         }
     }
@@ -78,7 +78,7 @@ struct slow5_file *slow5_init(FILE *fp, const char *pathname, enum slow5_fmt for
     struct slow5_hdr *header = slow5_hdr_init(fp, format, &method);
     if (header == NULL) {
         fclose(fp);
-        SLOW5_WARNING("%s","Could not initialise SLOW5 header.");
+        SLOW5_ERROR("%s","Could not initialise SLOW5 header.");
         s5p = NULL;
     } else {
         s5p = (struct slow5_file *) calloc(1, sizeof *s5p);
@@ -89,6 +89,7 @@ struct slow5_file *slow5_init(FILE *fp, const char *pathname, enum slow5_fmt for
         s5p->compress = press_init(method);
 
         if ((s5p->meta.fd = fileno(fp)) == -1) {
+            SLOW5_ERROR("%s","Obtaining the fileno failed.");
             slow5_close(s5p);
             s5p = NULL;
         }
@@ -139,15 +140,16 @@ struct slow5_file *slow5_init_empty(FILE *fp, const char *pathname, enum slow5_f
  * Open a slow5 file with a specific mode given it's pathname.
  *
  * Attempt to guess the file's slow5 format from the pathname's extension.
- * Return NULL if pathname or mode is NULL,
- * or if the pathname's extension is not recognised,
- * of if the pathname is invalid.
+ * Return NULL on error.
  *
- * Otherwise, return a slow5 file structure with the header parsed.
+ * If successful, return a slow5 file structure with the header parsed.
  * slow5_close() should be called when finished with the structure.
  *
+ * The user at the moment is expected to give "r"
+ * TODO : Make "r" into "rb" if BLOW5 - this is not an issue for POSIX systems as mode b is not used [https://man7.org/linux/man-pages/man3/fopen.3.html]
+ *
  * @param   pathname    relative or absolute path to slow5 file
- * @param   mode        same mode as in fopen()
+ * @param   mode        only "r" for the moment for reading
  * @return              slow5 file structure
  */
 struct slow5_file *slow5_open(const char *pathname, const char *mode) {
@@ -164,7 +166,7 @@ struct slow5_file *slow5_open(const char *pathname, const char *mode) {
  * slow5_close() should be called when finished with the structure.
  *
  * @param   pathname    relative or absolute path to slow5 file
- * @param   mode        same mode as in fopen()
+ * @param   mode        only "r" for the moment
  * @param   format      format of the slow5 file
  * @return              slow5 file structure
  */
@@ -173,16 +175,25 @@ struct slow5_file *slow5_open_with(const char *pathname, const char *mode, enum 
         SLOW5_ERROR("%s","Big endian machine detected. SLOW5lib only support little endian at this time. Please open a github issue stating your machine spec.");
         return NULL;
     }
-    if (pathname == NULL || mode == NULL) {
-        SLOW5_WARNING("%s","pathname and mode cannot be NULL.");
+    if (pathname == NULL) {
+        SLOW5_ERROR("%s","Argument 'pathname' cannot be NULL.");
         return NULL;
-    } else {
-        FILE *fp = fopen(pathname, mode);
-        if(fp==NULL){
-            SLOW5_ERROR("Error opening file %s: %s",pathname, strerror(errno));
-        }
-        return slow5_init(fp, pathname, format);
     }
+    if (mode == NULL) {
+        SLOW5_ERROR("%s","Argument 'mode' cannot be NULL.");
+        return NULL;
+    }
+
+    if(strcmp(mode,"r")){
+        SLOW5_WARNING("Currently, the only supported mode is 'r'. You entered %s",mode);
+    }
+
+    FILE *fp = fopen(pathname, mode);
+    if(fp==NULL){
+        SLOW5_ERROR("Error opening file %s: %s",pathname, strerror(errno));
+    }
+    return slow5_init(fp, pathname, format);
+
 }
 
 // Close a slow5 file

@@ -282,19 +282,16 @@ typedef struct slow5_file slow5_file_t;
  * Open a slow5 file with a specific mode given it's pathname.
  *
  * Attempt to guess the file's slow5 format from the pathname's extension.
- * Return NULL if pathname or mode is NULL,
- * or if the pathname's extension is not recognised,
- * or if the pathname is invalid.
+ * Return NULL on error.
  *
- * Otherwise, return a slow5 file structure with the header parsed.
+ * If successful, return a slow5 file structure with the header parsed.
  * slow5_close() should be called when finished with the structure.
  *
- * TODO: This function at the moment should only be used for opening a file for reading
- * The user at the moment is expected to give "r" as the mode for ASCII and "rb" for binary
- * This mode should better be programmatically done inside the function and the function be renamed to slow5_open_r to idicate this is only for reading
+ * The user at the moment is expected to give "r"
+ * TODO : Make "r" into "rb" if BLOW5 - this is not an issue for POSIX systems as mode b is not used [https://man7.org/linux/man-pages/man3/fopen.3.html]
  *
  * @param   pathname    relative or absolute path to slow5 file
- * @param   mode        same mode as in fopen()
+ * @param   mode        only "r" for the moment for reading
  * @return              slow5 file structure
  */
 slow5_file_t *slow5_open(const char *pathname, const char *mode);
