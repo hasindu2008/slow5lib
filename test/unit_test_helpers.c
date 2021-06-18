@@ -212,69 +212,69 @@ int strtod_check_invalid(void) {
 
 int path_get_slow5_fmt_test(void) {
 
-    ASSERT(FORMAT_ASCII == path_get_slow5_fmt("test.slow5"));
-    ASSERT(FORMAT_ASCII == path_get_slow5_fmt("hithere/test.slow5"));
-    ASSERT(FORMAT_ASCII == path_get_slow5_fmt("testaskdj.slow5"));
-    ASSERT(FORMAT_ASCII == path_get_slow5_fmt("blow5.slow5"));
-    ASSERT(FORMAT_ASCII == path_get_slow5_fmt("slow5.slow5"));
-    ASSERT(FORMAT_ASCII == path_get_slow5_fmt("hi...slow5.slow5"));
-    ASSERT(FORMAT_ASCII == path_get_slow5_fmt("1234.slow5"));
-    ASSERT(FORMAT_ASCII == path_get_slow5_fmt("myslow5.slow5"));
+    ASSERT(SLOW5_FORMAT_ASCII == path_get_slow5_fmt("test.slow5"));
+    ASSERT(SLOW5_FORMAT_ASCII == path_get_slow5_fmt("hithere/test.slow5"));
+    ASSERT(SLOW5_FORMAT_ASCII == path_get_slow5_fmt("testaskdj.slow5"));
+    ASSERT(SLOW5_FORMAT_ASCII == path_get_slow5_fmt("blow5.slow5"));
+    ASSERT(SLOW5_FORMAT_ASCII == path_get_slow5_fmt("slow5.slow5"));
+    ASSERT(SLOW5_FORMAT_ASCII == path_get_slow5_fmt("hi...slow5.slow5"));
+    ASSERT(SLOW5_FORMAT_ASCII == path_get_slow5_fmt("1234.slow5"));
+    ASSERT(SLOW5_FORMAT_ASCII == path_get_slow5_fmt("myslow5.slow5"));
 
-    ASSERT(FORMAT_BINARY == path_get_slow5_fmt("test.blow5"));
-    ASSERT(FORMAT_BINARY == path_get_slow5_fmt("hithere///test.blow5"));
-    ASSERT(FORMAT_BINARY == path_get_slow5_fmt("hithere///test.slow5/test.blow5"));
-    ASSERT(FORMAT_BINARY == path_get_slow5_fmt("testaslkdjlaskjdfalsdifaslkfdj234.blow5"));
-    ASSERT(FORMAT_BINARY == path_get_slow5_fmt("blow5.blow5"));
-    ASSERT(FORMAT_BINARY == path_get_slow5_fmt("slow5.blow5"));
-    ASSERT(FORMAT_BINARY == path_get_slow5_fmt("hi...blow5.blow5"));
-    ASSERT(FORMAT_BINARY == path_get_slow5_fmt("1234.blow5"));
-    ASSERT(FORMAT_BINARY == path_get_slow5_fmt("myblow5.blow5"));
+    ASSERT(SLOW5_FORMAT_BINARY == path_get_slow5_fmt("test.blow5"));
+    ASSERT(SLOW5_FORMAT_BINARY == path_get_slow5_fmt("hithere///test.blow5"));
+    ASSERT(SLOW5_FORMAT_BINARY == path_get_slow5_fmt("hithere///test.slow5/test.blow5"));
+    ASSERT(SLOW5_FORMAT_BINARY == path_get_slow5_fmt("testaslkdjlaskjdfalsdifaslkfdj234.blow5"));
+    ASSERT(SLOW5_FORMAT_BINARY == path_get_slow5_fmt("blow5.blow5"));
+    ASSERT(SLOW5_FORMAT_BINARY == path_get_slow5_fmt("slow5.blow5"));
+    ASSERT(SLOW5_FORMAT_BINARY == path_get_slow5_fmt("hi...blow5.blow5"));
+    ASSERT(SLOW5_FORMAT_BINARY == path_get_slow5_fmt("1234.blow5"));
+    ASSERT(SLOW5_FORMAT_BINARY == path_get_slow5_fmt("myblow5.blow5"));
 
-    ASSERT(FORMAT_ASCII == path_get_slow5_fmt(".slow5"));
-    ASSERT(FORMAT_BINARY == path_get_slow5_fmt(".blow5"));
+    ASSERT(SLOW5_FORMAT_ASCII == path_get_slow5_fmt(".slow5"));
+    ASSERT(SLOW5_FORMAT_BINARY == path_get_slow5_fmt(".blow5"));
 
-    ASSERT(FORMAT_UNKNOWN == path_get_slow5_fmt("..."));
-    ASSERT(FORMAT_UNKNOWN == path_get_slow5_fmt("slow5"));
-    ASSERT(FORMAT_UNKNOWN == path_get_slow5_fmt("blow5"));
-    ASSERT(FORMAT_UNKNOWN == path_get_slow5_fmt("blablabla"));
-    ASSERT(FORMAT_UNKNOWN == path_get_slow5_fmt(""));
-    ASSERT(FORMAT_UNKNOWN == path_get_slow5_fmt(NULL));
+    ASSERT(SLOW5_FORMAT_UNKNOWN == path_get_slow5_fmt("..."));
+    ASSERT(SLOW5_FORMAT_UNKNOWN == path_get_slow5_fmt("slow5"));
+    ASSERT(SLOW5_FORMAT_UNKNOWN == path_get_slow5_fmt("blow5"));
+    ASSERT(SLOW5_FORMAT_UNKNOWN == path_get_slow5_fmt("blablabla"));
+    ASSERT(SLOW5_FORMAT_UNKNOWN == path_get_slow5_fmt(""));
+    ASSERT(SLOW5_FORMAT_UNKNOWN == path_get_slow5_fmt(NULL));
 
     return EXIT_SUCCESS;
 }
 
 int name_get_slow5_fmt_test(void) {
 
-    ASSERT(FORMAT_ASCII == name_get_slow5_fmt("slow5"));
-    ASSERT(FORMAT_BINARY == name_get_slow5_fmt("blow5"));
+    ASSERT(SLOW5_FORMAT_ASCII == name_get_slow5_fmt("slow5"));
+    ASSERT(SLOW5_FORMAT_BINARY == name_get_slow5_fmt("blow5"));
 
-    ASSERT(FORMAT_UNKNOWN == name_get_slow5_fmt(".slow5"));
-    ASSERT(FORMAT_UNKNOWN == name_get_slow5_fmt(".blow5"));
-    ASSERT(FORMAT_UNKNOWN == name_get_slow5_fmt(".blow5"));
-    ASSERT(FORMAT_UNKNOWN == name_get_slow5_fmt("..."));
-    ASSERT(FORMAT_UNKNOWN == name_get_slow5_fmt("slow55"));
-    ASSERT(FORMAT_UNKNOWN == name_get_slow5_fmt("blow55"));
-    ASSERT(FORMAT_UNKNOWN == name_get_slow5_fmt("blablabla"));
-    ASSERT(FORMAT_UNKNOWN == name_get_slow5_fmt(""));
-    ASSERT(FORMAT_UNKNOWN == name_get_slow5_fmt(NULL));
-    ASSERT(FORMAT_UNKNOWN == name_get_slow5_fmt("test.slow5"));
-    ASSERT(FORMAT_UNKNOWN == name_get_slow5_fmt("hithere/test.slow5"));
-    ASSERT(FORMAT_UNKNOWN == name_get_slow5_fmt("testaskdj.slow5"));
-    ASSERT(FORMAT_UNKNOWN == name_get_slow5_fmt("blow5.slow5"));
-    ASSERT(FORMAT_UNKNOWN == name_get_slow5_fmt("slow5.slow5"));
-    ASSERT(FORMAT_UNKNOWN == name_get_slow5_fmt("hi...slow5.slow5"));
-    ASSERT(FORMAT_UNKNOWN == name_get_slow5_fmt("1234.slow5"));
-    ASSERT(FORMAT_UNKNOWN == name_get_slow5_fmt("myslow5.slow5"));
-    ASSERT(FORMAT_UNKNOWN == name_get_slow5_fmt("test.blow5"));
-    ASSERT(FORMAT_UNKNOWN == name_get_slow5_fmt("hithere///test.blow5"));
-    ASSERT(FORMAT_UNKNOWN == name_get_slow5_fmt("hithere///test.slow5/test.blow5"));
-    ASSERT(FORMAT_UNKNOWN == name_get_slow5_fmt("testaslkdjlaskjdfalsdifaslkfdj234.blow5"));
-    ASSERT(FORMAT_UNKNOWN == name_get_slow5_fmt("blow5.blow5"));
-    ASSERT(FORMAT_UNKNOWN == name_get_slow5_fmt("slow5.blow5"));
-    ASSERT(FORMAT_UNKNOWN == name_get_slow5_fmt("hi...blow5.blow5"));
-    ASSERT(FORMAT_UNKNOWN == name_get_slow5_fmt("1234.blow5"));
-    ASSERT(FORMAT_UNKNOWN == name_get_slow5_fmt("myblow5.blow5"));
+    ASSERT(SLOW5_FORMAT_UNKNOWN == name_get_slow5_fmt(".slow5"));
+    ASSERT(SLOW5_FORMAT_UNKNOWN == name_get_slow5_fmt(".blow5"));
+    ASSERT(SLOW5_FORMAT_UNKNOWN == name_get_slow5_fmt(".blow5"));
+    ASSERT(SLOW5_FORMAT_UNKNOWN == name_get_slow5_fmt("..."));
+    ASSERT(SLOW5_FORMAT_UNKNOWN == name_get_slow5_fmt("slow55"));
+    ASSERT(SLOW5_FORMAT_UNKNOWN == name_get_slow5_fmt("blow55"));
+    ASSERT(SLOW5_FORMAT_UNKNOWN == name_get_slow5_fmt("blablabla"));
+    ASSERT(SLOW5_FORMAT_UNKNOWN == name_get_slow5_fmt(""));
+    ASSERT(SLOW5_FORMAT_UNKNOWN == name_get_slow5_fmt(NULL));
+    ASSERT(SLOW5_FORMAT_UNKNOWN == name_get_slow5_fmt("test.slow5"));
+    ASSERT(SLOW5_FORMAT_UNKNOWN == name_get_slow5_fmt("hithere/test.slow5"));
+    ASSERT(SLOW5_FORMAT_UNKNOWN == name_get_slow5_fmt("testaskdj.slow5"));
+    ASSERT(SLOW5_FORMAT_UNKNOWN == name_get_slow5_fmt("blow5.slow5"));
+    ASSERT(SLOW5_FORMAT_UNKNOWN == name_get_slow5_fmt("slow5.slow5"));
+    ASSERT(SLOW5_FORMAT_UNKNOWN == name_get_slow5_fmt("hi...slow5.slow5"));
+    ASSERT(SLOW5_FORMAT_UNKNOWN == name_get_slow5_fmt("1234.slow5"));
+    ASSERT(SLOW5_FORMAT_UNKNOWN == name_get_slow5_fmt("myslow5.slow5"));
+    ASSERT(SLOW5_FORMAT_UNKNOWN == name_get_slow5_fmt("test.blow5"));
+    ASSERT(SLOW5_FORMAT_UNKNOWN == name_get_slow5_fmt("hithere///test.blow5"));
+    ASSERT(SLOW5_FORMAT_UNKNOWN == name_get_slow5_fmt("hithere///test.slow5/test.blow5"));
+    ASSERT(SLOW5_FORMAT_UNKNOWN == name_get_slow5_fmt("testaslkdjlaskjdfalsdifaslkfdj234.blow5"));
+    ASSERT(SLOW5_FORMAT_UNKNOWN == name_get_slow5_fmt("blow5.blow5"));
+    ASSERT(SLOW5_FORMAT_UNKNOWN == name_get_slow5_fmt("slow5.blow5"));
+    ASSERT(SLOW5_FORMAT_UNKNOWN == name_get_slow5_fmt("hi...blow5.blow5"));
+    ASSERT(SLOW5_FORMAT_UNKNOWN == name_get_slow5_fmt("1234.blow5"));
+    ASSERT(SLOW5_FORMAT_UNKNOWN == name_get_slow5_fmt("myblow5.blow5"));
 
     return EXIT_SUCCESS;
 }

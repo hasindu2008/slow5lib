@@ -420,7 +420,7 @@ void make_gzip_blow5_lossless(void) {
     struct slow5_rec *read = NULL;
     slow5_get_next(&read, s5p);
     struct press *gzip = press_init(COMPRESS_GZIP);
-    slow5_rec_fwrite(fp, read, s5p->header->aux_meta, FORMAT_BINARY, gzip);
+    slow5_rec_fwrite(fp, read, s5p->header->aux_meta, SLOW5_FORMAT_BINARY, gzip);
 
     slow5_eof_fwrite(fp);
 
@@ -500,7 +500,7 @@ void make_gzip_blow5_lossless_aux_array(void) {
     struct slow5_rec *read = NULL;
     slow5_get_next(&read, s5p);
     struct press *gzip = press_init(COMPRESS_GZIP);
-    slow5_rec_fwrite(fp, read, s5p->header->aux_meta, FORMAT_BINARY, gzip);
+    slow5_rec_fwrite(fp, read, s5p->header->aux_meta, SLOW5_FORMAT_BINARY, gzip);
 
     slow5_eof_fwrite(fp);
 
@@ -582,7 +582,7 @@ void make_gzip_blow5(void) {
     slow5_get_next(&read, s5p);
 
     struct press *gzip = press_init(COMPRESS_GZIP);
-    slow5_rec_fwrite(fp, read, NULL, FORMAT_BINARY, gzip);
+    slow5_rec_fwrite(fp, read, NULL, SLOW5_FORMAT_BINARY, gzip);
 
     char eof[] = SLOW5_BINARY_EOF;
     fwrite(eof, sizeof *eof, sizeof eof, fp);
@@ -664,9 +664,9 @@ void make_gzip_blow5_two_rg(void) {
     struct slow5_rec *read = NULL;
 
     slow5_get_next(&read, s5p);
-    slow5_rec_fwrite(fp, read, NULL, FORMAT_BINARY, gzip);
+    slow5_rec_fwrite(fp, read, NULL, SLOW5_FORMAT_BINARY, gzip);
     slow5_get_next(&read, s5p);
-    slow5_rec_fwrite(fp, read, NULL, FORMAT_BINARY, gzip);
+    slow5_rec_fwrite(fp, read, NULL, SLOW5_FORMAT_BINARY, gzip);
 
     char eof[] = SLOW5_BINARY_EOF;
     fwrite(eof, sizeof *eof, sizeof eof, fp);

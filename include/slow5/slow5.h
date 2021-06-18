@@ -35,6 +35,7 @@ SOFTWARE.
 // TODO structure pack to min size
 // TODO fix and add function descriptions
 // TODO remove unnessary header inclusions
+// TODO move klib to src/
 
 #ifndef SLOW5_H
 #define SLOW5_H
@@ -61,9 +62,9 @@ extern "C" {
 * File formats we are dealing with
 */
 enum slow5_fmt {
-    FORMAT_UNKNOWN, ///< the format is unknown, usually the case before parsing the file extension
-    FORMAT_ASCII,   ///< the format is ASCII SLOW5
-    FORMAT_BINARY   ///< the format is binary SLOW5 (that is, BLOW5)
+    SLOW5_FORMAT_UNKNOWN, ///< the format is unknown, usually the case before parsing the file extension
+    SLOW5_FORMAT_ASCII,   ///< the format is ASCII SLOW5
+    SLOW5_FORMAT_BINARY   ///< the format is binary SLOW5 (that is, BLOW5)
 };
 
 /**
@@ -76,8 +77,8 @@ struct slow5_fmt_meta {
 };
 
 static const struct slow5_fmt_meta SLOW5_FORMAT_META[] = {
-    { SLOW5_ASCII_NAME,   FORMAT_ASCII    },
-    { SLOW5_BINARY_NAME,  FORMAT_BINARY   }
+    { SLOW5_ASCII_NAME,   SLOW5_FORMAT_ASCII    },
+    { SLOW5_BINARY_NAME,  SLOW5_FORMAT_BINARY   }
 };
 
 /*** SLOW5 Header *********************************************************************************/
@@ -93,41 +94,41 @@ struct slow5_version {
 };
 
 // TODO is this ok or put somewhere else or get rid of?
-static const struct slow5_version ASCII_VERSION_STRUCT = { .major = 0, .minor = 1, .patch = 0 };
-static const struct slow5_version BINARY_VERSION_STRUCT = { .major = 0, .minor = 1, .patch = 0 };
+static const struct slow5_version SLOW5_ASCII_VERSION_STRUCT = { .major = 0, .minor = 1, .patch = 0 };
+static const struct slow5_version SLOW5_BINARY_VERSION_STRUCT = { .major = 0, .minor = 1, .patch = 0 };
 
 // SLOW5 auxiliary types
-// DO NOT rearrange! See subtracting INT8_T_ARRAY in SLOW5_TO_PRIM_TYPE
-// if adding more in future, primitive types must be added after CHAR and arrays after STRING
+// DO NOT rearrange! See subtracting SLOW5_INT8_T_ARRAY in SLOW5_TO_PRIM_TYPE
+// if adding more in future, primitive types must be added after SLOW5_CHAR and arrays after SLOW5_STRING
 // both the primitive type and the array type must be simultaneously added
-enum aux_type {
-    INT8_T = 0,
-    INT16_T,
-    INT32_T,
-    INT64_T,
-    UINT8_T,
-    UINT16_T,
-    UINT32_T,
-    UINT64_T,
-    FLOAT,
-    DOUBLE,
-    CHAR,
+enum slow5_aux_type {
+    SLOW5_INT8_T = 0,
+    SLOW5_INT16_T,
+    SLOW5_INT32_T,
+    SLOW5_INT64_T,
+    SLOW5_UINT8_T,
+    SLOW5_UINT16_T,
+    SLOW5_UINT32_T,
+    SLOW5_UINT64_T,
+    SLOW5_FLOAT,
+    SLOW5_DOUBLE,
+    SLOW5_CHAR,
 
-    INT8_T_ARRAY,
-    INT16_T_ARRAY,
-    INT32_T_ARRAY,
-    INT64_T_ARRAY,
-    UINT8_T_ARRAY,
-    UINT16_T_ARRAY,
-    UINT32_T_ARRAY,
-    UINT64_T_ARRAY,
-    FLOAT_ARRAY,
-    DOUBLE_ARRAY,
-    STRING
+    SLOW5_INT8_T_ARRAY,
+    SLOW5_INT16_T_ARRAY,
+    SLOW5_INT32_T_ARRAY,
+    SLOW5_INT64_T_ARRAY,
+    SLOW5_UINT8_T_ARRAY,
+    SLOW5_UINT16_T_ARRAY,
+    SLOW5_UINT32_T_ARRAY,
+    SLOW5_UINT64_T_ARRAY,
+    SLOW5_FLOAT_ARRAY,
+    SLOW5_DOUBLE_ARRAY,
+    SLOW5_STRING
 };
 
-#define SLOW5_IS_PTR(type)        (type >= INT8_T_ARRAY)
-#define SLOW5_TO_PRIM_TYPE(type)  ((enum aux_type) (type - INT8_T_ARRAY))
+#define SLOW5_IS_PTR(type)        (type >= SLOW5_INT8_T_ARRAY)
+#define SLOW5_TO_PRIM_TYPE(type)  ((enum slow5_aux_type) (type - SLOW5_INT8_T_ARRAY))
 
 //NULL (missing value) representation
 #define SLOW5_INT8_T_NULL     INT8_MAX
@@ -144,39 +145,39 @@ enum aux_type {
 
 
 // Type with corresponding size
-struct aux_type_meta {
-    enum aux_type type;
+struct slow5_aux_type_meta {
+    enum slow5_aux_type type;
     uint8_t size;
     const char *type_str;
 };
 
-//any modifications to aux_type should follow by appropriate modifications to this.
-//the order should be identical to that in aux_type
-static const struct aux_type_meta AUX_TYPE_META[] = {
+//any modifications to slow5_aux_type should follow by appropriate modifications to this.
+//the order should be identical to that in slow5_aux_type
+static const struct slow5_aux_type_meta SLOW5_AUX_TYPE_META[] = {
     // Needs to be the same order as the enum definition
-    { INT8_T,           sizeof (int8_t),        "int8_t"    },
-    { INT16_T,          sizeof (int16_t),       "int16_t"   },
-    { INT32_T,          sizeof (int32_t),       "int32_t"   },
-    { INT64_T,          sizeof (int64_t),       "int64_t"   },
-    { UINT8_T,          sizeof (uint8_t),       "uint8_t"   },
-    { UINT16_T,         sizeof (uint16_t),      "uint16_t"  },
-    { UINT32_T,         sizeof (uint32_t),      "uint32_t"  },
-    { UINT64_T,         sizeof (uint64_t),      "uint64_t"  },
-    { FLOAT,            sizeof (float),         "float"     },
-    { DOUBLE,           sizeof (double),        "double"    },
-    { CHAR,             sizeof (char),          "char"      },
+    { SLOW5_INT8_T,           sizeof (int8_t),        "int8_t"    },
+    { SLOW5_INT16_T,          sizeof (int16_t),       "int16_t"   },
+    { SLOW5_INT32_T,          sizeof (int32_t),       "int32_t"   },
+    { SLOW5_INT64_T,          sizeof (int64_t),       "int64_t"   },
+    { SLOW5_UINT8_T,          sizeof (uint8_t),       "uint8_t"   },
+    { SLOW5_UINT16_T,         sizeof (uint16_t),      "uint16_t"  },
+    { SLOW5_UINT32_T,         sizeof (uint32_t),      "uint32_t"  },
+    { SLOW5_UINT64_T,         sizeof (uint64_t),      "uint64_t"  },
+    { SLOW5_FLOAT,            sizeof (float),         "float"     },
+    { SLOW5_DOUBLE,           sizeof (double),        "double"    },
+    { SLOW5_CHAR,             sizeof (char),          "char"      },
 
-    { INT8_T_ARRAY,     sizeof (int8_t),        "int8_t*"   },
-    { INT16_T_ARRAY,    sizeof (int16_t),       "int16_t*"  },
-    { INT32_T_ARRAY,    sizeof (int32_t),       "int32_t*"  },
-    { INT64_T_ARRAY,    sizeof (int64_t),       "int64_t*"  },
-    { UINT8_T_ARRAY,    sizeof (uint8_t),       "uint8_t*"  },
-    { UINT16_T_ARRAY,   sizeof (uint16_t),      "uint16_t*" },
-    { UINT32_T_ARRAY,   sizeof (uint32_t),      "uint32_t*" },
-    { UINT64_T_ARRAY,   sizeof (uint64_t),      "uint64_t*" },
-    { FLOAT_ARRAY,      sizeof (float),         "float*"    },
-    { DOUBLE_ARRAY,     sizeof (double),        "double*"   },
-    { STRING,           sizeof (char),          "char*"     }
+    { SLOW5_INT8_T_ARRAY,     sizeof (int8_t),        "int8_t*"   },
+    { SLOW5_INT16_T_ARRAY,    sizeof (int16_t),       "int16_t*"  },
+    { SLOW5_INT32_T_ARRAY,    sizeof (int32_t),       "int32_t*"  },
+    { SLOW5_INT64_T_ARRAY,    sizeof (int64_t),       "int64_t*"  },
+    { SLOW5_UINT8_T_ARRAY,    sizeof (uint8_t),       "uint8_t*"  },
+    { SLOW5_UINT16_T_ARRAY,   sizeof (uint16_t),      "uint16_t*" },
+    { SLOW5_UINT32_T_ARRAY,   sizeof (uint32_t),      "uint32_t*" },
+    { SLOW5_UINT64_T_ARRAY,   sizeof (uint64_t),      "uint64_t*" },
+    { SLOW5_FLOAT_ARRAY,      sizeof (float),         "float*"    },
+    { SLOW5_DOUBLE_ARRAY,     sizeof (double),        "double*"   },
+    { SLOW5_STRING,           sizeof (char),          "char*"     }
 };
 
 // Auxiliary attribute to position map: attribute string -> index position
@@ -192,7 +193,7 @@ struct slow5_aux_meta {
 
     khash_t(s2ui32) *attr_to_pos;   ///< hash table that maps field name string -> index position in the following arrays.
     char **attrs;                   ///< field names
-    enum aux_type *types;           ///< field datatype
+    enum slow5_aux_type *types;           ///< field datatype
     uint8_t *sizes;                 ///< field datatype sizes, for arrays this stores the size (in bytes) of the corresponding primitive type (TODO: this is probably redundant)
 };
 typedef struct slow5_aux_meta slow5_aux_meta_t;
@@ -241,7 +242,7 @@ enum slow5_cols {
 struct slow5_rec_aux_data {
     uint64_t len;       ///< number of elements in a array (if a primitive type this is always 1)
     uint64_t bytes;     ///< total number of bytes in data (currently, the allocated size which is equal to the amount of data in it)
-    enum aux_type type; ///< data type of the auxiliary attribute
+    enum slow5_aux_type type; ///< data type of the auxiliary attribute
     uint8_t *data;      ///< raw data
 };
 
@@ -475,7 +476,7 @@ char *slow5_aux_get_string(const slow5_rec_t *read, const char *attr, uint64_t *
  * Open a slow5 file of a specific format with a mode given it's pathname.
  *
  * Return NULL if pathname or mode is NULL, or if the format specified doesn't match the file.
- * slow5_open_with(pathname, mode, FORMAT_UNKNOWN) is equivalent to slow5_open(pathname, mode).
+ * slow5_open_with(pathname, mode, SLOW5_FORMAT_UNKNOWN) is equivalent to slow5_open(pathname, mode).
  *
  * Otherwise, return a slow5 file structure with the header parsed.
  * slow5_close() should be called when finished with the structure.
@@ -540,7 +541,7 @@ int slow5_rm_rec(const char *read_id, slow5_file_t *s5p); // TODO
  * Get the read entry in the specified format.
  *
  * Returns NULL if read is NULL,
- * or format is FORMAT_UNKNOWN,
+ * or format is SLOW5_FORMAT_UNKNOWN,
  * or the read attribute values are invalid
  *
  * @param   read        slow5_rec pointer
@@ -618,7 +619,7 @@ int slow5_hdr_set(const char *attr, const char *value, uint32_t read_group, slow
  * Get the header in the specified format.
  *
  * Returns NULL if s5p is NULL
- * or format is FORMAT_UNKNOWN
+ * or format is SLOW5_FORMAT_UNKNOWN
  * or an internal error occurs.
  *
  * @param   header  slow5 header
@@ -669,7 +670,7 @@ const char **slow5_get_hdr_keys(const slow5_hdr_t *header,uint64_t *len);
 //get the pointer to auxilliary field names
 char **slow5_get_aux_names(const slow5_hdr_t *header,uint64_t *len);
 //get the pointer to auxilliary field types
-enum aux_type *slow5_get_aux_types(const slow5_hdr_t *header,uint64_t *len);
+enum slow5_aux_type *slow5_get_aux_types(const slow5_hdr_t *header,uint64_t *len);
 
 
 // Return

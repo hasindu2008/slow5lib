@@ -23,7 +23,7 @@ extern "C" {
 
 // Order, format string and type of main SLOW5 columns
 // NOTE if this is changed, also edit:
-//      slow5.c:slow5_rec_to_str FORMAT_BINARY
+//      slow5.c:slow5_rec_to_str SLOW5_FORMAT_BINARY
 //      slow5idx_clean.c
 #define SLOW5_COLS(col, end)                    \
     col(char*,      "%s",       read_id)        /* A malloced string */ \

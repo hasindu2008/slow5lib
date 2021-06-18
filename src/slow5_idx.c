@@ -88,7 +88,7 @@ static int slow5_idx_build(struct slow5_idx *index, struct slow5_file *s5p) {
     uint64_t offset = 0;
     uint64_t size = 0;
 
-    if (s5p->format == FORMAT_ASCII) {
+    if (s5p->format == SLOW5_FORMAT_ASCII) {
         size_t cap = BUF_INIT_CAP;
         char *buf = (char *) malloc(cap * sizeof *buf);
         SLOW5_MALLOC_CHK(buf);
@@ -107,7 +107,7 @@ static int slow5_idx_build(struct slow5_idx *index, struct slow5_file *s5p) {
 
         free(buf);
 
-    } else if (s5p->format == FORMAT_BINARY) {
+    } else if (s5p->format == SLOW5_FORMAT_BINARY) {
         const char eof[] = SLOW5_BINARY_EOF;
         char buf_eof[sizeof eof]; // TODO is this a vla?
 
