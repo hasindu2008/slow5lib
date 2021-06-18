@@ -2,6 +2,8 @@
 
 Welcome to the slow5lib documentation.
 
-[slow5lib C API](slow5lib.md)
+[Getting started](https://github.com/hasindu2008/slow5lib/blob/master/README.md)
 
-[pyslow5 Python wrapper](pyslow5lib.md)
+[slow5 API for C](slow5_api/slow5.md)
+
+[pyslow5 API for Python](pyslow5_api/pyslow5.md)
