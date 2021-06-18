@@ -1,7 +1,7 @@
 # slow5lib
 
 ## NAME
-slow5_idx_load - Unloads the index file from the memory.
+slow5_idx_unload - Unloads the index file from the memory.
 
 ## SYNOPSYS
 `void slow5_idx_unload(slow5_file_t *s5p)`
@@ -55,6 +55,8 @@ int main(){
         }
         printf("\n");
     }
+
+    slow5_rec_free(rec);
 
     slow5_idx_unload(sp);
 
