@@ -98,7 +98,7 @@ static int slow5_idx_build(struct slow5_idx *index, struct slow5_file *s5p) {
         offset = ftello(s5p->fp);
         while ((buf_len = getline(&buf, &cap, s5p->fp)) != -1) { // TODO this return is closer int64_t not unsigned
             bufp = buf;
-            char *read_id = strdup(strsep_mine(&bufp, SEP_COL)); // TODO quicker to not split the whole line just the first delim
+            char *read_id = strdup(strsep_mine(&bufp, SLOW5_SEP_COL)); // TODO quicker to not split the whole line just the first delim
             size = buf_len;
 
             slow5_idx_insert(index, read_id, offset, size);
@@ -108,7 +108,7 @@ static int slow5_idx_build(struct slow5_idx *index, struct slow5_file *s5p) {
         free(buf);
 
     } else if (s5p->format == FORMAT_BINARY) {
-        const char eof[] = BINARY_EOF;
+        const char eof[] = SLOW5_BINARY_EOF;
         char buf_eof[sizeof eof]; // TODO is this a vla?
 
         if (fread(buf_eof, sizeof *eof, sizeof eof, s5p->fp) != sizeof eof) {
@@ -210,7 +210,7 @@ void slow5_idx_write(struct slow5_idx *index) {
         struct slow5_rec_idx read_index = kh_value(index->hash, pos);
 
         /*
-        SLOW5_ASSERT(fprintf(index->fp, "%s" SEP_COL "%" PRIu64 SEP_COL "%" PRIu64 "\n",
+        SLOW5_ASSERT(fprintf(index->fp, "%s" SLOW5_SEP_COL "%" PRIu64 SLOW5_SEP_COL "%" PRIu64 "\n",
                 index->ids[i],
                 read_index.offset,
                 read_index.size) >= 0);

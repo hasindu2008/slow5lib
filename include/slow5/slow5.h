@@ -76,8 +76,8 @@ struct slow5_fmt_meta {
 };
 
 static const struct slow5_fmt_meta SLOW5_FORMAT_META[] = {
-    { ASCII_NAME,   FORMAT_ASCII    },
-    { BINARY_NAME,  FORMAT_BINARY   }
+    { SLOW5_ASCII_NAME,   FORMAT_ASCII    },
+    { SLOW5_BINARY_NAME,  FORMAT_BINARY   }
 };
 
 /*** SLOW5 Header *********************************************************************************/
@@ -97,7 +97,7 @@ static const struct slow5_version ASCII_VERSION_STRUCT = { .major = 0, .minor = 
 static const struct slow5_version BINARY_VERSION_STRUCT = { .major = 0, .minor = 1, .patch = 0 };
 
 // SLOW5 auxiliary types
-// DO NOT rearrange! See subtracting INT8_T_ARRAY in TO_PRIM_TYPE
+// DO NOT rearrange! See subtracting INT8_T_ARRAY in SLOW5_TO_PRIM_TYPE
 // if adding more in future, primitive types must be added after CHAR and arrays after STRING
 // both the primitive type and the array type must be simultaneously added
 enum aux_type {
@@ -126,21 +126,21 @@ enum aux_type {
     STRING
 };
 
-#define IS_PTR(type)        (type >= INT8_T_ARRAY)
-#define TO_PRIM_TYPE(type)  ((enum aux_type) (type - INT8_T_ARRAY))
+#define SLOW5_IS_PTR(type)        (type >= INT8_T_ARRAY)
+#define SLOW5_TO_PRIM_TYPE(type)  ((enum aux_type) (type - INT8_T_ARRAY))
 
 //NULL (missing value) representation
-#define INT8_T_NULL     INT8_MAX
-#define INT16_T_NULL    INT16_MAX
-#define INT32_T_NULL    INT32_MAX
-#define INT64_T_NULL    INT64_MAX
-#define UINT8_T_NULL    UINT8_MAX
-#define UINT16_T_NULL   UINT16_MAX
-#define UINT32_T_NULL   UINT32_MAX
-#define UINT64_T_NULL   UINT64_MAX
-#define FLOAT_NULL      nanf("")
-#define DOUBLE_NULL     nan("")
-#define CHAR_NULL       0
+#define SLOW5_INT8_T_NULL     INT8_MAX
+#define SLOW5_INT16_T_NULL    INT16_MAX
+#define SLOW5_INT32_T_NULL    INT32_MAX
+#define SLOW5_INT64_T_NULL    INT64_MAX
+#define SLOW5_UINT8_T_NULL    UINT8_MAX
+#define SLOW5_UINT16_T_NULL   UINT16_MAX
+#define SLOW5_UINT32_T_NULL   UINT32_MAX
+#define SLOW5_UINT64_T_NULL   UINT64_MAX
+#define SLOW5_FLOAT_NULL      nanf("")
+#define SLOW5_DOUBLE_NULL     nan("")
+#define SLOW5_CHAR_NULL       0
 
 
 // Type with corresponding size
@@ -230,7 +230,7 @@ typedef struct slow5_hdr slow5_hdr_t;
 // SLOW5 primary record columns stored as an enum to keep  the order of the columns.
 // TODO: make the first one is set to zero
 enum slow5_cols {
-    SLOW5_COLS_FOREACH(GENERATE_ENUM)
+    SLOW5_COLS_FOREACH(SLOW5_GENERATE_ENUM)
     SLOW5_COLS_NUM
 };
 
@@ -258,7 +258,7 @@ typedef khash_t(s2a) slow5_aux_data_t;  //Auxiliary field name string -> auxilia
 */
 struct slow5_rec {
     slow5_rid_len_t read_id_len;        ///< length of the read ID string (does not include null character)
-    SLOW5_COLS_FOREACH(GENERATE_STRUCT) ///< macro magic that generates the primary fields (see below)
+    SLOW5_COLS_FOREACH(SLOW5_GENERATE_STRUCT) ///< macro magic that generates the primary fields (see below)
                                         ///< char* read_id;
                                         ///< uint32_t read_group;
                                         ///< double digitisation;
