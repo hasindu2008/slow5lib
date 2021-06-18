@@ -26,6 +26,8 @@ slow5lib interface consists of following functions:
     Load the index file into memory.
 * [slow5_idx_unload](slow5_idx_unload.md)
     Unoad the index file from memory.
+* [slow5_rec_free](slow5_rec_free.md)
+    Free a slow5 record.
 * [slow5_hdr_get](slow5_hdr_get.md)
     Fetch a header data value corresponding to a given attribute ID.
 
