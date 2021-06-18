@@ -2,7 +2,7 @@
 
 ## NAME
 
-slow5_get - get a read entry from a slow5 file corresponding to a read_id
+slow5_get - Gets a read entry from a slow5 file corresponding to a read_id.
 
 ## SYNOPSYS
 
@@ -10,12 +10,12 @@ slow5_get - get a read entry from a slow5 file corresponding to a read_id
 
 ## DESCRIPTION
 
-`slow5_get()` fetches a record from a SLOW5 file *s5p* for a specified *read_id* into a *slow5_rec_t* and stores the address of the *slow5_rec_t* into **read*.
+`slow5_get()` fetches a record from a SLOW5 file *s5p* for a specified *read_id* into a *slow5_rec_t* and stores the address of the *slow5_rec_t* in **read*.
 
 The argument  *read_id* points to a read identifier string.
 
 If **read* is set to NULL before the call, then `slow5_get()` will allocate a *slow5_rec_t* for storing the record.
-This slow5_rec_t should be freed by the user program using `slow5_rec_free()`.
+This *slow5_rec_t* should be freed by the user program using `slow5_rec_free()`.
 Alternatively, before calling `slow5_get()`, **read* can contain a pointer to an allocated *slow5_rec_t* from a previous `slow5_get()` call.
 If the allocated *slow5_rec_t* is not large enough to hold the record, `slow5_get()` will resize it internally.
 
@@ -43,6 +43,8 @@ A negative return value indicates an error as follows.
 ## NOTES
 
 Error codes are not finalised and subject to change.
+
+See also `slow5_get_next()` and `slow5_rec_free()` 
 
 ## EXAMPLES
 

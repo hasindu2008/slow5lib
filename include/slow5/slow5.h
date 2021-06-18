@@ -284,7 +284,7 @@ typedef struct slow5_file slow5_file_t;
  * Attempt to guess the file's slow5 format from the pathname's extension.
  * Return NULL if pathname or mode is NULL,
  * or if the pathname's extension is not recognised,
- * of if the pathname is invalid.
+ * or if the pathname is invalid.
  *
  * Otherwise, return a slow5 file structure with the header parsed.
  * slow5_close() should be called when finished with the structure.
