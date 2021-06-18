@@ -63,6 +63,8 @@ int main(){
         printf("\n");
     }
 
+    slow5_rec_free(rec);
+
     slow5_idx_unload(sp);
 
     slow5_close(sp);
