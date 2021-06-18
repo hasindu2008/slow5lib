@@ -3,20 +3,10 @@
 #ifndef SLOW5_MISC_H
 #define SLOW5_MISC_H
 
-#include <zlib.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <assert.h>
-#include <sys/time.h>
-#include <sys/resource.h>
 #include <math.h>
 #include <stdint.h>
-#include <limits.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-//#include "slow5_error.h"
+
 
 #ifdef __cplusplus
 extern "C" {

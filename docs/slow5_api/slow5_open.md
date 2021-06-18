@@ -13,9 +13,8 @@ slow5_file_t *slow5_open(const char *pathname, const char *mode)
 
 The `slow_open()` function opens a SLOW5 file (ASCII and binary) pointed by the argument *pathname*, parses and populates the SLOW5 header. `slow_open()` determines if the file is SLOW5 ASCII or SLOW5 Binary from extension of the argument *pathname* (*.slow5* for SLOW5 ASCII and *.blow5* for SLOW5 binary).
 
-The argument *mode* points to a string beginning with the following sequence. Additional modes will be introduced later.
-- *r*:
-    Open SLOW5 file for reading
+Currently, the argument *mode* points to a string "r" for opening a SLOW5 file for reading. Additional modes for writing will be introduced later.
+
 
 `slow_open()`
 

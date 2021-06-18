@@ -2,7 +2,6 @@
 
 #include <zlib.h>
 #include <stdlib.h>
-#include <assert.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdbool.h>

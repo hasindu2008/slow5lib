@@ -1,12 +1,41 @@
+/**
+ * @file slow5.c
+ * @brief SLOW5 implementation
+ * @author Sasha Jenner (jenner.sasha@gmail.com), Hasindu Gamaarachchi (hasindu@garvan.org.au), Hiruna Samarakoon
+ * @date 27/02/2021
+ */
+
+/*
+MIT License
+
+Copyright (c) 2020 Hasindu Gamaarachchi
+Copyright (c) 2020 Sasha Jenner
+Copyright (c) 2020 Hiruna Samarakoon
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 #define _XOPEN_SOURCE 700
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#ifdef NDEBUG
-    #undef NDEBUG
-#endif
-#include <assert.h> // TODO use better error handling?
 #include <float.h>
 #include <slow5/slow5.h>
 #include "slow5_extra.h"
@@ -23,6 +52,8 @@ KSORT_INIT_STR
 // TODO fail with getline if end of file occurs on a non-empty line
 // TODO (void) cast if ignoring return value
 // TODO sizeof of macros at compile time rather than strlen
+// TODO Make sure all mallocs are checked for success
+// TODO replace SLOW5_ASSERT with proper error messages and handling
 
 // Initial string buffer capacity for parsing the data header
 #define SLOW5_HEADER_DATA_BUF_INIT_CAP (1024) // 2^10 TODO is this too much? Or put to a page length
@@ -55,6 +86,12 @@ enum slow5_exit_condition_opt  slow5_exit_condition = SLOW5_EXIT_OFF;
 
 // slow5 file
 
+/*
+* core function for opening a SLOW5 file
+* determines if SLOW5 ASCII or binary based on the file extension
+* parses and populates the header
+* initialises decompression buffers
+*/
 struct slow5_file *slow5_init(FILE *fp, const char *pathname, enum slow5_fmt format) {
     // Pathname cannot be NULL at this point
     if (fp == NULL) {
@@ -78,7 +115,7 @@ struct slow5_file *slow5_init(FILE *fp, const char *pathname, enum slow5_fmt for
     struct slow5_hdr *header = slow5_hdr_init(fp, format, &method);
     if (header == NULL) {
         fclose(fp);
-        SLOW5_ERROR("%s","Could not initialise SLOW5 header.");
+        SLOW5_ERROR("%s","Error parsing SLOW5 header.");
         s5p = NULL;
     } else {
         s5p = (struct slow5_file *) calloc(1, sizeof *s5p);
@@ -102,6 +139,11 @@ struct slow5_file *slow5_init(FILE *fp, const char *pathname, enum slow5_fmt for
 
 // TODO this needs to be refined: talk to Sasha (he wrote this here)
 struct slow5_file *slow5_init_empty(FILE *fp, const char *pathname, enum slow5_fmt format) {
+
+    if(slow5_is_big_endian()){
+        SLOW5_ERROR("%s","Big endian machine detected. SLOW5lib only support little endian at this time. Please open a github issue stating your machine spec.");
+        return NULL;
+    }
     // Pathname cannot be NULL at this point
     if (fp == NULL) {
         return NULL;
@@ -220,7 +262,7 @@ static inline void slow5_free(struct slow5_file *s5p) {
 
             if(s5p->index->dirty){ //if the index has been changed, write it back
                 if (s5p->index->fp != NULL) {
-                    assert(fclose(s5p->index->fp) == 0);
+                    SLOW5_ASSERT(fclose(s5p->index->fp) == 0);
                 }
 
                 s5p->index->fp = fopen(s5p->index->pathname, "wb");
@@ -237,11 +279,13 @@ static inline void slow5_free(struct slow5_file *s5p) {
 // slow5 header
 
 struct slow5_hdr *slow5_hdr_init_empty(void) {
+
     struct slow5_hdr *header = (struct slow5_hdr *) calloc(1, sizeof *(header));
 
     return header;
 }
 
+// parses a slow5 header
 struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, press_method_t *method) {
 
     struct slow5_hdr *header = (struct slow5_hdr *) calloc(1, sizeof *(header));
@@ -260,8 +304,15 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, press_method_t
         ssize_t buf_len;
         int err;
 
-        // 1st line
+        // 1st line - slow5_version
         if ((buf_len = getline(&buf, &cap, fp)) == -1) {
+            SLOW5_WARNING("%s", "'getline()' failed. Is this an empty file?");
+            free(buf);
+            free(header);
+            return NULL;
+        }
+        if(buf_len==0){
+            SLOW5_WARNING("%s", "'Corrupted file. Why is the very first line empty?");
             free(buf);
             free(header);
             return NULL;
@@ -271,6 +322,7 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, press_method_t
         bufp = buf;
         char *tok = strsep_mine(&bufp, SEP_COL);
         if (strcmp(tok, HEADER_FILE_VERSION_ID) != 0) {
+            SLOW5_WARNING("Corrupted file. Expected '%s', instead found '%s'", HEADER_FILE_VERSION_ID, tok);
             free(buf);
             free(header);
             return NULL;
@@ -279,31 +331,36 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, press_method_t
         tok = strsep_mine(&bufp, SEP_COL);
         char *toksub;
         if ((toksub = strsep_mine(&tok, ".")) == NULL) { // Major version
+            SLOW5_WARNING("%s", "Corrupted file. Version string is expected to be in the format z.y.z");
             free(buf);
             free(header);
             return NULL;
         }
         header->version.major = ato_uint8(toksub, &err);
         if (err == -1 || (toksub = strsep_mine(&tok, ".")) == NULL) { // Minor version
+            SLOW5_WARNING("%s", "Corrupted file. Version string is expected to be in the format z.y.z");
             free(buf);
             free(header);
             return NULL;
         }
         header->version.minor = ato_uint8(toksub, &err);
         if (err == -1 || (toksub = strsep_mine(&tok, ".")) == NULL) { // Patch version
+            SLOW5_WARNING("%s", "Corrupted file. Version string is expected to be in the format z.y.z");
             free(buf);
             free(header);
             return NULL;
         }
         header->version.patch = ato_uint8(toksub, &err);
         if (err == -1 || strsep_mine(&tok, ".") != NULL) { // No more tokenators
+            SLOW5_WARNING("%s", "Corrupted file. Version string is expected to be in the format z.y.z");
             free(buf);
             free(header);
             return NULL;
         }
 
-        // 3rd line
-        if ((buf_len = getline(&buf, &cap, fp)) == -1) {
+        // 2nd line - num_read_groups
+        if ((buf_len = getline(&buf, &cap, fp)) <= 0) {
+            SLOW5_WARNING("%s", "'getline()' failed. Where is the num_read_groups?");
             free(buf);
             free(header);
             return NULL;
@@ -313,6 +370,7 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, press_method_t
         bufp = buf;
         tok = strsep_mine(&bufp, SEP_COL);
         if (strcmp(tok, HEADER_NUM_GROUPS_ID) != 0) {
+            SLOW5_WARNING("Corrupted file. Expected '%s', instead found '%s'", HEADER_NUM_GROUPS_ID, tok);
             free(buf);
             free(header);
             return NULL;
@@ -321,12 +379,18 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, press_method_t
         tok = strsep_mine(&bufp, SEP_COL);
         header->num_read_groups = ato_uint32(tok, &err);
         if (err == -1) {
+            SLOW5_WARNING("Corrupted file. Could not parse the number of read groups which is '%s'", tok);
             free(buf);
             free(header);
             return NULL;
         }
 
-        assert(slow5_hdr_data_init(fp, buf, &cap, header, NULL) == 0);
+        if(slow5_hdr_data_init(fp, buf, &cap, header, NULL) != 0){
+            SLOW5_WARNING("%s","Parsing the data header failed.");
+            free(buf);
+            free(header);
+            return NULL;
+        }
         header->aux_meta = slow5_aux_meta_init(fp, buf, &cap, NULL);
 
     } else if (format == FORMAT_BINARY) {
@@ -355,7 +419,7 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, press_method_t
 
         // Header data
         uint32_t header_act_size;
-        assert(slow5_hdr_data_init(fp, buf, &cap, header, &header_act_size) == 0);
+        SLOW5_ASSERT(slow5_hdr_data_init(fp, buf, &cap, header, &header_act_size) == 0);
         header->aux_meta = slow5_aux_meta_init(fp, buf, &cap, &header_act_size);
         if (header_act_size != header_size) {
             slow5_hdr_free(header);
@@ -877,7 +941,7 @@ int64_t slow5_hdr_add_rg_data(struct slow5_hdr *header, khash_t(s2s) *new_data) 
             const char *attr = kh_key(new_data, i);
             char *value = kh_value(new_data, i);
 
-            assert(slow5_hdr_add_attr(attr, header) != -3);
+            SLOW5_ASSERT(slow5_hdr_add_attr(attr, header) != -3);
             (void) slow5_hdr_set(attr, value, rg_num, header);
         }
     }
@@ -962,7 +1026,7 @@ int slow5_hdr_data_init(FILE *fp, char *buf, size_t *cap, struct slow5_hdr *head
     ssize_t buf_len;
 
     // Get first line of header data
-    assert((buf_len = getline(&buf, cap, fp)) != -1);
+    SLOW5_ASSERT((buf_len = getline(&buf, cap, fp)) != -1);
     buf[buf_len - 1] = '\0'; // Remove newline for later parsing
     if (hdr_len != NULL) {
         hdr_len_tmp += buf_len;
@@ -973,7 +1037,7 @@ int slow5_hdr_data_init(FILE *fp, char *buf, size_t *cap, struct slow5_hdr *head
     while (strncmp(buf, ASCII_TYPE_HEADER_MIN, strlen(ASCII_TYPE_HEADER_MIN)) != 0) {
 
         // Ensure prefix is there
-        assert(buf[0] == SLOW5_HEADER_DATA_PREFIX_CHAR);
+        SLOW5_ASSERT(buf[0] == SLOW5_HEADER_DATA_PREFIX_CHAR);
         char *shift = buf + strlen(SLOW5_HEADER_DATA_PREFIX); // Remove prefix
 
         // Get the attribute name
@@ -983,7 +1047,7 @@ int slow5_hdr_data_init(FILE *fp, char *buf, size_t *cap, struct slow5_hdr *head
         int ret;
         kh_put(s, data_attrs, attr, &ret);
         ++ num_data_attrs;
-        assert(!(ret == -1 || ret == 0));
+        SLOW5_ASSERT(!(ret == -1 || ret == 0));
 
         // Iterate through the values
         uint32_t i = 0;
@@ -992,7 +1056,7 @@ int slow5_hdr_data_init(FILE *fp, char *buf, size_t *cap, struct slow5_hdr *head
             // Set key
             int absent;
             khint_t pos = kh_put(s2s, header->data.maps.a[i], attr, &absent);
-            assert(absent != -1);
+            SLOW5_ASSERT(absent != -1);
 
             //if the value is ".", we store an empty string
             char *val_dup = strdup(val);
@@ -1006,17 +1070,17 @@ int slow5_hdr_data_init(FILE *fp, char *buf, size_t *cap, struct slow5_hdr *head
             ++ i;
         }
         // Ensure that read group number of entries are read
-        assert(i == header->num_read_groups);
+        SLOW5_ASSERT(i == header->num_read_groups);
 
         // Get next line
-        assert((buf_len = getline(&buf, cap, fp)) != -1);
+        SLOW5_ASSERT((buf_len = getline(&buf, cap, fp)) != -1);
         buf[buf_len - 1] = '\0'; // Remove newline for later parsing
         if (hdr_len != NULL) {
             hdr_len_tmp += buf_len;
         }
     }
 
-    assert(*cap <= SLOW5_HEADER_DATA_BUF_INIT_CAP); // TESTING to see if getline has to realloc (if this fails often maybe put a larger buffer size)
+    SLOW5_ASSERT(*cap <= SLOW5_HEADER_DATA_BUF_INIT_CAP); // TESTING to see if getline has to realloc (if this fails often maybe put a larger buffer size)
 
     if (hdr_len != NULL) {
         *hdr_len = hdr_len_tmp;
@@ -1058,7 +1122,7 @@ struct slow5_aux_meta *slow5_aux_meta_init(FILE *fp, char *buf, size_t *cap, uin
         char *shift = buf += strlen(ASCII_TYPE_HEADER_MIN);
 
         char *tok = strsep_mine(&shift, SEP_COL);
-        assert(strcmp(tok, "") == 0);
+        SLOW5_ASSERT(strcmp(tok, "") == 0);
 
         aux_meta->cap = SLOW5_AUX_META_CAP_INIT;
         aux_meta->types = (enum aux_type *) malloc(aux_meta->cap * sizeof *(aux_meta->types));
@@ -1089,7 +1153,7 @@ struct slow5_aux_meta *slow5_aux_meta_init(FILE *fp, char *buf, size_t *cap, uin
     }
 
     // Get column names
-    assert((buf_len = getline(&buf, cap, fp)) != -1);
+    SLOW5_ASSERT((buf_len = getline(&buf, cap, fp)) != -1);
     if (hdr_len != NULL) {
         *hdr_len += buf_len;
     }
@@ -1113,7 +1177,7 @@ struct slow5_aux_meta *slow5_aux_meta_init(FILE *fp, char *buf, size_t *cap, uin
         char *shift = buf += strlen(ASCII_COLUMN_HEADER_MIN);
 
         char *tok = strsep_mine(&shift, SEP_COL);
-        assert(strcmp(tok, "") == 0);
+        SLOW5_ASSERT(strcmp(tok, "") == 0);
 
         aux_meta->attr_to_pos = kh_init(s2ui32);
         aux_meta->attrs = (char **) malloc(aux_meta->cap * sizeof *(aux_meta->attrs));
@@ -1939,7 +2003,7 @@ static inline void slow5_rec_set_aux_map(khash_t(s2a) *aux_map, const char *attr
     } else {
         int ret;
         pos = kh_put(s2a, aux_map, attr, &ret);
-        assert(ret != -1);
+        SLOW5_ASSERT(ret != -1);
         aux_data = &kh_value(aux_map, pos);
     }
     aux_data->len = len;
@@ -2857,7 +2921,6 @@ enum slow5_fmt name_get_slow5_fmt(const char *name) {
 enum slow5_fmt path_get_slow5_fmt(const char *path) {
     enum slow5_fmt format = FORMAT_UNKNOWN;
 
-    // TODO change type from size_t
     if (path != NULL) {
         int64_t i;
         for (i = strlen(path) - 1; i >= 0; -- i) {

@@ -1,13 +1,40 @@
 /**
  * @file slow5.h
  * @brief SLOW5 API
- * @author Sasha Jenner (jenner.sasha@gmail.com), Hasindu Gamaarachchi (hasindu@garvan.org.au)
+ * @author Sasha Jenner (jenner.sasha@gmail.com), Hasindu Gamaarachchi (hasindu@garvan.org.au), Hiruna Samarakoon
  * @date 27/02/2021
  */
+
+/*
+MIT License
+
+Copyright (c) 2020 Hasindu Gamaarachchi
+Copyright (c) 2020 Sasha Jenner
+Copyright (c) 2020 Hiruna Samarakoon
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
 
 // Header with slow5 file definitions
 // TODO structure pack to min size
 // TODO fix and add function descriptions
+// TODO remove unnessary header inclusions
 
 #ifndef SLOW5_H
 #define SLOW5_H
@@ -633,8 +660,6 @@ static inline ssize_t slow5_eof_print(void) {
     return slow5_eof_fwrite(stdout);
 }
 
-void slow5_set_log_level(enum slow5_log_level_opt log_level);
-void slow5_set_exit_condition(enum slow5_exit_condition_opt exit_condition);
 
 //get the list of hdr data keys in sorted order (only the returned pointer must be freed, not the ones inside - subjet to change)
 //len is the numberof elements
@@ -652,6 +677,15 @@ enum aux_type *slow5_get_aux_types(const slow5_hdr_t *header,uint64_t *len);
 // -1   input invalid
 // -2   failure
 int slow5_convert(slow5_file_t *from, FILE *to_fp, enum slow5_fmt to_format, press_method_t to_compress);
+
+
+//set the log verbosity level
+//sets a global variable
+void slow5_set_log_level(enum slow5_log_level_opt log_level);
+
+//set the exit condition for slow5 lib
+//sets a global variable
+void slow5_set_exit_condition(enum slow5_exit_condition_opt exit_condition);
 
 #ifdef __cplusplus
 }

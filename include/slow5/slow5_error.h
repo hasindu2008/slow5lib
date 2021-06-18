@@ -33,38 +33,48 @@ enum slow5_exit_condition_opt {
 #define SLOW5_NO_COLOUR "\033[0m\n"
 
 #define SLOW5_WARNING(msg, ...) { \
-        if (slow5_log_level >= SLOW5_LOG_WARN) { \
-                fprintf(stderr, SLOW5_WARNING_PREFIX msg SLOW5_NO_COLOUR, __func__, __VA_ARGS__); \
-                fprintf(stderr, "At %s:%d\n", __FILE__, __LINE__ - 1); \
-        } \
-        if (slow5_exit_condition == SLOW5_EXIT_ON_WARN){ \
-                fprintf(stderr,"Exiting on warning.\n"); \
-                exit(EXIT_FAILURE); \
-        } \
+    if (slow5_log_level >= SLOW5_LOG_WARN) { \
+        fprintf(stderr, SLOW5_WARNING_PREFIX msg SLOW5_NO_COLOUR, __func__, __VA_ARGS__); \
+        fprintf(stderr, "At %s:%d\n", __FILE__, __LINE__ - 1); \
+    } \
+    if (slow5_exit_condition == SLOW5_EXIT_ON_WARN){ \
+        fprintf(stderr,"Exiting on warning.\n"); \
+        exit(EXIT_FAILURE); \
+    } \
 }
 
 #define SLOW5_ERROR(msg, ...) { \
-        if (slow5_log_level >= SLOW5_LOG_ERR) { \
-                fprintf(stderr, SLOW5_ERROR_PREFIX msg SLOW5_NO_COLOUR, __func__, __VA_ARGS__); \
-                fprintf(stderr, "At %s:%d\n", __FILE__, __LINE__ - 1); \
-        } \
-        if (slow5_exit_condition == SLOW5_EXIT_ON_ERR){ \
-                fprintf(stderr,"Exiting on error.\n"); \
-                exit(EXIT_FAILURE); \
-        } \
+    if (slow5_log_level >= SLOW5_LOG_ERR) { \
+        fprintf(stderr, SLOW5_ERROR_PREFIX msg SLOW5_NO_COLOUR, __func__, __VA_ARGS__); \
+        fprintf(stderr, "At %s:%d\n", __FILE__, __LINE__ - 1); \
+    } \
+    if (slow5_exit_condition == SLOW5_EXIT_ON_ERR){ \
+        fprintf(stderr,"Exiting on error.\n"); \
+        exit(EXIT_FAILURE); \
+    } \
 }
 
 #define SLOW5_MALLOC_CHK(ret) { \
-        if (ret==NULL) { \
-                if (slow5_log_level >= SLOW5_LOG_ERR) { \
-                        fprintf(stderr, SLOW5_ERROR_PREFIX "Failed to allocate memory." SLOW5_NO_COLOUR, __func__); \
-                        fprintf(stderr, "At %s:%d\n", __FILE__, __LINE__ - 1); \
-                } \
-                if (slow5_exit_condition == SLOW5_EXIT_ON_ERR){ \
-                        fprintf(stderr,"Exiting on error.\n"); \
-                        exit(EXIT_FAILURE); \
-                } \
-        }\
+    if ((ret)==NULL) { \
+        if (slow5_log_level >= SLOW5_LOG_ERR) { \
+            fprintf(stderr, SLOW5_ERROR_PREFIX "Failed to allocate memory." SLOW5_NO_COLOUR, __func__); \
+            fprintf(stderr, "At %s:%d\n", __FILE__, __LINE__ - 1); \
+        } \
+        if (slow5_exit_condition == SLOW5_EXIT_ON_ERR){ \
+            fprintf(stderr,"Exiting on error.\n"); \
+            exit(EXIT_FAILURE); \
+        } \
+    }\
+}
+
+
+#define SLOW5_ASSERT(ret) { \
+    if((ret)==0){ \
+        fprintf(stderr, SLOW5_ERROR_PREFIX "Assertion failed." SLOW5_NO_COLOUR, __func__); \
+        fprintf(stderr, "At %s:%d\n", __FILE__, __LINE__ - 1); \
+        fprintf(stderr,"Exiting.\n"); \
+        exit(EXIT_FAILURE); \
+    } \
 }
 
 #ifdef __cplusplus

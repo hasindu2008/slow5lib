@@ -2,7 +2,6 @@
 #include <zlib.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
 #include <stdarg.h>
 #include <slow5/slow5_error.h>
 #include <slow5/slow5_press.h>
@@ -288,7 +287,7 @@ static void *ptr_depress_gzip_multi(const void *ptr, size_t count, size_t *n) {
 
     do {
         out = (uint8_t *) realloc(out, n_cur + Z_OUT_CHUNK);
-        assert(out);
+        SLOW5_ASSERT(out);
 
         strm->avail_out = Z_OUT_CHUNK;
         strm->next_out = out + n_cur;
@@ -554,7 +553,7 @@ unsigned char *z_inflate_buf(const char *comp_str, size_t *n) {
         strm.next_out = out + prev_sz;
 
         ret = inflate(&strm, Z_NO_FLUSH);
-        assert(ret != Z_STREAM_ERROR);
+        SLOW5_ASSERT(ret != Z_STREAM_ERROR);
 
         switch (ret) {
             case Z_NEED_DICT:
