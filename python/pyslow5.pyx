@@ -19,12 +19,14 @@ cdef class slow5py:
     cdef pyslow5.uint64_t head_len
     cdef pyslow5.uint64_t aux_len
     cdef pyslow5.slow5_aux_type *s5_aux_type
-    cdef pyslow5.int aux_get_err
+    cdef int aux_get_err
     cdef pyslow5.uint64_t aux_get_len
     cdef const char* p
     cdef const char* m
     cdef int V
     cdef object logger
+    cdef list aux_names
+    cdef list aux_types
     cdef pyslow5.int8_t e0
     cdef pyslow5.int16_t e1
     cdef pyslow5.int32_t e2
@@ -60,17 +62,17 @@ cdef class slow5py:
         self.aux_get_len = 0
         self.head_len = 0
         self.aux_len = 0
-        self.e0 = 0
-        self.e1 = 0
-        self.e2 = 0
-        self.e3 = 0
-        self.e4 = 0
-        self.e5 = 0
-        self.e6 = 0
-        self.e7 = 0
-        self.e8 = 0.0
-        self.e9 = 0.0
-        self.e10 = None
+        self.e0 = -1
+        self.e1 = -1
+        self.e2 = -1
+        self.e3 = -1
+        self.e4 = -1
+        self.e5 = -1
+        self.e6 = -1
+        self.e7 = -1
+        self.e8 = -1.0
+        self.e9 = -1.0
+        self.e10 = 0
         self.e11 = NULL
         self.e12 = NULL
         self.e13 = NULL
@@ -155,13 +157,18 @@ cdef class slow5py:
                 self.aux_names = self.get_aux_names()
                 self.aux_types = self.get_aux_types()
             if type(aux) is str:
-                if str == "all":
+                if aux == "all":
                     aux_dic = self._get_read_aux(self.aux_names, self.aux_types)
                 else:
+                    found_single_aux = False
                     for n, t in zip(self.aux_names, self.aux_types):
                         if n == aux:
+                            found_single_aux = True
                             aux_dic = self._get_read_aux([n], [t])
                             break
+                    if not found_single_aux:
+                        self.logger.warning(f"get_read unknown aux name: {aux}")
+                        aux_dic.update({aux: None})
             elif type(aux) is list:
                 n_list = []
                 t_list = []
@@ -170,13 +177,14 @@ cdef class slow5py:
                         n_list.append(n)
                         t_list.append(t)
 
+                aux_dic = self._get_read_aux(n_list, t_list)
                 n_set = set(n_list)
                 aux_set = set(aux)
-                if len(n_set.difference(aux_set)) > 0:
-                    for i in n_set.difference(aux_set):
+                if len(aux_set.difference(n_set)) > 0:
+                    for i in aux_set.difference(n_set):
                         self.logger.warning(f"get_read unknown aux name: {i}")
+                        aux_dic.update({i: None})
 
-                aux_dic = self._get_read_aux(n_list, t_list)
             else:
                 self.logger.debug(f"get_read aux type unknown, accepts str or list: {aux}")
 
@@ -248,13 +256,13 @@ cdef class slow5py:
             yield row
 
 
-    def get_read_list(self, read_list, pA=False):
+    def get_read_list(self, read_list, pA=False, aux=None):
         '''
         returns generator for sequential reading of slow5 file
         if pa=True, do pA conversion of signal here.
         '''
         for r in read_list:
-            yield self._get_read(r, pA)
+            yield self._get_read(r, pA, aux)
 
 
     def get_header_names(self):
@@ -325,72 +333,192 @@ cdef class slow5py:
             a_name = str.encode(name)
             if atype == 0:
                 self.e0 = slow5_aux_get_int8(self.rec, a_name, &self.aux_get_err)
-                self.logger.debug(f"get_aux_types self.aux_get_err is {self.aux_get_err}")
-                if self.e0 is not NULL:
+                if self.aux_get_err == 0:
                     dic[name] = self.e0
                 else:
+                    self.logger.debug(f"get_aux_types {atype} self.aux_get_err is {self.aux_get_err}")
                     dic[name] = None
             elif atype == 1:
                 self.e1 = slow5_aux_get_int16(self.rec, a_name, &self.aux_get_err)
-                self.logger.debug(f"get_aux_types self.aux_get_err is {self.aux_get_err}")
-                if self.e1 is not NULL:
+                if self.aux_get_err == 0:
                     dic[name] = self.e1
                 else:
+                    self.logger.debug(f"get_aux_types {atype} self.aux_get_err is {self.aux_get_err}")
                     dic[name] = None
             elif atype == 2:
                 self.e2 = slow5_aux_get_int32(self.rec, a_name, &self.aux_get_err)
-                self.logger.debug(f"get_aux_types self.aux_get_err is {self.aux_get_err}")
-                if self.e2 is not NULL:
+                if self.aux_get_err == 0:
                     dic[name] = self.e2
                 else:
+                    self.logger.debug(f"get_aux_types {atype} self.aux_get_err is {self.aux_get_err}")
                     dic[name] = None
             elif atype == 3:
                 self.e3 = slow5_aux_get_int64(self.rec, a_name, &self.aux_get_err)
-                self.logger.debug(f"get_aux_types self.aux_get_err is {self.aux_get_err}")
-                if self.e3 is not NULL:
+                if self.aux_get_err == 0:
                     dic[name] = self.e3
                 else:
+                    self.logger.debug(f"get_aux_types {atype} self.aux_get_err is {self.aux_get_err}")
                     dic[name] = None
-            # elif atype == 4:
-            #     self.e4 = slow5_aux_get_uint8()
-            # elif atype == 5:
-            #     self.e5 = slow5_aux_get_uint16()
-            # elif atype == 6:
-            #     self.e6 = slow5_aux_get_uint32()
-            # elif atype == 7:
-            #     self.e7 = slow5_aux_get_uint64()
-            # elif atype == 8:
-            #     self.e8 = slow5_aux_get_float()
-            # elif atype == 9:
-            #     self.e9 = slow5_aux_get_double()
-            # elif atype == 10:
-            #     self.e10 = slow5_aux_get_char()
-            # elif atype == 11:
-            #     self.e11 = slow5_aux_get_int8_array()
-            # elif atype == 12:
-            #     self.e12 = slow5_aux_get_int16_array()
-            # elif atype == 13:
-            #     self.e13 = slow5_aux_get_int32_array()
-            # elif atype == 14:
-            #     self.e14 = slow5_aux_get_int64_array()
-            # elif atype == 15:
-            #     self.e15 = slow5_aux_get_uint8_array()
-            # elif atype == 16:
-            #     self.e16 = slow5_aux_get_uint16_array()
-            # elif atype == 17:
-            #     self.e17 = slow5_aux_get_uint32_array()
-            # elif atype == 18:
-            #     self.e18 = slow5_aux_get_uint64_array()
-            # elif atype == 19:
-            #     self.e19 = slow5_aux_get_float_array()
-            # elif atype == 20:
-            #     self.e20 = slow5_aux_get_double_array()
-            # elif atype == 21:
-            #     self.e21 = slow5_aux_get_string()
+            elif atype == 4:
+                self.e4 = slow5_aux_get_uint8(self.rec, a_name, &self.aux_get_err)
+                if self.aux_get_err == 0:
+                    dic[name] = self.e4
+                else:
+                    self.logger.debug(f"get_aux_types {atype} self.aux_get_err is {self.aux_get_err}")
+                    dic[name] = None
+            elif atype == 5:
+                self.e5 = slow5_aux_get_uint16(self.rec, a_name, &self.aux_get_err)
+                if self.aux_get_err == 0:
+                    dic[name] = self.e5
+                else:
+                    self.logger.debug(f"get_aux_types {atype} self.aux_get_err is {self.aux_get_err}")
+                    dic[name] = None
+            elif atype == 6:
+                self.e6 = slow5_aux_get_uint32(self.rec, a_name, &self.aux_get_err)
+                if self.aux_get_err == 0:
+                    dic[name] = self.e6
+                else:
+                    self.logger.debug(f"get_aux_types {atype} self.aux_get_err is {self.aux_get_err}")
+                    dic[name] = None
+            elif atype == 7:
+                self.e7 = slow5_aux_get_uint64(self.rec, a_name, &self.aux_get_err)
+                if self.aux_get_err == 0:
+                    dic[name] = self.e7
+                else:
+                    self.logger.debug(f"get_aux_types {atype} self.aux_get_err is {self.aux_get_err}")
+                    dic[name] = None
+            elif atype == 8:
+                self.e8 = slow5_aux_get_float(self.rec, a_name, &self.aux_get_err)
+                if self.aux_get_err == 0:
+                    dic[name] = self.e8
+                else:
+                    self.logger.debug(f"get_aux_types {atype} self.aux_get_err is {self.aux_get_err}")
+                    dic[name] = None
+            elif atype == 9:
+                self.e9 = slow5_aux_get_double(self.rec, a_name, &self.aux_get_err)
+                if self.aux_get_err == 0:
+                    dic[name] = self.e9
+                else:
+                    self.logger.debug(f"get_aux_types {atype} self.aux_get_err is {self.aux_get_err}")
+                    dic[name] = None
+            elif atype == 10:
+                self.e10 = slow5_aux_get_char(self.rec, a_name, &self.aux_get_err)
+                if self.aux_get_err == 0:
+                    dic[name] = self.e10
+                else:
+                    self.logger.debug(f"get_aux_types {atype} self.aux_get_err is {self.aux_get_err}")
+                    dic[name] = None
+            elif atype == 11:
+                self.e11 = slow5_aux_get_int8_array(self.rec, a_name, &self.aux_get_len, &self.aux_get_err)
+                if self.aux_get_err == 0:
+                    l = []
+                    for i in range(self.aux_get_len):
+                        l.append(self.e11[i])
+                    dic[name] = l
+                else:
+                    self.logger.debug(f"get_aux_types {atype} self.aux_get_err is {self.aux_get_err}")
+                    dic[name] = None
+            elif atype == 12:
+                self.e12 = slow5_aux_get_int16_array(self.rec, a_name, &self.aux_get_len, &self.aux_get_err)
+                if self.aux_get_err == 0:
+                    l = []
+                    for i in range(self.aux_get_len):
+                        l.append(self.e12[i])
+                    dic[name] = l
+                else:
+                    self.logger.debug(f"get_aux_types {atype} self.aux_get_err is {self.aux_get_err}")
+                    dic[name] = None
+            elif atype == 13:
+                self.e13 = slow5_aux_get_int32_array(self.rec, a_name, &self.aux_get_len, &self.aux_get_err)
+                if self.aux_get_err == 0:
+                    l = []
+                    for i in range(self.aux_get_len):
+                        l.append(self.e13[i])
+                    dic[name] = l
+                else:
+                    self.logger.debug(f"get_aux_types {atype} self.aux_get_err is {self.aux_get_err}")
+                    dic[name] = None
+            elif atype == 14:
+                self.e14 = slow5_aux_get_int64_array(self.rec, a_name, &self.aux_get_len, &self.aux_get_err)
+                if self.aux_get_err == 0:
+                    l = []
+                    for i in range(self.aux_get_len):
+                        l.append(self.e14[i])
+                    dic[name] = l
+                else:
+                    self.logger.debug(f"get_aux_types {atype} self.aux_get_err is {self.aux_get_err}")
+                    dic[name] = None
+            elif atype == 15:
+                self.e15 = slow5_aux_get_uint8_array(self.rec, a_name, &self.aux_get_len, &self.aux_get_err)
+                if self.aux_get_err == 0:
+                    l = []
+                    for i in range(self.aux_get_len):
+                        l.append(self.e15[i])
+                    dic[name] = l
+                else:
+                    self.logger.debug(f"get_aux_types {atype} self.aux_get_err is {self.aux_get_err}")
+                    dic[name] = None
+            elif atype == 16:
+                self.e16 = slow5_aux_get_uint16_array(self.rec, a_name, &self.aux_get_len, &self.aux_get_err)
+                if self.aux_get_err == 0:
+                    l = []
+                    for i in range(self.aux_get_len):
+                        l.append(self.e16[i])
+                    dic[name] = l
+                else:
+                    self.logger.debug(f"get_aux_types {atype} self.aux_get_err is {self.aux_get_err}")
+                    dic[name] = None
+            elif atype == 17:
+                self.e17 = slow5_aux_get_uint32_array(self.rec, a_name, &self.aux_get_len, &self.aux_get_err)
+                if self.aux_get_err == 0:
+                    l = []
+                    for i in range(self.aux_get_len):
+                        l.append(self.e17[i])
+                    dic[name] = l
+                else:
+                    self.logger.debug(f"get_aux_types {atype} self.aux_get_err is {self.aux_get_err}")
+                    dic[name] = None
+            elif atype == 18:
+                self.e18 = slow5_aux_get_uint64_array(self.rec, a_name, &self.aux_get_len, &self.aux_get_err)
+                if self.aux_get_err == 0:
+                    l = []
+                    for i in range(self.aux_get_len):
+                        l.append(self.e18[i])
+                    dic[name] = l
+                else:
+                    self.logger.debug(f"get_aux_types {atype} self.aux_get_err is {self.aux_get_err}")
+                    dic[name] = None
+            elif atype == 19:
+                self.e19 = slow5_aux_get_float_array(self.rec, a_name, &self.aux_get_len, &self.aux_get_err)
+                if self.aux_get_err == 0:
+                    l = []
+                    for i in range(self.aux_get_len):
+                        l.append(self.e19[i])
+                    dic[name] = l
+                else:
+                    self.logger.debug(f"get_aux_types {atype} self.aux_get_err is {self.aux_get_err}")
+                    dic[name] = None
+            elif atype == 20:
+                self.e20 = slow5_aux_get_double_array(self.rec, a_name, &self.aux_get_len, &self.aux_get_err)
+                if self.aux_get_err == 0:
+                    l = []
+                    for i in range(self.aux_get_len):
+                        l.append(self.e20[i])
+                    dic[name] = l
+                else:
+                    self.logger.debug(f"get_aux_types {atype} self.aux_get_err is {self.aux_get_err}")
+                    dic[name] = None
+            elif atype == 21:
+                self.e21 = slow5_aux_get_string(self.rec, a_name, &self.aux_get_len, &self.aux_get_err)
+                if self.aux_get_err == 0:
+                    l = []
+                    for i in range(self.aux_get_len):
+                        l.append(self.e21[i])
+                    dic[name] = l
+                else:
+                    self.logger.debug(f"get_aux_types {atype} self.aux_get_err is {self.aux_get_err}")
+                    dic[name] = None
             else:
                 self.logger.debug(f"get_read_aux atype not known, skipping: {atype}")
-
-
-        print(dic)
 
         return dic
