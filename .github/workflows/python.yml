@@ -9,7 +9,7 @@ on:
 jobs:
   ubuntu_14:
     name: pyslow5 Ubuntu_14
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-16.04
     container: ubuntu:14.04
     steps:
     - uses: actions/checkout@v2
@@ -27,7 +27,7 @@ jobs:
     - name: install packages
       run: sudo apt-get update && sudo apt-get install -y zlib1g-dev python3-pip cython python3-setuptools
     - name: env
-      run: lsb_release -a &&  ldd --version && gcc --version && g++ --version  && python3 --version  && python3 -m pip3 --version      
+      run: lsb_release -a &&  ldd --version && gcc --version && g++ --version  && python3 --version     
     - name: build
       run: make pyslow5
   pyslow5_ubuntu_18:
