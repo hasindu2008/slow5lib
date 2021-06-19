@@ -59,7 +59,7 @@ jobs:
     - name: test-gcc
       run: make test
     - name: build-clang
-      run: make CC=clang -j8
+      run: make clean && make CC=clang -j8
     - name: test-clang
       run: make test
   os_x:
