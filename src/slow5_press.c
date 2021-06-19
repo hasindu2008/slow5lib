@@ -10,8 +10,8 @@
 extern enum slow5_log_level_opt  slow5_log_level;
 extern enum slow5_exit_condition_opt  slow5_exit_condition;
 
-int gzip_init_deflate(z_stream *strm);
-int gzip_init_inflate(z_stream *strm);
+static int gzip_init_deflate(z_stream *strm);
+static int gzip_init_inflate(z_stream *strm);
 
 static void *ptr_compress_gzip(struct slow5_gzip_stream *gzip, const void *ptr, size_t count, size_t *n);
 static void *ptr_depress_gzip(struct slow5_gzip_stream *gzip, const void *ptr, size_t count, size_t *n);
@@ -57,7 +57,7 @@ struct slow5_press *slow5_press_init(slow5_slow5_press_method_t method) {
     return comp;
 }
 
-int gzip_init_deflate(z_stream *strm) {
+static int gzip_init_deflate(z_stream *strm) {
     strm->zalloc = Z_NULL;
     strm->zfree = Z_NULL;
     strm->opaque = Z_NULL;
@@ -70,7 +70,7 @@ int gzip_init_deflate(z_stream *strm) {
             Z_DEFAULT_STRATEGY);
 }
 
-int gzip_init_inflate(z_stream *strm) {
+static int gzip_init_inflate(z_stream *strm) {
     strm->zalloc = Z_NULL;
     strm->zfree = Z_NULL;
     strm->opaque = Z_NULL;
@@ -395,8 +395,8 @@ void *slow5_fread_depress(struct slow5_press *comp, size_t count, FILE *fp, size
 
     return out;
 }
-
-void *fread_depress_multi(slow5_slow5_press_method_t method, size_t count, FILE *fp, size_t *n) {
+/*
+static void *fread_depress_multi(slow5_slow5_press_method_t method, size_t count, FILE *fp, size_t *n) {
     void *raw = (void *) malloc(count);
     SLOW5_MALLOC_CHK(raw);
 
@@ -410,7 +410,7 @@ void *fread_depress_multi(slow5_slow5_press_method_t method, size_t count, FILE 
 
     return out;
 }
-
+*/
 void *slow5_pread_depress(struct slow5_press *comp, int fd, size_t count, off_t offset, size_t *n) {
     void *raw = (void *) malloc(count);
     SLOW5_MALLOC_CHK(raw);

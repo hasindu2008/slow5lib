@@ -401,7 +401,8 @@ char *slow5_float_to_str(float x, size_t *len) {
     return str;
 }
 
-uint8_t get_type_size(const char *name) {
+/*
+static uint8_t get_type_size(const char *name) {
     uint8_t size = 0;
 
     if SLOW5_CHECK_TYPE(name, int8_t)
@@ -418,3 +419,4 @@ uint8_t get_type_size(const char *name) {
 
     return size;
 }
+*/
