@@ -6,10 +6,13 @@ print("|==============================================|")
 print("|             pyslow5 test launch              |")
 print("|==============================================|")
 
+#globals
+debug = 1
+
 
 # open file and create object
 start_time = time.time()
-s5p = pyslow5.slow5py('examples/example.slow5','r', DEBUG=1)
+s5p = pyslow5.slow5py('examples/example.slow5','r', DEBUG=debug)
 # s5p = pyslow5.slow5py('test/data/exp/aux_array/exp_lossless.slow5','r', DEBUG=1)
 ttime = round(time.time() - start_time, 4)
 print(dir(s5p))
@@ -118,7 +121,7 @@ for attr in names:
     print("{}: {}".format(attr, val))
 
 
-s5p2 = pyslow5.slow5py('test/data/exp/aux_array/exp_lossless.slow5','r', DEBUG=1)
+s5p2 = pyslow5.slow5py('test/data/exp/aux_array/exp_lossless.slow5','r', DEBUG=debug)
 print("get_read check, a649a4ae-c43d-492a-b6a1-a5b8b8076be4")
 read1 = s5p2.get_read("a649a4ae-c43d-492a-b6a1-a5b8b8076be4", aux=["read_number", "start_mux", "blah"])
 # print all fields
