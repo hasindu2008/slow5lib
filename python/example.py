@@ -106,16 +106,16 @@ print("==============================================")
 print("Get headder attributes")
 attr = "flow_cell_id"
 val = s5p.get_header_value(attr)
-print(f"flow_cell_id: {val}")
+print("flow_cell_id: {}".format(val))
 attr = "exp_start_time"
 val = s5p.get_header_value(attr)
-print(f"exp_start_time: {val}")
+print("exp_start_time: {}".format(val))
 attr = "heatsink_temp"
 val = s5p.get_header_value(attr)
-print(f"heatsink_temp: {val}")
+print("heatsink_temp: {}".format(val))
 for attr in names:
     val = s5p.get_header_value(attr)
-    print(f"{attr}: {val}")
+    print("{}: {}".format(attr, val))
 
 
 s5p2 = pyslow5.slow5py('test/data/exp/aux_array/exp_lossless.slow5','r', DEBUG=1)
@@ -162,7 +162,7 @@ print(aux_types)
 read4 = s5p2.get_read("a649a4ae-c43d-492a-b6a1-a5b8b8076be4", aux="all")
 print("AUX FIELDS:")
 for name in aux_names:
-    print(f"{name}: {read4[name]}")
+    print("{}:".format(name), read4[name])
 
 
 print("==============================================")
