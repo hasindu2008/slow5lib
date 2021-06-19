@@ -17,7 +17,7 @@ int slow5_hdr_add(void) {
     ASSERT(slow5_hdr_add_rg(header) == 2);
     ASSERT(slow5_hdr_add_attr("lol", header) == 0);
     ASSERT(slow5_hdr_add_attr("lol", header) == -2);
-    ASSERT(slow5_hdr_print(header, SLOW5_FORMAT_ASCII, COMPRESS_NONE) != -1);
+    ASSERT(slow5_hdr_print(header, SLOW5_FORMAT_ASCII, SLOW5_COMPRESS_NONE) != -1);
     slow5_hdr_free(header);
 
     return EXIT_SUCCESS;
@@ -35,7 +35,7 @@ int slow5_hdr_add_set(void) {
     ASSERT(slow5_hdr_set("lol", "good meme", 1, header) == 0);
     ASSERT(slow5_hdr_set("lol", "haha 2", 2, header) == 0);
 
-    ASSERT(slow5_hdr_print(header, SLOW5_FORMAT_ASCII, COMPRESS_NONE) != -1);
+    ASSERT(slow5_hdr_print(header, SLOW5_FORMAT_ASCII, SLOW5_COMPRESS_NONE) != -1);
     slow5_hdr_free(header);
 
     return EXIT_SUCCESS;
@@ -75,7 +75,7 @@ int slow5_rec_set_valid(void) {
     header->version = SLOW5_ASCII_VERSION_STRUCT;
     header->aux_meta = aux_meta;
     header->num_read_groups = 1;
-    ASSERT(slow5_hdr_print(header, SLOW5_FORMAT_ASCII, COMPRESS_NONE) != -1);
+    ASSERT(slow5_hdr_print(header, SLOW5_FORMAT_ASCII, SLOW5_COMPRESS_NONE) != -1);
 
     char *cn = "1010";
     double mb = 225.69;

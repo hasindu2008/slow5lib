@@ -35,7 +35,7 @@ cdef extern from "pyslow5.h":
         uint8_t minor
         uint8_t patch
 
-    ctypedef struct press_t:
+    ctypedef struct slow5_press_t:
         pass
     ctypedef struct slow5_hdr_t:
         slow5_version version;
@@ -51,7 +51,7 @@ cdef extern from "pyslow5.h":
     ctypedef struct slow5_file_t:
         FILE *fp
         slow5_fmt format
-        press_t *compress
+        slow5_press_t *compress
         slow5_hdr_t *header
         slow5_idx_t *index
         slow5_file_meta_t meta

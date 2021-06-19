@@ -18,13 +18,13 @@ struct slow5_file *slow5_init_empty(FILE *fp, const char *pathname, enum slow5_f
 
 // slow5 header
 struct slow5_hdr *slow5_hdr_init_empty(void);
-struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, press_method_t *method);
+struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_slow5_press_method_t *method);
 void slow5_hdr_free(struct slow5_hdr *header);
 
 // slow5 header data
 int slow5_hdr_data_init(FILE *fp, char *buf, size_t *cap, struct slow5_hdr *header, uint32_t *hdr_len);
-khash_t(s2s) *slow5_hdr_get_data(uint32_t read_group, const struct slow5_hdr *header);
-int64_t slow5_hdr_add_rg_data(struct slow5_hdr *header, khash_t(s2s) *new_data);
+khash_t(slow5_s2s) *slow5_hdr_get_data(uint32_t read_group, const struct slow5_hdr *header);
+int64_t slow5_hdr_add_rg_data(struct slow5_hdr *header, khash_t(slow5_s2s) *new_data);
 char *slow5_hdr_types_to_str(struct slow5_aux_meta *aux_meta, size_t *len);
 char *slow5_hdr_attrs_to_str(struct slow5_aux_meta *aux_meta, size_t *len);
 void slow5_hdr_data_free(struct slow5_hdr *header);
@@ -41,21 +41,21 @@ static inline int slow5_rec_set_string(struct slow5_rec *read, struct slow5_aux_
     return slow5_rec_set_array(read, aux_meta, attr, data, strlen((const char *) data) + 1);
 }
 int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struct slow5_rec *read, enum slow5_fmt format, struct slow5_aux_meta *aux_meta);
-void slow5_rec_aux_free(khash_t(s2a) *aux_map);
+void slow5_rec_aux_free(khash_t(slow5_s2a) *aux_map);
 
 // slow5 extension parsing
-enum slow5_fmt name_get_slow5_fmt(const char *name);
-enum slow5_fmt path_get_slow5_fmt(const char *path);
+enum slow5_fmt slow5_name_get_fmt(const char *name);
+enum slow5_fmt slow5_path_get_fmt(const char *path);
 const char *slow5_fmt_get_name(enum slow5_fmt format);
-char *get_slow5_idx_path(const char *path);
+char *slow5_get_idx_path(const char *path);
 
 // auxilary type
-enum slow5_aux_type str_to_aux_type(const char *str, int *err);
-int memcpy_type_from_str(uint8_t *data, const char *value, enum slow5_aux_type type);
-void memcpy_type_from_null_str(uint8_t *data, enum slow5_aux_type type);
-char *type_to_str(uint8_t *data, const char *type, size_t len, size_t *str_len);
-char *aux_type_to_str(enum slow5_aux_type type);
-char *data_to_str(uint8_t *data, enum slow5_aux_type type, uint64_t len, size_t *str_len);
+enum slow5_aux_type slow5_str_to_aux_type(const char *str, int *err);
+int slow5_memcpy_type_from_str(uint8_t *data, const char *value, enum slow5_aux_type type);
+void slow5_memcpy_type_from_null_str(uint8_t *data, enum slow5_aux_type type);
+char *slow5_type_to_str(uint8_t *data, const char *type, size_t len, size_t *str_len);
+char *slow5_aux_type_to_str(enum slow5_aux_type type);
+char *slow5_data_to_str(uint8_t *data, enum slow5_aux_type type, uint64_t len, size_t *str_len);
 
 
 
@@ -83,7 +83,7 @@ int8_t slow5_hdr_data_write(struct slow5_file *s5p_from, struct slow5_file *s5p_
 int8_t slow5_hdr_data_attr_write(const char *attr, struct slow5_file *s5p_from, struct slow5_file *s5p_to);
 
 // Index
-inline khash_t(s2i) *slow5_idx_init_empty(void);
+inline khash_t(slow5_s2i) *slow5_idx_init_empty(void);
 
 // Convert fast5 dir/file to a slow5 file
 // TODO decide return type
