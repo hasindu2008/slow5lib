@@ -17,10 +17,37 @@ cdef class slow5py:
     cdef pyslow5.slow5_rec_t *rec
     cdef pyslow5.slow5_rec_t *read
     cdef pyslow5.uint64_t head_len
+    cdef pyslow5.uint64_t aux_len
+    cdef pyslow5.slow5_aux_type *s5_aux_type
+    cdef pyslow5.int aux_get_err
+    cdef pyslow5.uint64_t aux_get_len
     cdef const char* p
     cdef const char* m
     cdef int V
     cdef object logger
+    cdef pyslow5.int8_t e0
+    cdef pyslow5.int16_t e1
+    cdef pyslow5.int32_t e2
+    cdef pyslow5.int64_t e3
+    cdef pyslow5.uint8_t e4
+    cdef pyslow5.uint16_t e5
+    cdef pyslow5.uint32_t e6
+    cdef pyslow5.uint64_t e7
+    cdef pyslow5.float e8
+    cdef double e9
+    cdef char e10
+    cdef pyslow5.int8_t *e11
+    cdef pyslow5.int16_t *e12
+    cdef pyslow5.int32_t *e13
+    cdef pyslow5.int64_t *e14
+    cdef pyslow5.uint8_t *e15
+    cdef pyslow5.uint16_t *e16
+    cdef pyslow5.uint32_t *e17
+    cdef pyslow5.uint64_t *e18
+    cdef float *e19
+    cdef double *e20
+    cdef char *e21 # meant to be string, not sure about this
+
 
     def __cinit__(self, pathname, mode, DEBUG=0):
 
@@ -28,7 +55,33 @@ cdef class slow5py:
         self.s5p = NULL
         self.rec = NULL
         self.read = NULL
+        self.s5_aux_type = NULL
+        self.aux_get_err = 1
+        self.aux_get_len = 0
         self.head_len = 0
+        self.aux_len = 0
+        self.e0 = 0
+        self.e1 = 0
+        self.e2 = 0
+        self.e3 = 0
+        self.e4 = 0
+        self.e5 = 0
+        self.e6 = 0
+        self.e7 = 0
+        self.e8 = 0.0
+        self.e9 = 0.0
+        self.e10 = None
+        self.e11 = NULL
+        self.e12 = NULL
+        self.e13 = NULL
+        self.e14 = NULL
+        self.e15 = NULL
+        self.e16 = NULL
+        self.e17 = NULL
+        self.e18 = NULL
+        self.e19 = NULL
+        self.e20 = NULL
+        self.e21 = NULL
         self.V = DEBUG
         self.logger = logging.getLogger(__name__)
         if self.V ==1:
@@ -52,7 +105,12 @@ cdef class slow5py:
         self.logger.debug(f"Creating/loading index...")
         ret = slow5_idx_load(self.s5p)
         if ret != 0:
-            self.logger.debug(f"slow5_idx_load return not 0: {ret}")
+            self.logger.warning(f"slow5_idx_load return not 0: {ret}")
+
+
+    def __init__(self, pathname, mode, DEBUG=0):
+        self.aux_names = []
+        self.aux_types = []
 
     def __dealloc__(self):
         if self.rec is not NULL:
@@ -82,14 +140,46 @@ cdef class slow5py:
         return new_raw
 
 
-    def _get_read(self, read_id, pA):
+    def _get_read(self, read_id, pA, aux):
         dic = {}
+        aux_dic = {}
         ID = str.encode(read_id)
         # rec = NULL
         ret = slow5_get(ID, &self.rec, self.s5p)
         if ret != 0:
             self.logger.debug(f"get_read return not 0: {ret}")
             return None
+
+        if aux is not None:
+            if not self.aux_names or not self.aux_types:
+                self.aux_names = self.get_aux_names()
+                self.aux_types = self.get_aux_types()
+            if type(aux) is str:
+                if str == "all":
+                    aux_dic = self._get_read_aux(self.aux_names, self.aux_types)
+                else:
+                    for n, t in zip(self.aux_names, self.aux_types):
+                        if n == aux:
+                            aux_dic = self._get_read_aux([n], [t])
+                            break
+            elif type(aux) is list:
+                n_list = []
+                t_list = []
+                for n, t in zip(self.aux_names, self.aux_types):
+                    if n in aux:
+                        n_list.append(n)
+                        t_list.append(t)
+
+                n_set = set(n_list)
+                aux_set = set(aux)
+                if len(n_set.difference(aux_set)) > 0:
+                    for i in n_set.difference(aux_set):
+                        self.logger.warning(f"get_read unknown aux name: {i}")
+
+                aux_dic = self._get_read_aux(n_list, t_list)
+            else:
+                self.logger.debug(f"get_read aux type unknown, accepts str or list: {aux}")
+
         # for i in range(20):
         #     print(self.rec.raw_signal[i])
         if type(self.rec.read_id) is bytes:
@@ -102,20 +192,21 @@ cdef class slow5py:
         dic['range'] = self.rec.range
         dic['sampling_rate'] = self.rec.sampling_rate
         dic['len_raw_signal'] = self.rec.len_raw_signal
-        dic['signal'] = [self.rec.raw_signal[i] for i in range(self.rec.len_raw_signal)]
         # This could be handled by numpy.fromiter() or similar
         # Probably MUCH faster
         # https://stackoverflow.com/questions/7543675/how-to-convert-pointer-to-c-array-to-python-array
-        # for i in range(self.rec.len_raw_signal):
-        #     dic['signal'].append(self.rec.raw_signal[i])
+        dic['signal'] = [self.rec.raw_signal[i] for i in range(self.rec.len_raw_signal)]
         # if pA=True, convert signal to pA
         if pA:
             dic['signal'] = self._convert_to_pA(dic)
 
+        if aux_dic:
+            dic.update(aux_dic)
         return dic
 
-    def get_read(self, read_id, pA=False):
-        return self._get_read(read_id, pA)
+
+    def get_read(self, read_id, pA=False, aux=None):
+        return self._get_read(read_id, pA, aux)
 
 
     def seq_reads(self, pA=False):
@@ -168,7 +259,6 @@ cdef class slow5py:
 
     def get_header_names(self):
         '''
-        TODO
         get all header names and return list
         '''
         headers = []
@@ -188,5 +278,119 @@ cdef class slow5py:
         get header attribute value
         '''
         a = str.encode(attr)
+        ret = ''
         ret = slow5_hdr_get(a, read_group, self.s5p.header).decode()
+        if not ret:
+            self.logger.warning(f"get_header_value header value not found: {attr} - rg: {read_group}")
         return ret
+
+    def get_aux_names(self):
+        '''
+        get all aux field names, returns list
+        '''
+        self.logger.debug(f"get_aux_names starting")
+        aux_names = []
+        ret = slow5_get_aux_names(self.s5p.header, &self.aux_len)
+
+        self.logger.debug(f"get_aux_names aux_len: {self.aux_len}")
+        if ret == NULL:
+            self.logger.warning(f"get_aux_names ret is NULL")
+            return aux_names
+
+        aux_names = [ret[i].decode() for i in range(self.aux_len)]
+        return aux_names
+
+    def get_aux_types(self):
+        '''
+        get aux attribute type
+        '''
+        self.logger.debug(f"get_aux_types starting")
+        aux_types = []
+        self.s5_aux_type = slow5_get_aux_types(self.s5p.header, &self.aux_len)
+
+        self.logger.debug(f"get_aux_types aux_len: {self.aux_len}")
+        if self.s5_aux_type == NULL:
+            self.logger.warning(f"get_aux_types self.s5_aux_type is NULL")
+            return aux_types
+
+        aux_types = [self.s5_aux_type[i] for i in range(self.aux_len)]
+        return aux_types
+
+    def _get_read_aux(self, aux_names, aux_types):
+        '''
+        get aux field for read
+        '''
+        dic = {}
+        for name, atype in zip(aux_names, aux_types):
+            a_name = str.encode(name)
+            if atype == 0:
+                self.e0 = slow5_aux_get_int8(self.rec, a_name, &self.aux_get_err)
+                self.logger.debug(f"get_aux_types self.aux_get_err is {self.aux_get_err}")
+                if self.e0 is not NULL:
+                    dic[name] = self.e0
+                else:
+                    dic[name] = None
+            elif atype == 1:
+                self.e1 = slow5_aux_get_int16(self.rec, a_name, &self.aux_get_err)
+                self.logger.debug(f"get_aux_types self.aux_get_err is {self.aux_get_err}")
+                if self.e1 is not NULL:
+                    dic[name] = self.e1
+                else:
+                    dic[name] = None
+            elif atype == 2:
+                self.e2 = slow5_aux_get_int32(self.rec, a_name, &self.aux_get_err)
+                self.logger.debug(f"get_aux_types self.aux_get_err is {self.aux_get_err}")
+                if self.e2 is not NULL:
+                    dic[name] = self.e2
+                else:
+                    dic[name] = None
+            elif atype == 3:
+                self.e3 = slow5_aux_get_int64(self.rec, a_name, &self.aux_get_err)
+                self.logger.debug(f"get_aux_types self.aux_get_err is {self.aux_get_err}")
+                if self.e3 is not NULL:
+                    dic[name] = self.e3
+                else:
+                    dic[name] = None
+            # elif atype == 4:
+            #     self.e4 = slow5_aux_get_uint8()
+            # elif atype == 5:
+            #     self.e5 = slow5_aux_get_uint16()
+            # elif atype == 6:
+            #     self.e6 = slow5_aux_get_uint32()
+            # elif atype == 7:
+            #     self.e7 = slow5_aux_get_uint64()
+            # elif atype == 8:
+            #     self.e8 = slow5_aux_get_float()
+            # elif atype == 9:
+            #     self.e9 = slow5_aux_get_double()
+            # elif atype == 10:
+            #     self.e10 = slow5_aux_get_char()
+            # elif atype == 11:
+            #     self.e11 = slow5_aux_get_int8_array()
+            # elif atype == 12:
+            #     self.e12 = slow5_aux_get_int16_array()
+            # elif atype == 13:
+            #     self.e13 = slow5_aux_get_int32_array()
+            # elif atype == 14:
+            #     self.e14 = slow5_aux_get_int64_array()
+            # elif atype == 15:
+            #     self.e15 = slow5_aux_get_uint8_array()
+            # elif atype == 16:
+            #     self.e16 = slow5_aux_get_uint16_array()
+            # elif atype == 17:
+            #     self.e17 = slow5_aux_get_uint32_array()
+            # elif atype == 18:
+            #     self.e18 = slow5_aux_get_uint64_array()
+            # elif atype == 19:
+            #     self.e19 = slow5_aux_get_float_array()
+            # elif atype == 20:
+            #     self.e20 = slow5_aux_get_double_array()
+            # elif atype == 21:
+            #     self.e21 = slow5_aux_get_string()
+            else:
+                self.logger.debug(f"get_read_aux atype not known, skipping: {atype}")
+
+
+        print(dic)
+
+        return dic
