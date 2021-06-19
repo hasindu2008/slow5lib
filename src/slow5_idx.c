@@ -23,7 +23,7 @@ static inline struct slow5_idx *slow5_idx_init_empty(void) {
 
     struct slow5_idx *index = (struct slow5_idx *) calloc(1, sizeof *index);
     SLOW5_MALLOC_CHK(index);
-    index->hash = kh_init(s2i);
+    index->hash = kh_init(slow5_s2i);
 
     return index;
 }
@@ -32,7 +32,7 @@ static inline struct slow5_idx *slow5_idx_init_empty(void) {
 struct slow5_idx *slow5_idx_init(struct slow5_file *s5p) {
 
     struct slow5_idx *index = slow5_idx_init_empty();
-    index->pathname = get_slow5_idx_path(s5p->meta.pathname);
+    index->pathname = slow5_get_idx_path(s5p->meta.pathname);
 
     if(index==NULL || index->pathname==NULL ){
         //TODO fix mem leak
@@ -98,7 +98,7 @@ static int slow5_idx_build(struct slow5_idx *index, struct slow5_file *s5p) {
         offset = ftello(s5p->fp);
         while ((buf_len = getline(&buf, &cap, s5p->fp)) != -1) { // TODO this return is closer int64_t not unsigned
             bufp = buf;
-            char *read_id = strdup(strsep_mine(&bufp, SLOW5_SEP_COL)); // TODO quicker to not split the whole line just the first delim
+            char *read_id = strdup(slow5_strsep(&bufp, SLOW5_SEP_COL)); // TODO quicker to not split the whole line just the first delim
             size = buf_len;
 
             slow5_idx_insert(index, read_id, offset, size);
@@ -185,15 +185,15 @@ void slow5_idx_write(struct slow5_idx *index) {
 
     //fprintf(index->fp, SLOW5_INDEX_HEADER);
 
-    const char magic[] = INDEX_MAGIC_NUMBER;
+    const char magic[] = SLOW5_INDEX_MAGIC_NUMBER;
     SLOW5_ASSERT(fwrite(magic, sizeof *magic, sizeof magic, index->fp) == sizeof magic);
 
-    struct slow5_version version = INDEX_VERSION;
+    struct slow5_version version = SLOW5_INDEX_VERSION;
     SLOW5_ASSERT(fwrite(&version.major, sizeof version.major, 1, index->fp) == 1);
     SLOW5_ASSERT(fwrite(&version.minor, sizeof version.minor, 1, index->fp) == 1);
     SLOW5_ASSERT(fwrite(&version.patch, sizeof version.patch, 1, index->fp) == 1);
 
-    uint8_t padding = INDEX_HEADER_SIZE_OFFSET -
+    uint8_t padding = SLOW5_INDEX_HEADER_SIZE_OFFSET -
             sizeof magic * sizeof *magic -
             sizeof version.major -
             sizeof version.minor -
@@ -204,7 +204,7 @@ void slow5_idx_write(struct slow5_idx *index) {
 
     for (uint64_t i = 0; i < index->num_ids; ++ i) {
 
-        khint_t pos = kh_get(s2i, index->hash, index->ids[i]);
+        khint_t pos = kh_get(slow5_s2i, index->hash, index->ids[i]);
         SLOW5_ASSERT(pos != kh_end(index->hash));
 
         struct slow5_rec_idx read_index = kh_value(index->hash, pos);
@@ -222,13 +222,13 @@ void slow5_idx_write(struct slow5_idx *index) {
         SLOW5_ASSERT(fwrite(&read_index.size, sizeof read_index.size, 1, index->fp) == 1);
     }
 
-    const char eof[] = INDEX_EOF;
+    const char eof[] = SLOW5_INDEX_EOF;
     SLOW5_ASSERT(fwrite(eof, sizeof *eof, sizeof eof, index->fp) == sizeof eof);
 }
 
 static void slow5_idx_read(struct slow5_idx *index) {
 
-    const char magic[] = INDEX_MAGIC_NUMBER;
+    const char magic[] = SLOW5_INDEX_MAGIC_NUMBER;
     char buf_magic[sizeof magic]; // TODO is this a vla?
     SLOW5_ASSERT(fread(buf_magic, sizeof *magic, sizeof magic, index->fp) == sizeof magic);
     SLOW5_ASSERT(memcmp(magic, buf_magic, sizeof *magic * sizeof magic) == 0);
@@ -237,9 +237,9 @@ static void slow5_idx_read(struct slow5_idx *index) {
     SLOW5_ASSERT(fread(&index->version.minor, sizeof index->version.minor, 1, index->fp) == 1);
     SLOW5_ASSERT(fread(&index->version.patch, sizeof index->version.patch, 1, index->fp) == 1);
 
-    SLOW5_ASSERT(fseek(index->fp, INDEX_HEADER_SIZE_OFFSET, SEEK_SET) != -1);
+    SLOW5_ASSERT(fseek(index->fp, SLOW5_INDEX_HEADER_SIZE_OFFSET, SEEK_SET) != -1);
 
-    const char eof[] = INDEX_EOF;
+    const char eof[] = SLOW5_INDEX_EOF;
     char buf_eof[sizeof eof]; // TODO is this a vla?
 
     SLOW5_ASSERT(fread(buf_eof, sizeof *eof, sizeof eof, index->fp) == sizeof eof);
@@ -271,7 +271,7 @@ static void slow5_idx_read(struct slow5_idx *index) {
 void slow5_idx_insert(struct slow5_idx *index, char *read_id, uint64_t offset, uint64_t size) {
 
     int absent;
-    khint_t k = kh_put(s2i, index->hash, read_id, &absent);
+    khint_t k = kh_put(slow5_s2i, index->hash, read_id, &absent);
     SLOW5_ASSERT(absent != -1);
     SLOW5_ASSERT(absent != 0); // TODO error if read_id duplicated?
 
@@ -298,7 +298,7 @@ void slow5_idx_insert(struct slow5_idx *index, char *read_id, uint64_t offset, u
 int slow5_idx_get(struct slow5_idx *index, const char *read_id, struct slow5_rec_idx *read_index) {
     int ret = 0;
 
-    khint_t pos = kh_get(s2i, index->hash, read_id);
+    khint_t pos = kh_get(slow5_s2i, index->hash, read_id);
     if (pos == kh_end(index->hash)) {
         ret = -1;
     } else {
@@ -322,7 +322,7 @@ void slow5_idx_free(struct slow5_idx *index) {
     }
     free(index->ids);
 
-    kh_destroy(s2i, index->hash);
+    kh_destroy(slow5_s2i, index->hash);
 
     free(index->pathname);
     free(index);

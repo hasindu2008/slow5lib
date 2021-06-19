@@ -247,11 +247,11 @@ struct slow5_rec_aux_data {
 };
 
 // Header data map: auxiliary attribute string -> auxiliary data
-KHASH_MAP_INIT_STR(s2a, struct slow5_rec_aux_data)
+KHASH_MAP_INIT_STR(slow5_s2a, struct slow5_rec_aux_data)
 
 typedef uint64_t slow5_rec_size_t; //size of the whole record (in bytes)
 typedef uint16_t slow5_rid_len_t;  //length of the read ID string (does not include null character)
-typedef khash_t(s2a) slow5_aux_data_t;  //Auxiliary field name string -> auxiliary field data value
+typedef khash_t(slow5_s2a) slow5_aux_data_t;  //Auxiliary field name string -> auxiliary field data value
 
 /**
 * @struct slow5_rec

@@ -10,11 +10,11 @@
 extern "C" {
 #endif
 
-#define INDEX_EXTENSION             "." "idx"
-#define INDEX_VERSION               { 0, 1, 0 }
-#define INDEX_MAGIC_NUMBER          { 'S', 'L', 'O', 'W', '5', 'I', 'D', 'X', '\1' }
-#define INDEX_EOF                   { 'X', 'D', 'I', '5', 'W', 'O', 'L', 'S' }
-#define INDEX_HEADER_SIZE_OFFSET    (64L)
+#define SLOW5_INDEX_EXTENSION             "." "idx"
+#define SLOW5_INDEX_VERSION               { 0, 1, 0 }
+#define SLOW5_INDEX_MAGIC_NUMBER          { 'S', 'L', 'O', 'W', '5', 'I', 'D', 'X', '\1' }
+#define SLOW5_INDEX_EOF                   { 'X', 'D', 'I', '5', 'W', 'O', 'L', 'S' }
+#define SLOW5_INDEX_HEADER_SIZE_OFFSET    (64L)
 
 // SLOW5 record index
 struct slow5_rec_idx {
@@ -23,7 +23,7 @@ struct slow5_rec_idx {
 };
 
 // Read id map: read id -> index data
-KHASH_MAP_INIT_STR(s2i, struct slow5_rec_idx)
+KHASH_MAP_INIT_STR(slow5_s2i, struct slow5_rec_idx)
 
 // SLOW5 index
 struct slow5_idx {
@@ -33,7 +33,7 @@ struct slow5_idx {
     char **ids;
     uint64_t num_ids;
     uint64_t cap_ids;
-    khash_t(s2i) *hash;
+    khash_t(slow5_s2i) *hash;
     uint8_t dirty;
 };
 

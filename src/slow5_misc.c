@@ -18,11 +18,11 @@
 #define FLT_STRING_BUF_FIXED_CAP (64) // 2^6
 
 int uint_check(const char *str);
-int int_check(const char *str);
-int float_check(const char *str);
+int slow5_int_check(const char *str);
+int slow5_float_check(const char *str);
 
 // From https://stackoverflow.com/questions/3774417/sprintf-with-automatic-memory-allocation
-int vasprintf_mine(char **strp, const char *fmt, va_list ap) {
+int slow5_vasprintf(char **strp, const char *fmt, va_list ap) {
     va_list ap1;
     size_t size;
     char *buffer;
@@ -41,12 +41,12 @@ int vasprintf_mine(char **strp, const char *fmt, va_list ap) {
 }
 
 // From https://stackoverflow.com/questions/3774417/sprintf-with-automatic-memory-allocation
-int asprintf_mine(char **strp, const char *fmt, ...) {
+int slow5_asprintf(char **strp, const char *fmt, ...) {
     int error;
     va_list ap;
 
     va_start(ap, fmt);
-    error = vasprintf_mine(strp, fmt, ap);
+    error = slow5_vasprintf(strp, fmt, ap);
     va_end(ap);
 
     return error;
@@ -55,7 +55,7 @@ int asprintf_mine(char **strp, const char *fmt, ...) {
 
 // From https://code.woboq.org/userspace/glibc/string/strsep.c.html
 char *
-strsep_mine (char **stringp, const char *delim)
+slow5_strsep (char **stringp, const char *delim)
 {
   char *begin, *end;
   begin = *stringp;
@@ -94,7 +94,7 @@ int uint_check(const char *str) {
     return 0;
 }
 
-int int_check(const char *str) {
+int slow5_int_check(const char *str) {
 
     // Check for:
     // empty string
@@ -113,7 +113,7 @@ int int_check(const char *str) {
     return 0;
 }
 
-int float_check(const char *str) {
+int slow5_float_check(const char *str) {
 
     // Ensure no empty string
     if (strlen(str) == 0) {
@@ -133,7 +133,7 @@ int float_check(const char *str) {
 // Atoi but to uint64_t
 // and without any symbols
 // and without 0 prefixing
-uint64_t ato_uint64(const char *str, int *err) {
+uint64_t slow5_ato_uint64(const char *str, int *err) {
     uint64_t ret = 0;
 
     if (uint_check(str) == -1) {
@@ -160,7 +160,7 @@ uint64_t ato_uint64(const char *str, int *err) {
 // Atoi but to uint32_t
 // and without any symbols
 // and without 0 prefixing
-uint32_t ato_uint32(const char *str, int *err) {
+uint32_t slow5_ato_uint32(const char *str, int *err) {
     uint32_t ret = 0;
     if (uint_check(str) == -1) {
         *err = -1;
@@ -186,7 +186,7 @@ uint32_t ato_uint32(const char *str, int *err) {
 // Atoi but to uint16_t
 // and without any symbols
 // and without 0 prefixing
-uint16_t ato_uint16(const char *str, int *err) {
+uint16_t slow5_ato_uint16(const char *str, int *err) {
     uint16_t ret = 0;
     if (uint_check(str) == -1) {
         *err = -1;
@@ -212,7 +212,7 @@ uint16_t ato_uint16(const char *str, int *err) {
 // Atoi but to uint8_t
 // and without any symbols
 // and without 0 prefixing
-uint8_t ato_uint8(const char *str, int *err) {
+uint8_t slow5_ato_uint8(const char *str, int *err) {
     uint8_t ret = 0;
     if (uint_check(str) == -1) {
         *err = -1;
@@ -233,9 +233,9 @@ uint8_t ato_uint8(const char *str, int *err) {
 // Atoi but to int64_t
 // and without any symbols
 // and without 0 prefixing
-int64_t ato_int64(const char *str, int *err) {
+int64_t slow5_ato_int64(const char *str, int *err) {
     int64_t ret = 0;
-    if (int_check(str) == -1) {
+    if (slow5_int_check(str) == -1) {
         *err = -1;
         return ret;
     }
@@ -254,9 +254,9 @@ int64_t ato_int64(const char *str, int *err) {
 // Atoi but to int32_t
 // and without any symbols
 // and without 0 prefixing
-int32_t ato_int32(const char *str, int *err) {
+int32_t slow5_ato_int32(const char *str, int *err) {
     int32_t ret = 0;
-    if (int_check(str) == -1) {
+    if (slow5_int_check(str) == -1) {
         *err = -1;
         return ret;
     }
@@ -275,9 +275,9 @@ int32_t ato_int32(const char *str, int *err) {
 // Atoi but to int16_t
 // and without any symbols
 // and without 0 prefixing
-int16_t ato_int16(const char *str, int *err) {
+int16_t slow5_ato_int16(const char *str, int *err) {
     int16_t ret = 0;
-    if (int_check(str) == -1) {
+    if (slow5_int_check(str) == -1) {
         *err = -1;
         return ret;
     }
@@ -296,9 +296,9 @@ int16_t ato_int16(const char *str, int *err) {
 // Atoi but to int8_t
 // and without any symbols
 // and without 0 prefixing
-int8_t ato_int8(const char *str, int *err) {
+int8_t slow5_ato_int8(const char *str, int *err) {
     int8_t ret = 0;
-    if (int_check(str) == -1) {
+    if (slow5_int_check(str) == -1) {
         *err = -1;
         return ret;
     }
@@ -314,10 +314,10 @@ int8_t ato_int8(const char *str, int *err) {
     return ret;
 }
 
-float strtof_check(const char *str, int *err) {
+float slow5_strtof_check(const char *str, int *err) {
     float ret = 0;
 
-    if (float_check(str) == -1) {
+    if (slow5_float_check(str) == -1) {
         *err = -1;
         return ret;
     }
@@ -332,10 +332,10 @@ float strtof_check(const char *str, int *err) {
     return ret;
 }
 
-double strtod_check(const char *str, int *err) {
+double slow5_strtod_check(const char *str, int *err) {
     double ret = 0;
 
-    if (float_check(str) == -1) {
+    if (slow5_float_check(str) == -1) {
         *err = -1;
         return ret;
     }
@@ -351,9 +351,9 @@ double strtod_check(const char *str, int *err) {
 }
 
 // Convert double to decimal string without trailing 0s
-char *double_to_str(double x, size_t *len) {
+char *slow5_double_to_str(double x, size_t *len) {
     char *str = NULL;
-    int max_len = asprintf_mine(&str, "%f", x); // TODO Should be lf?
+    int max_len = slow5_asprintf(&str, "%f", x); // TODO Should be lf?
 
     char *ptr = str + max_len;
     for (int i = max_len - 1; i >= 1; -- i) {
@@ -376,9 +376,9 @@ char *double_to_str(double x, size_t *len) {
 }
 
 // Convert float to decimal string without trailing 0s
-char *float_to_str(float x, size_t *len) {
+char *slow5_float_to_str(float x, size_t *len) {
     char *str = NULL;
-    int max_len = asprintf_mine(&str, "%f", x);
+    int max_len = slow5_asprintf(&str, "%f", x);
 
     char *ptr = str + max_len;
     for (int i = max_len - 1; i >= 1; -- i) {
@@ -404,17 +404,17 @@ char *float_to_str(float x, size_t *len) {
 uint8_t get_type_size(const char *name) {
     uint8_t size = 0;
 
-    if CHECK_TYPE(name, int8_t)
-    else if CHECK_TYPE(name, uint8_t)
-    else if CHECK_TYPE(name, int16_t)
-    else if CHECK_TYPE(name, uint16_t)
-    else if CHECK_TYPE(name, int32_t)
-    else if CHECK_TYPE(name, uint32_t)
-    else if CHECK_TYPE(name, int64_t)
-    else if CHECK_TYPE(name, uint64_t)
-    else if CHECK_TYPE(name, float)
-    else if CHECK_TYPE(name, double)
-    else if CHECK_TYPE(name, char)
+    if SLOW5_CHECK_TYPE(name, int8_t)
+    else if SLOW5_CHECK_TYPE(name, uint8_t)
+    else if SLOW5_CHECK_TYPE(name, int16_t)
+    else if SLOW5_CHECK_TYPE(name, uint16_t)
+    else if SLOW5_CHECK_TYPE(name, int32_t)
+    else if SLOW5_CHECK_TYPE(name, uint32_t)
+    else if SLOW5_CHECK_TYPE(name, int64_t)
+    else if SLOW5_CHECK_TYPE(name, uint64_t)
+    else if SLOW5_CHECK_TYPE(name, float)
+    else if SLOW5_CHECK_TYPE(name, double)
+    else if SLOW5_CHECK_TYPE(name, char)
 
     return size;
 }

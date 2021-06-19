@@ -480,7 +480,7 @@ static int vfprintf_compress(struct slow5_press *comp, FILE *fp, const char *for
             ret = vfprintf(fp, format, ap);
         } else {
             char *buf;
-            if (vasprintf_mine(&buf, format, ap) != -1) {
+            if (slow5_vasprintf(&buf, format, ap) != -1) {
                 ret = slow5_fwrite_str_compress(comp, buf, fp);
                 free(buf);
             }
