@@ -14,8 +14,8 @@ Detailed benchmarking experiments have shown that SLOW5 format is up to X-fold f
 
 <todo>
 
-[![SLOW5 C/C++ CI Github](https://github.com/hasindu2008/slow5lib/workflows/SLOW5%20C/C++%20CI%20Github/badge.svg)](https://github.com/hasindu2008/slow5lib/actions?query=workflow%3A%22SLOW5+C%2FC%2B%2B+CI+Github%22)
-
+[![SLOW5 C/C++ CI Github](https://github.com/hasindu2008/slow5lib/actions/workflows/c-cpp.yml/badge.svg)](https://github.com/hasindu2008/slow5lib/actions/workflows/c-cpp.yml)
+[![SLOW5 Python CI Github](https://github.com/hasindu2008/slow5lib/actions/workflows/python.yml/badge.svg)](https://github.com/hasindu2008/slow5lib/actions/workflows/python.yml)
 
 ## Building
 
