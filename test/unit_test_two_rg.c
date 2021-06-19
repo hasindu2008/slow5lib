@@ -104,7 +104,7 @@ int slow5_add_rg_data_valid(void) {
     struct slow5_file *s5p_two = slow5_open("test/data/exp/two_rg/exp_default.slow5", "r");
     ASSERT(s5p_two != NULL);
 
-    khash_t(s2s) *rg_two = slow5_hdr_get_data(1, s5p_two->header);
+    khash_t(slow5_s2s) *rg_two = slow5_hdr_get_data(1, s5p_two->header);
     ASSERT(rg_two != NULL);
     ASSERT(slow5_hdr_add_rg_data(s5p->header, rg_two) == 1);
 

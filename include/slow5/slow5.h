@@ -181,7 +181,7 @@ static const struct slow5_aux_type_meta SLOW5_AUX_TYPE_META[] = {
 };
 
 // Auxiliary attribute to position map: attribute string -> index position
-KHASH_MAP_INIT_STR(s2ui32, uint32_t)
+KHASH_MAP_INIT_STR(slow5_s2ui32, uint32_t)
 
 /**
 * @struct slow5_aux_meta
@@ -191,7 +191,7 @@ struct slow5_aux_meta {
     uint32_t num;                   ///< number of auxiliary fields
     size_t cap;                     ///< capacity of the arrays: attrs, types and sizes
 
-    khash_t(s2ui32) *attr_to_pos;   ///< hash table that maps field name string -> index position in the following arrays.
+    khash_t(slow5_s2ui32) *attr_to_pos;   ///< hash table that maps field name string -> index position in the following arrays.
     char **attrs;                   ///< field names
     enum slow5_aux_type *types;           ///< field datatype
     uint8_t *sizes;                 ///< field datatype sizes, for arrays this stores the size (in bytes) of the corresponding primitive type (TODO: this is probably redundant)
@@ -199,9 +199,9 @@ struct slow5_aux_meta {
 typedef struct slow5_aux_meta slow5_aux_meta_t;
 
 // Header data map: attribute string -> data string
-KHASH_MAP_INIT_STR(s2s, char *)
+KHASH_MAP_INIT_STR(slow5_s2s, char *)
 // Header data attributes set
-KHASH_SET_INIT_STR(s)
+KHASH_SET_INIT_STR(slow5_s)
 
 /**
 * @struct slow5_hdr_data
@@ -209,8 +209,8 @@ KHASH_SET_INIT_STR(s)
 */
 struct slow5_hdr_data {
     uint32_t num_attrs;	            ///< Number of data attributes
-    khash_t(s) *attrs;              ///< Set of the data attribute keys for internal access(incase of multiple read groups, the union of keys from all read groups)
-    kvec_t(khash_t(s2s) *) maps;    ///< Dynamic vector of hash maps (attribute key string -> attribute value string). Length of the vector is requal to  num_read_groups. Index in the vector corresponds to the read group number. The keys that are not relevant to a particular read group are not stored in this hash map.
+    khash_t(slow5_s) *attrs;              ///< Set of the data attribute keys for internal access(incase of multiple read groups, the union of keys from all read groups)
+    kvec_t(khash_t(slow5_s2s) *) maps;    ///< Dynamic vector of hash maps (attribute key string -> attribute value string). Length of the vector is requal to  num_read_groups. Index in the vector corresponds to the read group number. The keys that are not relevant to a particular read group are not stored in this hash map.
 };
 typedef struct slow5_hdr_data slow5_hdr_data_t;
 

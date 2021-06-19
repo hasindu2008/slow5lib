@@ -553,8 +553,8 @@ void *slow5_hdr_to_mem(struct slow5_hdr *header, enum slow5_fmt format, slow5_sl
             len += strlen(attr);
 
             for (uint64_t j = 0; j < (uint64_t) header->num_read_groups; ++ j) {
-                const khash_t(s2s) *hdr_data = header->data.maps.a[j];
-                khint_t pos = kh_get(s2s, hdr_data, attr);
+                const khash_t(slow5_s2s) *hdr_data = header->data.maps.a[j];
+                khint_t pos = kh_get(slow5_s2s, hdr_data, attr);
 
                 if (pos != kh_end(hdr_data)) {
                     const char *value = kh_value(hdr_data, pos);
@@ -788,7 +788,7 @@ int slow5_hdr_fwrite(FILE *fp, struct slow5_hdr *header, enum slow5_fmt format, 
  * @param   header     pointer to the header
  * @return  the header data map for that read_group, or NULL on error
  */
-khash_t(s2s) *slow5_hdr_get_data(uint32_t read_group, const struct slow5_hdr *header) {
+khash_t(slow5_s2s) *slow5_hdr_get_data(uint32_t read_group, const struct slow5_hdr *header) {
     if (header == NULL || read_group >= header->num_read_groups) {
         return NULL;
     }
@@ -815,9 +815,9 @@ char *slow5_hdr_get(const char *attr, uint32_t read_group, const struct slow5_hd
         return NULL;
     }
 
-    khash_t(s2s) *hdr_data = header->data.maps.a[read_group];
+    khash_t(slow5_s2s) *hdr_data = header->data.maps.a[read_group];
 
-    khint_t pos = kh_get(s2s, hdr_data, attr);
+    khint_t pos = kh_get(slow5_s2s, hdr_data, attr);
     if (pos == kh_end(hdr_data)) {
         return NULL;
     } else {
@@ -876,15 +876,15 @@ int slow5_hdr_add_attr(const char *attr, struct slow5_hdr *header) {
     }
 
     if (header->data.attrs == NULL) {
-        header->data.attrs = kh_init(s);
+        header->data.attrs = kh_init(slow5_s);
     }
 
     // See if attr already there
-    if (kh_get(s, header->data.attrs, attr) == kh_end(header->data.attrs)) {
+    if (kh_get(slow5_s, header->data.attrs, attr) == kh_end(header->data.attrs)) {
         // Add attr
         int ret;
         char *attr_cp = strdup(attr);
-        kh_put(s, header->data.attrs, attr_cp, &ret);
+        kh_put(slow5_s, header->data.attrs, attr_cp, &ret);
         if (ret == -1) {
             free(attr_cp);
             return -3;
@@ -913,7 +913,7 @@ int64_t slow5_hdr_add_rg(struct slow5_hdr *header) {
 
     if (header != NULL) {
         rg_num = header->num_read_groups ++;
-        kv_push(khash_t(s2s) *, header->data.maps, kh_init(s2s));
+        kv_push(khash_t(slow5_s2s) *, header->data.maps, kh_init(slow5_s2s));
     }
 
     return rg_num;
@@ -929,7 +929,7 @@ int64_t slow5_hdr_add_rg(struct slow5_hdr *header) {
  * @param   new_data    khash map of the new read group
  * @return  < 0 on error as described above
  */
-int64_t slow5_hdr_add_rg_data(struct slow5_hdr *header, khash_t(s2s) *new_data) {
+int64_t slow5_hdr_add_rg_data(struct slow5_hdr *header, khash_t(slow5_s2s) *new_data) {
     if (header == NULL || new_data == NULL) {
         return -1;
     }
@@ -969,18 +969,18 @@ int slow5_hdr_set(const char *attr, const char *value, uint32_t read_group, stru
         return -1;
     }
 
-    khint_t pos = kh_get(s, header->data.attrs, attr);
+    khint_t pos = kh_get(slow5_s, header->data.attrs, attr);
     if (pos != kh_end(header->data.attrs)) {
         const char *attr_lib = kh_key(header->data.attrs, pos);
-        khash_t(s2s) *map = header->data.maps.a[read_group];
+        khash_t(slow5_s2s) *map = header->data.maps.a[read_group];
 
-        khint_t k = kh_get(s2s, map, attr);
+        khint_t k = kh_get(slow5_s2s, map, attr);
         if (k != kh_end(map)) {
             free(kh_value(map, k));
             kh_value(map, k) = strdup(value);
         } else {
             int ret;
-            k = kh_put(s2s, map, attr, &ret);
+            k = kh_put(slow5_s2s, map, attr, &ret);
             kh_value(map, k) = strdup(value);
             kh_key(map, k) = attr_lib;
         }
@@ -1012,14 +1012,14 @@ int slow5_hdr_data_init(FILE *fp, char *buf, size_t *cap, struct slow5_hdr *head
     uint32_t hdr_len_tmp = 0;
 
     kv_init(header->data.maps);
-    kv_resize(khash_t(s2s) *, header->data.maps, header->num_read_groups);
+    kv_resize(khash_t(slow5_s2s) *, header->data.maps, header->num_read_groups);
 
     for (uint64_t i = 0; i < (uint64_t) header->num_read_groups; ++ i) {
-        kv_A(header->data.maps, i) = kh_init(s2s);
+        kv_A(header->data.maps, i) = kh_init(slow5_s2s);
         ++ header->data.maps.n;
     }
 
-    khash_t(s) *data_attrs = kh_init(s);
+    khash_t(slow5_s) *data_attrs = kh_init(slow5_s);
 
     // Parse slow5 header data
 
@@ -1045,7 +1045,7 @@ int slow5_hdr_data_init(FILE *fp, char *buf, size_t *cap, struct slow5_hdr *head
         char *val;
 
         int ret;
-        kh_put(s, data_attrs, attr, &ret);
+        kh_put(slow5_s, data_attrs, attr, &ret);
         ++ num_data_attrs;
         SLOW5_ASSERT(!(ret == -1 || ret == 0));
 
@@ -1055,7 +1055,7 @@ int slow5_hdr_data_init(FILE *fp, char *buf, size_t *cap, struct slow5_hdr *head
 
             // Set key
             int absent;
-            khint_t pos = kh_put(s2s, header->data.maps.a[i], attr, &absent);
+            khint_t pos = kh_put(slow5_s2s, header->data.maps.a[i], attr, &absent);
             SLOW5_ASSERT(absent != -1);
 
             //if the value is ".", we store an empty string
@@ -1179,7 +1179,7 @@ struct slow5_aux_meta *slow5_aux_meta_init(FILE *fp, char *buf, size_t *cap, uin
         char *tok = strsep_mine(&shift, SLOW5_SEP_COL);
         SLOW5_ASSERT(strcmp(tok, "") == 0);
 
-        aux_meta->attr_to_pos = kh_init(s2ui32);
+        aux_meta->attr_to_pos = kh_init(slow5_s2ui32);
         aux_meta->attrs = (char **) malloc(aux_meta->cap * sizeof *(aux_meta->attrs));
 
         for (uint64_t i = 0; i < aux_meta->num; ++ i) {
@@ -1187,7 +1187,7 @@ struct slow5_aux_meta *slow5_aux_meta_init(FILE *fp, char *buf, size_t *cap, uin
                 for (uint64_t j = 0; j < i; ++ j) {
                     free(aux_meta->attrs[j]);
                 }
-                kh_destroy(s2ui32, aux_meta->attr_to_pos);
+                kh_destroy(slow5_s2ui32, aux_meta->attr_to_pos);
                 free(aux_meta->attrs);
                 free(aux_meta->types);
                 free(aux_meta->sizes);
@@ -1198,12 +1198,12 @@ struct slow5_aux_meta *slow5_aux_meta_init(FILE *fp, char *buf, size_t *cap, uin
             aux_meta->attrs[i] = strdup(tok);
 
             int absent;
-            khint_t pos = kh_put(s2ui32, aux_meta->attr_to_pos, aux_meta->attrs[i], &absent);
+            khint_t pos = kh_put(slow5_s2ui32, aux_meta->attr_to_pos, aux_meta->attrs[i], &absent);
             if (absent == -1 || absent == -2) {
                 for (uint64_t j = 0; j <= i; ++ j) {
                     free(aux_meta->attrs[j]);
                 }
-                kh_destroy(s2ui32, aux_meta->attr_to_pos);
+                kh_destroy(slow5_s2ui32, aux_meta->attr_to_pos);
                 free(aux_meta->attrs);
                 free(aux_meta->types);
                 free(aux_meta->sizes);
@@ -1231,7 +1231,7 @@ int slow5_aux_meta_add(struct slow5_aux_meta *aux_meta, const char *attr, enum s
     }
 
     if (aux_meta->attr_to_pos == NULL) {
-        aux_meta->attr_to_pos = kh_init(s2ui32);
+        aux_meta->attr_to_pos = kh_init(slow5_s2ui32);
     }
 
     if (aux_meta->num == aux_meta->cap) {
@@ -1244,7 +1244,7 @@ int slow5_aux_meta_add(struct slow5_aux_meta *aux_meta, const char *attr, enum s
     aux_meta->attrs[aux_meta->num] = strdup(attr);
 
     int absent;
-    khint_t pos = kh_put(s2ui32, aux_meta->attr_to_pos, aux_meta->attrs[aux_meta->num], &absent);
+    khint_t pos = kh_put(slow5_s2ui32, aux_meta->attr_to_pos, aux_meta->attrs[aux_meta->num], &absent);
     if (absent == -1 || absent == -2) {
         free(aux_meta->attrs[aux_meta->num]);
         return -2;
@@ -1265,7 +1265,7 @@ void slow5_aux_meta_free(struct slow5_aux_meta *aux_meta) {
             free(aux_meta->attrs[i]);
         }
         free(aux_meta->attrs);
-        kh_destroy(s2ui32, aux_meta->attr_to_pos);
+        kh_destroy(slow5_s2ui32, aux_meta->attr_to_pos);
         free(aux_meta->types);
         free(aux_meta->sizes);
         free(aux_meta);
@@ -1282,12 +1282,12 @@ void slow5_hdr_data_free(struct slow5_hdr *header) {
 
                 // Free header data map
                 for (size_t j = 0; j < kv_size(header->data.maps); ++ j) {
-                    khash_t(s2s) *map = header->data.maps.a[j];
+                    khash_t(slow5_s2s) *map = header->data.maps.a[j];
 
-                    khint_t pos = kh_get(s2s, map, attr);
+                    khint_t pos = kh_get(slow5_s2s, map, attr);
                     if (pos != kh_end(map)) {
                         free(kh_value(map, pos));
-                        kh_del(s2s, map, pos);
+                        kh_del(slow5_s2s, map, pos);
                     }
                 }
 
@@ -1297,10 +1297,10 @@ void slow5_hdr_data_free(struct slow5_hdr *header) {
 
         // Free header data map
         for (size_t j = 0; j < kv_size(header->data.maps); ++ j) {
-            kh_destroy(s2s, header->data.maps.a[j]);
+            kh_destroy(slow5_s2s, header->data.maps.a[j]);
         }
 
-        kh_destroy(s, header->data.attrs);
+        kh_destroy(slow5_s, header->data.attrs);
         kv_destroy(header->data.maps);
     }
 }
@@ -1947,7 +1947,7 @@ int slow5_rec_set(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, const
         return -1;
     }
 
-    khint_t pos = kh_get(s2ui32, aux_meta->attr_to_pos, attr);
+    khint_t pos = kh_get(slow5_s2ui32, aux_meta->attr_to_pos, attr);
     if (pos == kh_end(aux_meta->attr_to_pos)) {
         return -2;
     }
@@ -1976,7 +1976,7 @@ int slow5_rec_set_array(struct slow5_rec *read, struct slow5_aux_meta *aux_meta,
         return -1;
     }
 
-    khint_t pos = kh_get(s2ui32, aux_meta->attr_to_pos, attr);
+    khint_t pos = kh_get(slow5_s2ui32, aux_meta->attr_to_pos, attr);
     if (pos == kh_end(aux_meta->attr_to_pos)) {
         return -2;
     }
