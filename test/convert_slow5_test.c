@@ -10,7 +10,7 @@ int slow5_to_blow5_uncomp(void) {
     ASSERT(to != NULL);
 
     /*
-    ASSERT(slow5_hdr_fwrite(to, from->header, SLOW5_FORMAT_BINARY, COMPRESS_NONE) != -1);
+    ASSERT(slow5_hdr_fwrite(to, from->header, SLOW5_FORMAT_BINARY, SLOW5_COMPRESS_NONE) != -1);
 
     struct slow5_rec *read = NULL;
     int ret;
@@ -22,7 +22,7 @@ int slow5_to_blow5_uncomp(void) {
 
     ASSERT(slow5_eof_fwrite(to) != -1);
     */
-    ASSERT(slow5_convert(from, to, SLOW5_FORMAT_BINARY, COMPRESS_NONE) == 0)
+    ASSERT(slow5_convert(from, to, SLOW5_FORMAT_BINARY, SLOW5_COMPRESS_NONE) == 0)
 
     ASSERT(slow5_close(from) == 0);
     ASSERT(fclose(to) == 0);
@@ -38,11 +38,11 @@ int slow5_to_blow5_gzip(void) {
     ASSERT(to != NULL);
 
     /*
-    ASSERT(slow5_hdr_fwrite(to, from->header, SLOW5_FORMAT_BINARY, COMPRESS_GZIP) != -1);
+    ASSERT(slow5_hdr_fwrite(to, from->header, SLOW5_FORMAT_BINARY, SLOW5_COMPRESS_GZIP) != -1);
 
     struct slow5_rec *read = NULL;
     int ret;
-    struct press *gzip = press_init(COMPRESS_GZIP);
+    struct slow5_press *gzip = slow5_press_init(SLOW5_COMPRESS_GZIP);
     ASSERT(gzip != NULL);
     while ((ret = slow5_get_next(&read, from)) == 0) {
         ASSERT(slow5_rec_fwrite(to, read, SLOW5_FORMAT_BINARY, gzip) != -1);
@@ -52,9 +52,9 @@ int slow5_to_blow5_gzip(void) {
 
     ASSERT(slow5_eof_fwrite(to) != -1);
 
-    press_free(gzip);
+    slow5_press_free(gzip);
     */
-    ASSERT(slow5_convert(from, to, SLOW5_FORMAT_BINARY, COMPRESS_GZIP) == 0)
+    ASSERT(slow5_convert(from, to, SLOW5_FORMAT_BINARY, SLOW5_COMPRESS_GZIP) == 0)
 
     ASSERT(slow5_close(from) == 0);
     ASSERT(fclose(to) == 0);
@@ -70,7 +70,7 @@ int blow5_uncomp_to_slow5(void) {
     ASSERT(to != NULL);
 
     /*
-    ASSERT(slow5_hdr_fwrite(to, from->header, SLOW5_FORMAT_ASCII, COMPRESS_NONE) != -1);
+    ASSERT(slow5_hdr_fwrite(to, from->header, SLOW5_FORMAT_ASCII, SLOW5_COMPRESS_NONE) != -1);
 
     struct slow5_rec *read = NULL;
     int ret;
@@ -80,7 +80,7 @@ int blow5_uncomp_to_slow5(void) {
     slow5_rec_free(read);
     ASSERT(ret == -2);
     */
-    ASSERT(slow5_convert(from, to, SLOW5_FORMAT_ASCII, COMPRESS_NONE) == 0)
+    ASSERT(slow5_convert(from, to, SLOW5_FORMAT_ASCII, SLOW5_COMPRESS_NONE) == 0)
 
     ASSERT(slow5_close(from) == 0);
     ASSERT(fclose(to) == 0);
@@ -96,7 +96,7 @@ int blow5_gzip_to_slow5(void) {
     ASSERT(to != NULL);
 
     /*
-    ASSERT(slow5_hdr_fwrite(to, from->header, SLOW5_FORMAT_ASCII, COMPRESS_NONE) != -1);
+    ASSERT(slow5_hdr_fwrite(to, from->header, SLOW5_FORMAT_ASCII, SLOW5_COMPRESS_NONE) != -1);
 
     struct slow5_rec *read = NULL;
     int ret;
@@ -106,7 +106,7 @@ int blow5_gzip_to_slow5(void) {
     slow5_rec_free(read);
     ASSERT(ret == -2);
     */
-    ASSERT(slow5_convert(from, to, SLOW5_FORMAT_ASCII, COMPRESS_NONE) == 0)
+    ASSERT(slow5_convert(from, to, SLOW5_FORMAT_ASCII, SLOW5_COMPRESS_NONE) == 0)
 
     ASSERT(slow5_close(from) == 0);
     ASSERT(fclose(to) == 0);
@@ -122,7 +122,7 @@ int blow5_gzip_to_blow5_uncomp(void) {
     ASSERT(to != NULL);
 
     /*
-    ASSERT(slow5_hdr_fwrite(to, from->header, SLOW5_FORMAT_BINARY, COMPRESS_NONE) != -1);
+    ASSERT(slow5_hdr_fwrite(to, from->header, SLOW5_FORMAT_BINARY, SLOW5_COMPRESS_NONE) != -1);
 
     struct slow5_rec *read = NULL;
     int ret;
@@ -134,7 +134,7 @@ int blow5_gzip_to_blow5_uncomp(void) {
 
     ASSERT(slow5_eof_fwrite(to) != -1);
     */
-    ASSERT(slow5_convert(from, to, SLOW5_FORMAT_BINARY, COMPRESS_NONE) == 0)
+    ASSERT(slow5_convert(from, to, SLOW5_FORMAT_BINARY, SLOW5_COMPRESS_NONE) == 0)
 
     ASSERT(slow5_close(from) == 0);
     ASSERT(fclose(to) == 0);
@@ -150,11 +150,11 @@ int blow5_uncomp_to_blow5_gzip(void) {
     ASSERT(to != NULL);
 
     /*
-    ASSERT(slow5_hdr_fwrite(to, from->header, SLOW5_FORMAT_BINARY, COMPRESS_GZIP) != -1);
+    ASSERT(slow5_hdr_fwrite(to, from->header, SLOW5_FORMAT_BINARY, SLOW5_COMPRESS_GZIP) != -1);
 
     struct slow5_rec *read = NULL;
     int ret;
-    struct press *gzip = press_init(COMPRESS_GZIP);
+    struct slow5_press *gzip = slow5_press_init(SLOW5_COMPRESS_GZIP);
     ASSERT(gzip != NULL);
     while ((ret = slow5_get_next(&read, from)) == 0) {
         ASSERT(slow5_rec_fwrite(to, read, SLOW5_FORMAT_BINARY, gzip) != -1);
@@ -164,9 +164,9 @@ int blow5_uncomp_to_blow5_gzip(void) {
 
     ASSERT(slow5_eof_fwrite(to) != -1);
 
-    press_free(gzip);
+    slow5_press_free(gzip);
     */
-    ASSERT(slow5_convert(from, to, SLOW5_FORMAT_BINARY, COMPRESS_GZIP) == 0)
+    ASSERT(slow5_convert(from, to, SLOW5_FORMAT_BINARY, SLOW5_COMPRESS_GZIP) == 0)
 
     ASSERT(slow5_close(from) == 0);
     ASSERT(fclose(to) == 0);
@@ -181,7 +181,7 @@ int slow5_to_blow5_uncomp_lossless(void) {
     FILE *to = fopen("test/data/out/one_fast5/slow5_to_blow5_uncomp_lossless.blow5", "w");
     ASSERT(to != NULL);
 
-    ASSERT(slow5_convert(from, to, SLOW5_FORMAT_BINARY, COMPRESS_NONE) == 0)
+    ASSERT(slow5_convert(from, to, SLOW5_FORMAT_BINARY, SLOW5_COMPRESS_NONE) == 0)
 
     ASSERT(slow5_close(from) == 0);
     ASSERT(fclose(to) == 0);
@@ -196,7 +196,7 @@ int slow5_to_blow5_gzip_lossless(void) {
     FILE *to = fopen("test/data/out/one_fast5/slow5_to_blow5_gzip_lossless.blow5", "w");
     ASSERT(to != NULL);
 
-    ASSERT(slow5_convert(from, to, SLOW5_FORMAT_BINARY, COMPRESS_GZIP) == 0)
+    ASSERT(slow5_convert(from, to, SLOW5_FORMAT_BINARY, SLOW5_COMPRESS_GZIP) == 0)
 
     ASSERT(slow5_close(from) == 0);
     ASSERT(fclose(to) == 0);
@@ -211,7 +211,7 @@ int blow5_uncomp_to_slow5_lossless(void) {
     FILE *to = fopen("test/data/out/one_fast5/blow5_uncomp_to_slow5_lossless.slow5", "w");
     ASSERT(to != NULL);
 
-    ASSERT(slow5_convert(from, to, SLOW5_FORMAT_ASCII, COMPRESS_NONE) == 0)
+    ASSERT(slow5_convert(from, to, SLOW5_FORMAT_ASCII, SLOW5_COMPRESS_NONE) == 0)
 
     ASSERT(slow5_close(from) == 0);
     ASSERT(fclose(to) == 0);
@@ -226,7 +226,7 @@ int blow5_gzip_to_slow5_lossless(void) {
     FILE *to = fopen("test/data/out/one_fast5/blow5_gzip_to_slow5_lossless.slow5", "w");
     ASSERT(to != NULL);
 
-    ASSERT(slow5_convert(from, to, SLOW5_FORMAT_ASCII, COMPRESS_NONE) == 0)
+    ASSERT(slow5_convert(from, to, SLOW5_FORMAT_ASCII, SLOW5_COMPRESS_NONE) == 0)
 
     ASSERT(slow5_close(from) == 0);
     ASSERT(fclose(to) == 0);
@@ -241,7 +241,7 @@ int blow5_gzip_to_blow5_uncomp_lossless(void) {
     FILE *to = fopen("test/data/out/one_fast5/blow5_gzip_to_blow5_uncomp_lossless.blow5", "w");
     ASSERT(to != NULL);
 
-    ASSERT(slow5_convert(from, to, SLOW5_FORMAT_BINARY, COMPRESS_NONE) == 0)
+    ASSERT(slow5_convert(from, to, SLOW5_FORMAT_BINARY, SLOW5_COMPRESS_NONE) == 0)
 
     ASSERT(slow5_close(from) == 0);
     ASSERT(fclose(to) == 0);
@@ -256,7 +256,7 @@ int blow5_uncomp_to_blow5_gzip_lossless(void) {
     FILE *to = fopen("test/data/out/one_fast5/blow5_uncomp_to_blow5_gzip_lossless.blow5", "w");
     ASSERT(to != NULL);
 
-    ASSERT(slow5_convert(from, to, SLOW5_FORMAT_BINARY, COMPRESS_GZIP) == 0)
+    ASSERT(slow5_convert(from, to, SLOW5_FORMAT_BINARY, SLOW5_COMPRESS_GZIP) == 0)
 
     ASSERT(slow5_close(from) == 0);
     ASSERT(fclose(to) == 0);
@@ -271,7 +271,7 @@ int slow5_to_blow5_uncomp_lossless_aux_array(void) {
     FILE *to = fopen("test/data/out/aux_array/slow5_to_blow5_uncomp_lossless.blow5", "w");
     ASSERT(to != NULL);
 
-    ASSERT(slow5_convert(from, to, SLOW5_FORMAT_BINARY, COMPRESS_NONE) == 0)
+    ASSERT(slow5_convert(from, to, SLOW5_FORMAT_BINARY, SLOW5_COMPRESS_NONE) == 0)
 
     ASSERT(slow5_close(from) == 0);
     ASSERT(fclose(to) == 0);
@@ -286,7 +286,7 @@ int slow5_to_blow5_gzip_lossless_aux_array(void) {
     FILE *to = fopen("test/data/out/aux_array/slow5_to_blow5_gzip_lossless.blow5", "w");
     ASSERT(to != NULL);
 
-    ASSERT(slow5_convert(from, to, SLOW5_FORMAT_BINARY, COMPRESS_GZIP) == 0)
+    ASSERT(slow5_convert(from, to, SLOW5_FORMAT_BINARY, SLOW5_COMPRESS_GZIP) == 0)
 
     ASSERT(slow5_close(from) == 0);
     ASSERT(fclose(to) == 0);
@@ -301,7 +301,7 @@ int blow5_uncomp_to_slow5_lossless_aux_array(void) {
     FILE *to = fopen("test/data/out/aux_array/blow5_uncomp_to_slow5_lossless.slow5", "w");
     ASSERT(to != NULL);
 
-    ASSERT(slow5_convert(from, to, SLOW5_FORMAT_ASCII, COMPRESS_NONE) == 0)
+    ASSERT(slow5_convert(from, to, SLOW5_FORMAT_ASCII, SLOW5_COMPRESS_NONE) == 0)
 
     ASSERT(slow5_close(from) == 0);
     ASSERT(fclose(to) == 0);
@@ -316,7 +316,7 @@ int blow5_gzip_to_slow5_lossless_aux_array(void) {
     FILE *to = fopen("test/data/out/aux_array/blow5_gzip_to_slow5_lossless.slow5", "w");
     ASSERT(to != NULL);
 
-    ASSERT(slow5_convert(from, to, SLOW5_FORMAT_ASCII, COMPRESS_NONE) == 0)
+    ASSERT(slow5_convert(from, to, SLOW5_FORMAT_ASCII, SLOW5_COMPRESS_NONE) == 0)
 
     ASSERT(slow5_close(from) == 0);
     ASSERT(fclose(to) == 0);
@@ -331,7 +331,7 @@ int blow5_gzip_to_blow5_uncomp_lossless_aux_array(void) {
     FILE *to = fopen("test/data/out/aux_array/blow5_gzip_to_blow5_uncomp_lossless.blow5", "w");
     ASSERT(to != NULL);
 
-    ASSERT(slow5_convert(from, to, SLOW5_FORMAT_BINARY, COMPRESS_NONE) == 0)
+    ASSERT(slow5_convert(from, to, SLOW5_FORMAT_BINARY, SLOW5_COMPRESS_NONE) == 0)
 
     ASSERT(slow5_close(from) == 0);
     ASSERT(fclose(to) == 0);
@@ -346,7 +346,7 @@ int blow5_uncomp_to_blow5_gzip_lossless_aux_array(void) {
     FILE *to = fopen("test/data/out/aux_array/blow5_uncomp_to_blow5_gzip_lossless.blow5", "w");
     ASSERT(to != NULL);
 
-    ASSERT(slow5_convert(from, to, SLOW5_FORMAT_BINARY, COMPRESS_GZIP) == 0)
+    ASSERT(slow5_convert(from, to, SLOW5_FORMAT_BINARY, SLOW5_COMPRESS_GZIP) == 0)
 
     ASSERT(slow5_close(from) == 0);
     ASSERT(fclose(to) == 0);

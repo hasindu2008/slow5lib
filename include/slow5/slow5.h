@@ -294,7 +294,7 @@ typedef struct slow5_idx slow5_idx_t;
 struct slow5_file {
     FILE *fp;                   ///< file pointer
     enum slow5_fmt format;      ///< whether SLOW5, BLOW5 etc...
-    press_t *compress;          ///< compression related metadata
+    slow5_press_t *compress;          ///< compression related metadata
     slow5_hdr_t *header;        ///< SLOW5 header
     slow5_idx_t *index;         ///< SLOW5 index (NULL if not applicable)
     slow5_file_meta_t meta;     ///< file metadata
@@ -550,7 +550,7 @@ int slow5_rm_rec(const char *read_id, slow5_file_t *s5p); // TODO
  * @param   compress    compress structure
  * @return  malloced string to use free() on, NULL on error
  */
-void *slow5_rec_to_mem(slow5_rec_t *read, struct slow5_aux_meta *aux_meta, enum slow5_fmt format, struct press *compress, size_t *n);
+void *slow5_rec_to_mem(slow5_rec_t *read, struct slow5_aux_meta *aux_meta, enum slow5_fmt format, struct slow5_press *compress, size_t *n);
 
 /**
  * Print a read entry in the specified format to a file pointer.
@@ -564,8 +564,8 @@ void *slow5_rec_to_mem(slow5_rec_t *read, struct slow5_aux_meta *aux_meta, enum 
  * @param   compress
  * @return  number of bytes written, -1 on error
  */
-int slow5_rec_fwrite(FILE *fp, slow5_rec_t *read, struct slow5_aux_meta *aux_meta, enum slow5_fmt format, struct press *compress);
-static inline int slow5_rec_print(slow5_rec_t *read, struct slow5_aux_meta *aux_meta, enum slow5_fmt format, struct press *compress) {
+int slow5_rec_fwrite(FILE *fp, slow5_rec_t *read, struct slow5_aux_meta *aux_meta, enum slow5_fmt format, struct slow5_press *compress);
+static inline int slow5_rec_print(slow5_rec_t *read, struct slow5_aux_meta *aux_meta, enum slow5_fmt format, struct slow5_press *compress) {
     return slow5_rec_fwrite(stdout, read, aux_meta, format, compress);
 }
 
@@ -629,7 +629,7 @@ int slow5_hdr_set(const char *attr, const char *value, uint32_t read_group, slow
  * @return  malloced memory storing the slow5 header representation,
  *          to use free() on afterwards
  */
-void *slow5_hdr_to_mem(slow5_hdr_t *header, enum slow5_fmt format, press_method_t comp, size_t *written);
+void *slow5_hdr_to_mem(slow5_hdr_t *header, enum slow5_fmt format, slow5_slow5_press_method_t comp, size_t *written);
 
 /**
  * Print the header in the specified format to a file pointer.
@@ -642,8 +642,8 @@ void *slow5_hdr_to_mem(slow5_hdr_t *header, enum slow5_fmt format, press_method_
  * @param   format  slow5 format to write the entry in
  * @return  number of bytes written, -1 on error
  */
-int slow5_hdr_fwrite(FILE *fp, slow5_hdr_t *header, enum slow5_fmt format, press_method_t comp);
-static inline int slow5_hdr_print(slow5_hdr_t *header, enum slow5_fmt format, press_method_t comp) {
+int slow5_hdr_fwrite(FILE *fp, slow5_hdr_t *header, enum slow5_fmt format, slow5_slow5_press_method_t comp);
+static inline int slow5_hdr_print(slow5_hdr_t *header, enum slow5_fmt format, slow5_slow5_press_method_t comp) {
     return slow5_hdr_fwrite(stdout, header, format, comp);
 }
 
@@ -677,7 +677,7 @@ enum slow5_aux_type *slow5_get_aux_types(const slow5_hdr_t *header,uint64_t *len
 // 0    success
 // -1   input invalid
 // -2   failure
-int slow5_convert(slow5_file_t *from, FILE *to_fp, enum slow5_fmt to_format, press_method_t to_compress);
+int slow5_convert(slow5_file_t *from, FILE *to_fp, enum slow5_fmt to_format, slow5_slow5_press_method_t to_compress);
 
 
 //set the log verbosity level
