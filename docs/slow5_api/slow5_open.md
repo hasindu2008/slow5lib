@@ -30,7 +30,9 @@ Upon successful completion, `slow_open()` returns a *slow5_file_t* pointer. Othe
 ## NOTES
 Internally uses `fopen()`. The stream is positioned at the beginning of the data records.
 
+Also see [`slow5_close()`](slow5_close.md) and [`slow5_open_with()`](low_level_api/slow5_open_with.md).
 
+## EXAMPLES
 ```
 #include <stdio.h>
 #include <stdlib.h>
