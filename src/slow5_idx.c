@@ -43,6 +43,7 @@ struct slow5_idx *slow5_idx_init(struct slow5_file *s5p) {
 
     // If file doesn't exist
     if ((index_fp = fopen(index->pathname, "r")) == NULL) {
+        SLOW5_INFO("Index file not found. Creating an index at %s.",index->pathname)
         if (slow5_idx_build(index, s5p) != 0) {
             slow5_idx_free(index);
             return NULL;

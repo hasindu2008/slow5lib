@@ -72,6 +72,7 @@ src/config.h
 /*.blow5
 python/pyslow5.c
 docs/doxygen
+examples/xample.slow5.idx
 
 # testing output
 *actual*

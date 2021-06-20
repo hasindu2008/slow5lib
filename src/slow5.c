@@ -77,7 +77,7 @@ static inline khash_t(slow5_s2a) *slow5_rec_aux_init(void);
 static inline void slow5_rec_set_aux_map(khash_t(slow5_s2a) *aux_map, const char *field, const uint8_t *data, size_t len, uint64_t bytes, enum slow5_aux_type type);
 
 
-enum slow5_log_level_opt  slow5_log_level = SLOW5_LOG_WARN;
+enum slow5_log_level_opt  slow5_log_level = SLOW5_LOG_INFO;
 enum slow5_exit_condition_opt  slow5_exit_condition = SLOW5_EXIT_OFF;
 
 
@@ -261,8 +261,7 @@ static inline void slow5_free(struct slow5_file *s5p) {
     if (s5p != NULL) {
         slow5_press_free(s5p->compress);
         slow5_hdr_free(s5p->header);
-        //as long a slow5 index is open, it is always writted back
-        //TODO: fix this to avoid issues with RO systems
+
         if (s5p->index != NULL) {
 
             if(s5p->index->dirty){ //if the index has been changed, write it back

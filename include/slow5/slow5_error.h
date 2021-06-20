@@ -53,24 +53,47 @@ enum slow5_log_level_opt {
     SLOW5_LOG_ERR,      // error messages
     SLOW5_LOG_WARN,     // warning and error messages
     SLOW5_LOG_INFO,     // information, warning and error messages
-    SLOW5_LOG_DEBUG     // debugging, information, warning and error messages
+    SLOW5_LOG_VERB,     // verbose, information, warning and error messages
+    SLOW5_LOG_DBUG      // debugging, verbose, information, warning and error messages
 };
 
 // determines if the library exit behaviour (if exit(EXIT_FAILURE) is called) on error
 enum slow5_exit_condition_opt {
     // do not exit the programme even if an error occur
-    //the user should have done error handling for each function call - typical library behaviour in C
+    //the user should have done error handling for each function call - typical library behaviour in C  (default at the moment)
     SLOW5_EXIT_OFF,
-    // exit the programme if an error occurs (default at the moment)
+    // exit the programme if an error occurs (useful for a programmer who is lazy to handle errors)
     SLOW5_EXIT_ON_ERR,
     // exit the programme if a warning occurs. this is a bit silly, but incase someone wants
     SLOW5_EXIT_ON_WARN
 };
 
-
+#define SLOW5_DEBUG_PREFIX "[DEBUG] %s: "
+#define SLOW5_VERBOSE_PREFIX "[INFO] %s: "
+#define SLOW5_INFO_PREFIX "[%s::INFO]\033[1;34m "
 #define SLOW5_WARNING_PREFIX "[%s::WARNING]\033[1;33m "
 #define SLOW5_ERROR_PREFIX "[%s::ERROR]\033[1;31m "
 #define SLOW5_NO_COLOUR "\033[0m\n"
+
+#define SLOW5_LOG_DEBUG(msg, ...) { \
+    if (slow5_log_level >= SLOW5_LOG_DBUG) { \
+        fprintf(stderr, SLOW5_VERBOSE_PREFIX msg , __func__, __VA_ARGS__); \
+        fprintf(stderr, ". At %s:%d\n", __FILE__, __LINE__ - 1); \
+    } \
+}
+
+#define SLOW5_VERBOSE(msg, ...) { \
+    if (slow5_log_level >= SLOW5_LOG_VERB) { \
+        fprintf(stderr, SLOW5_VERBOSE_PREFIX msg , __func__, __VA_ARGS__); \
+        fprintf(stderr, "n"); \
+    } \
+}
+
+#define SLOW5_INFO(msg, ...) { \
+    if (slow5_log_level >= SLOW5_LOG_INFO) { \
+        fprintf(stderr, SLOW5_INFO_PREFIX msg SLOW5_NO_COLOUR, __func__, __VA_ARGS__); \
+    } \
+}
 
 #define SLOW5_WARNING(msg, ...) { \
     if (slow5_log_level >= SLOW5_LOG_WARN) { \
