@@ -126,12 +126,17 @@ struct slow5_file *slow5_init(FILE *fp, const char *pathname, enum slow5_fmt for
         s5p->compress = slow5_press_init(method);
 
         if ((s5p->meta.fd = fileno(fp)) == -1) {
-            SLOW5_ERROR("%s","Obtaining the fileno failed.");
+            SLOW5_ERROR("%s","Obtaining the fileno() for the file stream failed. Not a valid file stream.");
             slow5_close(s5p);
             s5p = NULL;
         }
         s5p->meta.pathname = pathname;
         s5p->meta.start_rec_offset = ftello(fp);
+        if(s5p->meta.start_rec_offset == -1 ){
+            SLOW5_ERROR("ftello() failed. %s",strerror(errno));
+            slow5_close(s5p);
+            s5p = NULL;
+        }
     }
 
     return s5p;
@@ -312,7 +317,7 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
             return NULL;
         }
         if(buf_len==0){
-            SLOW5_WARNING("%s", "'Corrupted file. Why is the very first line empty?");
+            SLOW5_WARNING("%s", "'Malformed file. Why is the very first line empty?");
             free(buf);
             free(header);
             return NULL;
@@ -322,7 +327,7 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
         bufp = buf;
         char *tok = slow5_strsep(&bufp, SLOW5_SEP_COL);
         if (strcmp(tok, SLOW5_HEADER_FILE_VERSION_ID) != 0) {
-            SLOW5_WARNING("Corrupted file. Expected '%s', instead found '%s'", SLOW5_HEADER_FILE_VERSION_ID, tok);
+            SLOW5_WARNING("Malformed file. Expected '%s', instead found '%s'", SLOW5_HEADER_FILE_VERSION_ID, tok);
             free(buf);
             free(header);
             return NULL;
@@ -331,28 +336,28 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
         tok = slow5_strsep(&bufp, SLOW5_SEP_COL);
         char *toksub;
         if ((toksub = slow5_strsep(&tok, ".")) == NULL) { // Major version
-            SLOW5_WARNING("%s", "Corrupted file. Version string is expected to be in the format z.y.z");
+            SLOW5_WARNING("%s", "Malformed file. Version string is expected to be in the format x.y.z");
             free(buf);
             free(header);
             return NULL;
         }
         header->version.major = slow5_ato_uint8(toksub, &err);
         if (err == -1 || (toksub = slow5_strsep(&tok, ".")) == NULL) { // Minor version
-            SLOW5_WARNING("%s", "Corrupted file. Version string is expected to be in the format z.y.z");
+            SLOW5_WARNING("%s", "Malformed file. Version string is expected to be in the format x.y.z");
             free(buf);
             free(header);
             return NULL;
         }
         header->version.minor = slow5_ato_uint8(toksub, &err);
         if (err == -1 || (toksub = slow5_strsep(&tok, ".")) == NULL) { // Patch version
-            SLOW5_WARNING("%s", "Corrupted file. Version string is expected to be in the format z.y.z");
+            SLOW5_WARNING("%s", "Malformed file. Version string is expected to be in the format x.y.z");
             free(buf);
             free(header);
             return NULL;
         }
         header->version.patch = slow5_ato_uint8(toksub, &err);
         if (err == -1 || slow5_strsep(&tok, ".") != NULL) { // No more tokenators
-            SLOW5_WARNING("%s", "Corrupted file. Version string is expected to be in the format z.y.z");
+            SLOW5_WARNING("%s", "Malformed file. Version string is expected to be in the format x.y.z");
             free(buf);
             free(header);
             return NULL;
@@ -370,7 +375,7 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
         bufp = buf;
         tok = slow5_strsep(&bufp, SLOW5_SEP_COL);
         if (strcmp(tok, SLOW5_HEADER_NUM_GROUPS_ID) != 0) {
-            SLOW5_WARNING("Corrupted file. Expected '%s', instead found '%s'", SLOW5_HEADER_NUM_GROUPS_ID, tok);
+            SLOW5_WARNING("Malformed file. Expected '%s', instead found '%s'", SLOW5_HEADER_NUM_GROUPS_ID, tok);
             free(buf);
             free(header);
             return NULL;
@@ -379,18 +384,20 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
         tok = slow5_strsep(&bufp, SLOW5_SEP_COL);
         header->num_read_groups = slow5_ato_uint32(tok, &err);
         if (err == -1) {
-            SLOW5_WARNING("Corrupted file. Could not parse the number of read groups which is '%s'", tok);
+            SLOW5_WARNING("Malformed file. Invalid number of read groups - '%s'", tok);
             free(buf);
             free(header);
             return NULL;
         }
 
+        //parse the data header (TODO: assertions inside this function must be replaced properly)
         if(slow5_hdr_data_init(fp, buf, &cap, header, NULL) != 0){
             SLOW5_WARNING("%s","Parsing the data header failed.");
             free(buf);
             free(header);
             return NULL;
         }
+        //parse the datatype and column name fields (TODO: error checking inside this function is really bad - fix it)
         header->aux_meta = slow5_aux_meta_init(fp, buf, &cap, NULL);
 
     } else if (format == SLOW5_FORMAT_BINARY) {
@@ -433,9 +440,10 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
 }
 
 
-//get the list of hdr data keys in sorted order (only the returned pointer must be freed, not the ones inside - subjet to change)
-//len is the numberof elements
-//returns null if no attributes
+//get the list of hdr data keys in sorted order (only the returned pointer must be freed, not the ones inside - subject to change)
+//currently used in pyslow5
+//len is the number of elements in the return char** list
+//returns null if there are no data header attributes
 const char **slow5_get_hdr_keys(const slow5_hdr_t *header,uint64_t *len){
     if(len!=NULL){
         *len = header->data.num_attrs;
@@ -1003,7 +1011,7 @@ void slow5_hdr_free(struct slow5_hdr *header) {
 
 /************************************* slow5 header data *************************************/
 
-//read slow5 header from file
+//read slow5 data header from file
 int slow5_hdr_data_init(FILE *fp, char *buf, size_t *cap, struct slow5_hdr *header, uint32_t *hdr_len) {
 
     int ret = 0;
@@ -1732,7 +1740,7 @@ int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struc
         }
 
         if (offset > read_size){// Read too much
-            SLOW5_WARNING("Corrupted record. offset %ld, read_size %ld",(long)offset, (long)read_size);
+            SLOW5_WARNING("Malformed record. offset %ld, read_size %ld",(long)offset, (long)read_size);
             ret = -1;
         }
         else if(aux_meta == NULL && offset < read_size){ // More to read but no auxiliary meta
@@ -1798,7 +1806,7 @@ int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struc
 
             if (offset != read_size) {
                 slow5_rec_aux_free(aux_map);
-                SLOW5_WARNING("Corrupted record. offset %ld, read_size %ld",(long)offset, (long)read_size);
+                SLOW5_WARNING("Malformed record. offset %ld, read_size %ld",(long)offset, (long)read_size);
                 return -1;
             } else {
                 read->aux_map = aux_map;

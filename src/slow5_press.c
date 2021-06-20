@@ -41,10 +41,12 @@ struct slow5_press *slow5_press_init(slow5_press_method_t method) {
             if (gzip_init_deflate(&(gzip->strm_deflate)) != Z_OK) {
                 free(gzip);
                 comp->stream = NULL;
+                SLOW5_WARNING("%s","zlib deflate initialisation failed.");
             } else if (gzip_init_inflate(&(gzip->strm_inflate)) != Z_OK) {
                 (void) deflateEnd(&(gzip->strm_deflate));
                 free(gzip);
                 comp->stream = NULL;
+                SLOW5_WARNING("%s","zlib inflate initialisation failed.");
             } else {
                 gzip->flush = Z_NO_FLUSH;
                 comp->stream = (union slow5_press_stream *) malloc(sizeof *comp->stream);
