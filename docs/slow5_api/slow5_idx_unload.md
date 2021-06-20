@@ -13,7 +13,7 @@ slow5_idx_unload - Unloads the index file from the memory.
 No return value
 
 ## NOTES
-Also see `slow5_idx_create()` and `slow5_idx_load`.
+Also see [`slow5_idx_create()`](slow5_idx_create.md) and [`slow5_idx_load()`](slow5_idx_load.md).
 
 ## EXAMPLES
 

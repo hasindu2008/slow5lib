@@ -14,7 +14,7 @@ This is a wrapper function around standard C library function `free()`
 Same as the behavior observed in standard C library function `free()`.
 
 ## NOTES
-Also see `slow5_get()` and `slow5_get_next()`
+Also see [`slow5_get()`](slow5_open.md) and [`slow5_get_next()`](slow5_get_next.md). 
 
 ## EXAMPLES
 

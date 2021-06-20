@@ -22,10 +22,9 @@ Upon successful completion, `slow_open()` returns a *slow5_file_t* pointer. Othe
 ## NOTES
 This function at the moment should only be used to open a file for reading. The user is expected to give `r` or `rb` as the *mode* for ASCII and binary respectively.
 
-Also see `slow5_open_with()`
+Also see [`slow5_open_with()`](low_level_api/slow5_open_with.md)
 
 ## EXAMPLES
-
 ```
 #include <stdio.h>
 #include <stdlib.h>
@@ -72,4 +71,3 @@ int main(){
     slow5_close(sp);
 
 }
-```
