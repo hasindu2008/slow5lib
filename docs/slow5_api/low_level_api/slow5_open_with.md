@@ -20,7 +20,7 @@ This function at the moment should only be used to open a file for reading. The 
 
 `slow5_open_with(pathname, mode, SLOW5_FORMAT_UNKNOWN)` is equivalent to `slow5_open(pathname, mode)`.
 
-Also see `slow5_open()`
+Also see [`slow5_open()`](slow5_open.md)
 
 ## EXAMPLES
 
