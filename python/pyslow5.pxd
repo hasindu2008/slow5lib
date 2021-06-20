@@ -1,15 +1,41 @@
 from libc.stdio cimport *
 from libc.stdint cimport *
+from libc.stdlib cimport *
 
 
 cdef extern from "pyslow5.h":
+
+    cdef enum slow5_aux_type:
+        SLOW5_INT8_T = 0,
+        SLOW5_INT16_T,
+        SLOW5_INT32_T,
+        SLOW5_INT64_T,
+        SLOW5_UINT8_T,
+        SLOW5_UINT16_T,
+        SLOW5_UINT32_T,
+        SLOW5_UINT64_T,
+        SLOW5_FLOAT,
+        SLOW5_DOUBLE,
+        SLOW5_CHAR,
+        SLOW5_INT8_T_ARRAY,
+        SLOW5_INT16_T_ARRAY,
+        SLOW5_INT32_T_ARRAY,
+        SLOW5_INT64_T_ARRAY,
+        SLOW5_UINT8_T_ARRAY,
+        SLOW5_UINT16_T_ARRAY,
+        SLOW5_UINT32_T_ARRAY,
+        SLOW5_UINT64_T_ARRAY,
+        SLOW5_FLOAT_ARRAY,
+        SLOW5_DOUBLE_ARRAY,
+        SLOW5_STRING
+
 
     ctypedef struct slow5_version:
         uint8_t major
         uint8_t minor
         uint8_t patch
 
-    ctypedef struct press_t:
+    ctypedef struct slow5_press_t:
         pass
     ctypedef struct slow5_hdr_t:
         slow5_version version;
@@ -17,7 +43,7 @@ cdef extern from "pyslow5.h":
         pass
     ctypedef struct slow5_idx_t:
         pass
-    cdef enum slow5_fmt:
+    ctypedef enum slow5_fmt:
         pass
     ctypedef struct slow5_file_meta_t:
         pass
@@ -25,7 +51,7 @@ cdef extern from "pyslow5.h":
     ctypedef struct slow5_file_t:
         FILE *fp
         slow5_fmt format
-        press_t *compress
+        slow5_press_t *compress
         slow5_hdr_t *header
         slow5_idx_t *index
         slow5_file_meta_t meta
@@ -52,4 +78,29 @@ cdef extern from "pyslow5.h":
     int slow5_idx_load(slow5_file_t *s5p)
     int slow5_get(const char *read_id, slow5_rec_t **read, slow5_file_t *s5p)
     int slow5_get_next(slow5_rec_t **read, slow5_file_t *s5p)
+    char **slow5_get_aux_names(const slow5_hdr_t *header, uint64_t *len);
+    slow5_aux_type *slow5_get_aux_types(const slow5_hdr_t *header, uint64_t *len);
     void slow5_rec_free(slow5_rec_t *read)
+
+    int8_t slow5_aux_get_int8(const slow5_rec_t *read, const char *attr, int *err);
+    int16_t slow5_aux_get_int16(const slow5_rec_t *read, const char *attr, int *err);
+    int32_t slow5_aux_get_int32(const slow5_rec_t *read, const char *attr, int *err);
+    int64_t slow5_aux_get_int64(const slow5_rec_t *read, const char *attr, int *err);
+    uint8_t slow5_aux_get_uint8(const slow5_rec_t *read, const char *attr, int *err);
+    uint16_t slow5_aux_get_uint16(const slow5_rec_t *read, const char *attr, int *err);
+    uint32_t slow5_aux_get_uint32(const slow5_rec_t *read, const char *attr, int *err);
+    uint64_t slow5_aux_get_uint64(const slow5_rec_t *read, const char *attr, int *err);
+    float slow5_aux_get_float(const slow5_rec_t *read, const char *attr, int *err);
+    double slow5_aux_get_double(const slow5_rec_t *read, const char *attr, int *err);
+    char slow5_aux_get_char(const slow5_rec_t *read, const char *attr, int *err);
+    int8_t *slow5_aux_get_int8_array(const slow5_rec_t *read, const char *attr, uint64_t *len, int *err);
+    int16_t *slow5_aux_get_int16_array(const slow5_rec_t *read, const char *attr, uint64_t *len, int *err);
+    int32_t *slow5_aux_get_int32_array(const slow5_rec_t *read, const char *attr, uint64_t *len, int *err);
+    int64_t *slow5_aux_get_int64_array(const slow5_rec_t *read, const char *attr, uint64_t *len, int *err);
+    uint8_t *slow5_aux_get_uint8_array(const slow5_rec_t *read, const char *attr, uint64_t *len, int *err);
+    uint16_t *slow5_aux_get_uint16_array(const slow5_rec_t *read, const char *attr, uint64_t *len, int *err);
+    uint32_t *slow5_aux_get_uint32_array(const slow5_rec_t *read, const char *attr, uint64_t *len, int *err);
+    uint64_t *slow5_aux_get_uint64_array(const slow5_rec_t *read, const char *attr, uint64_t *len, int *err);
+    float *slow5_aux_get_float_array(const slow5_rec_t *read, const char *attr, uint64_t *len, int *err);
+    double *slow5_aux_get_double_array(const slow5_rec_t *read, const char *attr, uint64_t *len, int *err);
+    char *slow5_aux_get_string(const slow5_rec_t *read, const char *attr, uint64_t *len, int *err);

@@ -21,7 +21,7 @@ depends=['python/pyslow5.pxd', 'python/pyslow5.h',  'slow5/slow5.h',
             'slow5/slow5_defs.h', 'slow5/slow5_error.h', 'slow5/slow5_press.h',
             'src/slow5_extra.h', 'src/slow5_idx.h', 'src/slow5_misc.h',
             'src/klib/ksort.h' ]
-extra_compile_args = ['-g', '-Wall', '-O2',]
+extra_compile_args = ['-g', '-Wall', '-O2', '-std=c99']
 libraries = ['z']
 include_dirs = ['include/']
 library_dirs = ['.']
@@ -52,9 +52,9 @@ setup(name = 'slow5',
       url = 'https://github.com/hasindu2008/slow5lib',
       #requires=['numpy (>=1.3.0)'],
       description='f5c python binding',
-      author='Hasindu Gamaarachchi, Sasha Jenner, James ferguson ...',
-      author_email='hasindu@garvan.org.au, ...',
-      maintainer='Hasindu Gamaarachchi, Sasha Jenner, James ferguson ...',
+      author='Hasindu Gamaarachchi, Sasha Jenner, James Ferguson ...',
+      author_email='hasindu@garvan.org.au, ..., j.ferguson@garvan.org.au',
+      maintainer='Hasindu Gamaarachchi, Sasha Jenner, James Ferguson ...',
       maintainer_email='hasindu@garvan.org.au',
       license = 'MIT',
       keywords = ['slow5','nanopore'],

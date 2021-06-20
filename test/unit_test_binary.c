@@ -67,9 +67,9 @@ int slow5_open_valid(void) {
     struct slow5_file *s5p = slow5_open("test/data/exp/one_fast5/exp_1_default.blow5", "r");
 
     ASSERT(s5p != NULL);
-    ASSERT(s5p->format == FORMAT_BINARY);
+    ASSERT(s5p->format == SLOW5_FORMAT_BINARY);
     ASSERT(s5p->compress != NULL);
-    ASSERT(s5p->compress->method == COMPRESS_NONE);
+    ASSERT(s5p->compress->method == SLOW5_COMPRESS_NONE);
     ASSERT(s5p->header != NULL);
     ASSERT(s5p->header->version.major == 0);
     ASSERT(s5p->header->version.minor == 1);
@@ -77,8 +77,8 @@ int slow5_open_valid(void) {
     ASSERT(s5p->index == NULL);
     ASSERT(s5p->fp != NULL);
 
-    ASSERT(slow5_hdr_print(s5p->header, FORMAT_ASCII, COMPRESS_NONE) != -1);
-    ASSERT(slow5_hdr_print(s5p->header, FORMAT_BINARY, COMPRESS_NONE) != -1);
+    ASSERT(slow5_hdr_print(s5p->header, SLOW5_FORMAT_ASCII, SLOW5_COMPRESS_NONE) != -1);
+    ASSERT(slow5_hdr_print(s5p->header, SLOW5_FORMAT_BINARY, SLOW5_COMPRESS_NONE) != -1);
 
     ASSERT(slow5_close(s5p) == 0);
 
@@ -86,9 +86,9 @@ int slow5_open_valid(void) {
 }
 
 int slow5_open_with_valid(void) {
-    struct slow5_file *s5p = slow5_open_with("test/data/exp/one_fast5/exp_1_default.blow5", "r", FORMAT_BINARY);
+    struct slow5_file *s5p = slow5_open_with("test/data/exp/one_fast5/exp_1_default.blow5", "r", SLOW5_FORMAT_BINARY);
     ASSERT(s5p != NULL);
-    ASSERT(s5p->format == FORMAT_BINARY);
+    ASSERT(s5p->format == SLOW5_FORMAT_BINARY);
     ASSERT(s5p->header != NULL);
     ASSERT(s5p->header->version.major == 0);
     ASSERT(s5p->header->version.minor == 1);
@@ -97,9 +97,9 @@ int slow5_open_with_valid(void) {
     ASSERT(s5p->fp != NULL);
     ASSERT(slow5_close(s5p) == 0);
 
-    s5p = slow5_open_with("test/data/err/one_fast5/invalid_extension.slow5", "r", FORMAT_BINARY);
+    s5p = slow5_open_with("test/data/err/one_fast5/invalid_extension.slow5", "r", SLOW5_FORMAT_BINARY);
     ASSERT(s5p != NULL);
-    ASSERT(s5p->format == FORMAT_BINARY);
+    ASSERT(s5p->format == SLOW5_FORMAT_BINARY);
     ASSERT(s5p->header != NULL);
     ASSERT(s5p->header->version.major == 0);
     ASSERT(s5p->header->version.minor == 1);
@@ -108,9 +108,9 @@ int slow5_open_with_valid(void) {
     ASSERT(s5p->fp != NULL);
     ASSERT(slow5_close(s5p) == 0);
 
-    s5p = slow5_open_with("test/data/exp/one_fast5/exp_1_default.blow5", "r", FORMAT_UNKNOWN);
+    s5p = slow5_open_with("test/data/exp/one_fast5/exp_1_default.blow5", "r", SLOW5_FORMAT_UNKNOWN);
     ASSERT(s5p != NULL);
-    ASSERT(s5p->format == FORMAT_BINARY);
+    ASSERT(s5p->format == SLOW5_FORMAT_BINARY);
     ASSERT(s5p->header != NULL);
     ASSERT(s5p->header->version.major == 0);
     ASSERT(s5p->header->version.minor == 1);
@@ -124,12 +124,12 @@ int slow5_open_with_valid(void) {
 
 int slow5_open_with_invalid(void) {
     // Format invalid
-    struct slow5_file *s5p = slow5_open_with("test/data/exp/one_fast5/exp_1_default.blow5", "r", FORMAT_ASCII);
+    struct slow5_file *s5p = slow5_open_with("test/data/exp/one_fast5/exp_1_default.blow5", "r", SLOW5_FORMAT_ASCII);
     ASSERT(s5p == NULL);
     ASSERT(slow5_close(s5p) == EOF);
 
     // Extension invalid
-    s5p = slow5_open_with("test/data/err/one_fast5/invalid_extension.blow", "r", FORMAT_UNKNOWN);
+    s5p = slow5_open_with("test/data/err/one_fast5/invalid_extension.blow", "r", SLOW5_FORMAT_UNKNOWN);
     ASSERT(s5p == NULL);
     ASSERT(slow5_close(s5p) == EOF);
 
@@ -142,12 +142,12 @@ int slow5_hdr_to_mem_valid(void) {
 
     void *mem;
     size_t len;
-    ASSERT((mem = slow5_hdr_to_mem(s5p->header, FORMAT_BINARY, COMPRESS_NONE, &len)) != NULL);
+    ASSERT((mem = slow5_hdr_to_mem(s5p->header, SLOW5_FORMAT_BINARY, SLOW5_COMPRESS_NONE, &len)) != NULL);
     ASSERT(fwrite(mem, len, 1, stdout) == 1);
     free(mem);
 
     char *str;
-    ASSERT((str = slow5_hdr_to_mem(s5p->header, FORMAT_ASCII, COMPRESS_NONE, &len)) != NULL);
+    ASSERT((str = slow5_hdr_to_mem(s5p->header, SLOW5_FORMAT_ASCII, SLOW5_COMPRESS_NONE, &len)) != NULL);
     ASSERT(fwrite(str, len, 1, stdout) == 1);
     ASSERT(printf("%s", str) == len);
     free(str);
@@ -163,7 +163,7 @@ int slow5_hdr_to_mem_change_attr(void) {
     void *mem;
     size_t len;
     ASSERT(slow5_hdr_set("asic_id_eeprom", "100", 0, s5p->header) == 0);
-    ASSERT((mem = slow5_hdr_to_mem(s5p->header, FORMAT_BINARY, COMPRESS_NONE, &len)) != NULL);
+    ASSERT((mem = slow5_hdr_to_mem(s5p->header, SLOW5_FORMAT_BINARY, SLOW5_COMPRESS_NONE, &len)) != NULL);
     ASSERT(fwrite(mem, len, 1, stdout) == 1);
     free(mem);
 
@@ -178,7 +178,7 @@ int slow5_hdr_print_change_version(void) {
     s5p->header->version.major = 10;
     s5p->header->version.minor = 200;
 
-    ASSERT(slow5_hdr_print(s5p->header, FORMAT_BINARY, COMPRESS_NONE) > 0);
+    ASSERT(slow5_hdr_print(s5p->header, SLOW5_FORMAT_BINARY, SLOW5_COMPRESS_NONE) > 0);
 
     ASSERT(slow5_close(s5p) == 0);
     return EXIT_SUCCESS;
@@ -192,7 +192,7 @@ int slow5_rec_to_mem_valid(void) {
     ASSERT(slow5_get_next(&read, s5p) == 0);
     ASSERT(read != NULL);
     size_t size;
-    void *mem = slow5_rec_to_mem(read, s5p->header->aux_meta, FORMAT_BINARY, NULL, &size);
+    void *mem = slow5_rec_to_mem(read, s5p->header->aux_meta, SLOW5_FORMAT_BINARY, NULL, &size);
     ASSERT(fwrite(mem, size, 1, stdout) == 1);
     free(mem);
     slow5_rec_free(read);
@@ -210,7 +210,7 @@ int slow5_rec_print_valid(void) {
     struct slow5_rec *read = NULL;
     ASSERT(slow5_get_next(&read, s5p) == 0);
     ASSERT(read != NULL);
-    ASSERT(slow5_rec_print(read, s5p->header->aux_meta, FORMAT_BINARY, NULL) > 0);
+    ASSERT(slow5_rec_print(read, s5p->header->aux_meta, SLOW5_FORMAT_BINARY, NULL) > 0);
     slow5_rec_free(read);
     ASSERT(slow5_eof_print() != -1);
 
@@ -274,9 +274,9 @@ int slow5_open_gzip(void) {
     struct slow5_file *s5p = slow5_open("test/data/exp/one_fast5/exp_1_default_gzip.blow5", "r");
     ASSERT(s5p != NULL);
 
-    ASSERT(s5p->format == FORMAT_BINARY);
+    ASSERT(s5p->format == SLOW5_FORMAT_BINARY);
     ASSERT(s5p->compress != NULL);
-    ASSERT(s5p->compress->method == COMPRESS_GZIP);
+    ASSERT(s5p->compress->method == SLOW5_COMPRESS_GZIP);
     ASSERT(s5p->header != NULL);
     ASSERT(s5p->header->version.major == 0);
     ASSERT(s5p->header->version.minor == 1);

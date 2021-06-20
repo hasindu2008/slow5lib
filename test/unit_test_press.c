@@ -3,35 +3,35 @@
 #include <string.h>
 
 int press_init_valid(void) {
-    struct press *comp = press_init(COMPRESS_NONE);
-    ASSERT(comp->method == COMPRESS_NONE);
+    struct slow5_press *comp = slow5_press_init(SLOW5_COMPRESS_NONE);
+    ASSERT(comp->method == SLOW5_COMPRESS_NONE);
     ASSERT(comp->stream == NULL);
-    press_free(comp);
+    slow5_press_free(comp);
 
-    comp = press_init(COMPRESS_GZIP);
-    ASSERT(comp->method == COMPRESS_GZIP);
+    comp = slow5_press_init(SLOW5_COMPRESS_GZIP);
+    ASSERT(comp->method == SLOW5_COMPRESS_GZIP);
     ASSERT(comp->stream != NULL);
-    press_free(comp);
+    slow5_press_free(comp);
 
     return EXIT_SUCCESS;
 }
 
 int press_buf_valid(void) {
-    struct press *comp = press_init(COMPRESS_NONE);
+    struct slow5_press *comp = slow5_press_init(SLOW5_COMPRESS_NONE);
 
     const char *str = "12345";
     size_t size = 0;
-    char *str_same = str_compress(comp, str, &size);
+    char *str_same = slow5_str_compress(comp, str, &size);
     ASSERT(strcmp(str_same, str) == 0);
     ASSERT(size == strlen(str) + 1);
 
-    press_free(comp);
+    slow5_press_free(comp);
 
-    comp = press_init(COMPRESS_GZIP);
+    comp = slow5_press_init(SLOW5_COMPRESS_GZIP);
     size_t size_gzip = 0;
-    compress_footer_next(comp);
-    void *str_gzip = str_compress(comp, str, &size_gzip);
-    char *str_copy = ptr_depress(comp, str_gzip, size_gzip, &size);
+    slow5_compress_footer_next(comp);
+    void *str_gzip = slow5_str_compress(comp, str, &size_gzip);
+    char *str_copy = slow5_ptr_depress(comp, str_gzip, size_gzip, &size);
     ASSERT(strcmp(str_copy, str) == 0);
     ASSERT(size == strlen(str_copy) + 1);
     ASSERT(size == strlen(str_same) + 1);
@@ -42,27 +42,27 @@ int press_buf_valid(void) {
     free(str_gzip);
     free(str_same);
     free(str_copy);
-    press_free(comp);
+    slow5_press_free(comp);
 
     return EXIT_SUCCESS;
 }
 
 int press_buf_valid2(void) {
-    struct press *comp = press_init(COMPRESS_NONE);
+    struct slow5_press *comp = slow5_press_init(SLOW5_COMPRESS_NONE);
 
     const char *str = "1234567890123456789012345678901234567890";
     size_t size = 0;
-    char *str_same = str_compress(comp, str, &size);
+    char *str_same = slow5_str_compress(comp, str, &size);
     ASSERT(strcmp(str_same, str) == 0);
     ASSERT(size == strlen(str) + 1);
 
-    press_free(comp);
+    slow5_press_free(comp);
 
-    comp = press_init(COMPRESS_GZIP);
+    comp = slow5_press_init(SLOW5_COMPRESS_GZIP);
     size_t size_gzip = 0;
-    compress_footer_next(comp);
-    void *str_gzip = str_compress(comp, str, &size_gzip);
-    char *str_copy = ptr_depress(comp, str_gzip, size_gzip, &size);
+    slow5_compress_footer_next(comp);
+    void *str_gzip = slow5_str_compress(comp, str, &size_gzip);
+    char *str_copy = slow5_ptr_depress(comp, str_gzip, size_gzip, &size);
     ASSERT(strcmp(str_copy, str) == 0);
     ASSERT(size == strlen(str_copy) + 1);
     ASSERT(size == strlen(str_same) + 1);
@@ -73,31 +73,31 @@ int press_buf_valid2(void) {
     free(str_gzip);
     free(str_same);
     free(str_copy);
-    press_free(comp);
+    slow5_press_free(comp);
 
     return EXIT_SUCCESS;
 }
 
 int press_print_valid(void) {
-    struct press *comp = press_init(COMPRESS_GZIP);
+    struct slow5_press *comp = slow5_press_init(SLOW5_COMPRESS_GZIP);
 
     const char *str = "hello";
-    compress_footer_next(comp);
-    print_str_compress(comp, str);
+    slow5_compress_footer_next(comp);
+    slow5_print_str_compress(comp, str);
 
-    press_free(comp);
+    slow5_press_free(comp);
 
     return EXIT_SUCCESS;
 }
 
 int press_printf_valid(void) {
-    struct press *comp = press_init(COMPRESS_GZIP);
+    struct slow5_press *comp = slow5_press_init(SLOW5_COMPRESS_GZIP);
 
     const char *str = "lol";
-    compress_footer_next(comp);
-    printf_compress(comp, "\n%s\n", str);
+    slow5_compress_footer_next(comp);
+    slow5_printf_compress(comp, "\n%s\n", str);
 
-    press_free(comp);
+    slow5_press_free(comp);
 
     return EXIT_SUCCESS;
 }

@@ -3,20 +3,10 @@
 #ifndef SLOW5_MISC_H
 #define SLOW5_MISC_H
 
-#include <zlib.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <assert.h>
-#include <sys/time.h>
-#include <sys/resource.h>
 #include <math.h>
 #include <stdint.h>
-#include <limits.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-//#include "slow5_error.h"
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -27,11 +17,11 @@ extern "C" {
 
 // Types to sizes
 
-#define IS_TYPE(str, type) (strcmp(str, # type) == 0)
-#define IS_TYPE_TRUNC(str, type) (strncmp(str, # type, sizeof (# type) - 1) == 0)
+#define SLOW5_IS_TYPE(str, type) (strcmp(str, # type) == 0)
+#define SLOW5_IS_TYPE_TRUNC(str, type) (strncmp(str, # type, sizeof (# type) - 1) == 0)
 
-#define CHECK_TYPE(name, type) \
-    (IS_TYPE_TRUNC(name, type)) { \
+#define SLOW5_CHECK_TYPE(name, type) \
+    (SLOW5_IS_TYPE_TRUNC(name, type)) { \
         if (strcmp(name + strlen(name) - 2, "**") == 0) {/* TODO this is not right */ \
             type *x; \
             size = sizeof (x); \
@@ -107,38 +97,38 @@ static inline int slow5_is_big_endian(void)
 }
 
 // sprintf and vsprintf but dynamically allocates strp memory
-int asprintf_mine(char **strp, const char *fmt, ...);
-int vasprintf_mine(char **strp, const char *fmt, va_list ap);
+int slow5_asprintf(char **strp, const char *fmt, ...);
+int slow5_vasprintf(char **strp, const char *fmt, va_list ap);
 
 // From https://code.woboq.org/userspace/glibc/string/strsep.c.html
-char *strsep_mine (char **stringp, const char *delim);
+char *slow5_strsep (char **stringp, const char *delim);
 
 // Check that int/float is in a certain format
-int int_check(const char *str);
-int float_check(const char *str);
+int slow5_int_check(const char *str);
+int slow5_float_check(const char *str);
 
 // Atoi but to xintx_t
 // and without any symbols
 // and without 0 prefixing
-int8_t ato_int8(const char *str, int *err);
-int16_t ato_int16(const char *str, int *err);
-int32_t ato_int32(const char *str, int *err);
-int64_t ato_int64(const char *str, int *err);
-uint8_t ato_uint8(const char *str, int *err);
-uint16_t ato_uint16(const char *str, int *err);
-uint32_t ato_uint32(const char *str, int *err);
-uint64_t ato_uint64(const char *str, int *err);
+int8_t slow5_ato_int8(const char *str, int *err);
+int16_t slow5_ato_int16(const char *str, int *err);
+int32_t slow5_ato_int32(const char *str, int *err);
+int64_t slow5_ato_int64(const char *str, int *err);
+uint8_t slow5_ato_uint8(const char *str, int *err);
+uint16_t slow5_ato_uint16(const char *str, int *err);
+uint32_t slow5_ato_uint32(const char *str, int *err);
+uint64_t slow5_ato_uint64(const char *str, int *err);
 
 // Strtod and strtof but
 // without any symbols, spaces
 // only in decimal form
-double strtod_check(const char *str, int *err);
-float strtof_check(const char *str, int *err);
+double slow5_strtod_check(const char *str, int *err);
+float slow5_strtof_check(const char *str, int *err);
 
 // Convert double to decimal string without trailing 0s
-char *double_to_str(double x, size_t *len);
+char *slow5_double_to_str(double x, size_t *len);
 // Convert float to decimal string without trailing 0s
-char *float_to_str(float x, size_t *len);
+char *slow5_float_to_str(float x, size_t *len);
 
 #ifdef __cplusplus
 }

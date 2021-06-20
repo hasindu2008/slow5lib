@@ -1,0 +1,50 @@
+name: SLOW5 Python CI Github
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  ubuntu_14:
+    name: pyslow5 Ubuntu_14
+    runs-on: ubuntu-16.04
+    container: ubuntu:14.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: install packages
+      run: sudo apt-get update && sudo apt-get install -y zlib1g-dev python3-pip && pip3 install setuptools cython --user
+    - name: env
+      run: lsb_release -a &&  ldd --version && gcc --version && g++ --version && python3 --version
+    - name: build
+      run: make pyslow5
+  ubuntu_16:
+    name: pyslow5 Ubuntu 16
+    runs-on: ubuntu-16.04
+    steps:  
+    - uses: actions/checkout@v2
+    - name: install packages
+      run: sudo apt-get update && sudo apt-get install -y zlib1g-dev python3-pip python3-setuptools && pip3 install cython
+    - name: env
+      run: lsb_release -a &&  ldd --version && gcc --version && g++ --version  && python3 --version     
+    - name: build
+      run: make pyslow5
+  pyslow5_ubuntu_18:
+    name: pyslow5 Ubuntu 18
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: install packages
+      run: sudo apt-get update && sudo apt-get install -y zlib1g-dev python3-pip && pip3 install setuptools cython
+    - name: build
+      run: make pyslow5
+  ubuntu_20:
+    name: pyslow5 Ubuntu 20
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: install packages
+      run: sudo apt-get update && sudo apt-get install -y zlib1g-dev python3-pip && pip3 install setuptools cython
+    - name: build
+      run: make pyslow5
