@@ -9,8 +9,14 @@ extern "C" {
 #endif
 
 /**************************************************************************************************
- ***  Low-level API ******************************************************************************
+ ***  Ultra-Low-level API ******************************************************************************
  **************************************************************************************************/
+
+/*
+These functions are not to be exposed to the public
+Used for slow5tools
+Any change to a function prototype here means slow5tools must be fixed
+*/
 
 // slow5 file
 struct slow5_file *slow5_init(FILE *fp, const char *pathname, enum slow5_fmt format);

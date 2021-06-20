@@ -5,6 +5,11 @@
  * @date 27/02/2021
  */
 
+/* IMPORTANT: The comments in this header file are NOT the API documentation
+The API documentation is available at https://hasindu2008.github.io/slow5tools/
+The comments here are possibly not upto date
+*/
+
 /*
 MIT License
 
@@ -306,6 +311,12 @@ typedef struct slow5_file slow5_file_t;
  ***  High-level API ******************************************************************************
  **************************************************************************************************/
 
+/*
+IMPORTANT: The high-level is stable
+existing function prototypes must NOT be changed as such changes affects the backward compatibility
+newer functions can be added while keeping the existing ones intact
+*/
+
 /**
  * Open a slow5 file with a specific mode given it's pathname.
  *
@@ -353,6 +364,11 @@ int slow5_idx_create(slow5_file_t *s5p);
  */
 int slow5_idx_load(slow5_file_t *s5p);
 
+/**
+ * Unloads an index associted to a slow5_file_t using slow5_idx_load and free the memory.
+ *
+ * @param   s5p slow5 file structure
+ */
 void slow5_idx_unload(slow5_file_t *s5p);
 
 /**
@@ -471,6 +487,12 @@ char *slow5_aux_get_string(const slow5_rec_t *read, const char *attr, uint64_t *
  ***  Low-level API *******************************************************************************
  **************************************************************************************************/
 
+/*
+IMPORTANT: The low-level API is not yet stable. Subject to changes in the future.
+Function proptotypes can be changed without notice or completely removed
+So do NOT use these functions in your code
+these functions are used by slow5tools and pyslow5 - so any change to a function here means slow5tools and pyslow5 must be fixed
+*/
 
 /**
  * Open a slow5 file of a specific format with a mode given it's pathname.
@@ -680,12 +702,12 @@ enum slow5_aux_type *slow5_get_aux_types(const slow5_hdr_t *header,uint64_t *len
 int slow5_convert(slow5_file_t *from, FILE *to_fp, enum slow5_fmt to_format, slow5_press_method_t to_compress);
 
 
-//set the log verbosity level
-//sets a global variable
+//set the log verbosity level. the log is printed to the standard error.
+//sets a global variable, so not thread safe
 void slow5_set_log_level(enum slow5_log_level_opt log_level);
 
-//set the exit condition for slow5 lib
-//sets a global variable
+//set the exit condition for slow5lib
+//sets a global variable, so not thread safe
 void slow5_set_exit_condition(enum slow5_exit_condition_opt exit_condition);
 
 #ifdef __cplusplus
