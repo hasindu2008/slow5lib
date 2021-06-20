@@ -19,7 +19,7 @@ A negative return value indicates an error as follows.
     for all errors encountered
 
 ## NOTES
-Also see `slow5_idx_load()` and `slow5_idx_unload`.
+Also see [`slow5_idx_load()`](slow5_idx_load.md) and [`slow5_idx_unload()`](slow5_idx_unload.md).
 
 ## EXAMPLES
 

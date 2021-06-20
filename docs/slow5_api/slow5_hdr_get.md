@@ -17,7 +17,7 @@ The argument *header* points to a *slow5_hdr_t* of a *slow5_file_t* opened using
 Upon successful completion, `slow5_hdr_get()` returns a *char* pointer. Otherwise, NULL is returned, e.g., if *attr* doesn't exist or *read_group* is out of range or an input parameter is NULL. 
 
 ## NOTES
-See also `slow5_get()` and `slow5_get_next()`.
+See also [`slow5_get()`](slow5_open.md) and [`slow5_get_next()`](slow5_get_next.md).
 
 ## EXAMPLES
 

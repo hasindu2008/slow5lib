@@ -32,7 +32,7 @@ A negative return value indicates an error as follows.
 ## NOTES
  As opposed to `slow5_get()` which requires the SLOW index to be pre-loaded to *s5p* using `slow5_idx_load()`, `slow5_get_next` does not require an index.
 
-Also see `slow5_get()`
+Also see [`slow5_get()`](slow5_open.md)
 
 ## EXAMPLES
 

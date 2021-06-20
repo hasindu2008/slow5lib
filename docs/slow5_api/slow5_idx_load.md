@@ -21,7 +21,7 @@ A negative return value indicates an error as follows.
     for all errors encountered
 
 ## NOTES
-Also see `slow5_idx_create()` and `slow5_idx_unload`.
+Also see [`slow5_idx_create()`](slow5_idx_create.md) and [`slow5_idx_unload()`](slow5_idx_unload.md).
 
 ## EXAMPLES
 

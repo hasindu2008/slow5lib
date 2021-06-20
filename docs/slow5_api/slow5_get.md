@@ -44,7 +44,7 @@ A negative return value indicates an error as follows.
 
 Error codes are not finalised and subject to change.
 
-See also `slow5_get_next()` and `slow5_rec_free()` 
+See also [`slow5_get_next()`](slow5_get_next.md) and [`slow5_rec_free()`](slow5_rec_free.md).
 
 ## EXAMPLES
 

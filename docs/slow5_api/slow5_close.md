@@ -17,7 +17,7 @@ Same as the behavior observed in the standard C library function `fclose()`.
 
 ## NOTES
 
-Also see `slow5_open_with()` and `slow5_open()`.
+Also see [`slow5_open()`](slow5_open.md) and [`slow5_open_with()`](low_level_api/slow5_open_with.md).
 
 ## EXAMPLES
 
