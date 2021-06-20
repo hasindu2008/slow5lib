@@ -18,7 +18,7 @@ struct slow5_file *slow5_init_empty(FILE *fp, const char *pathname, enum slow5_f
 
 // slow5 header
 struct slow5_hdr *slow5_hdr_init_empty(void);
-struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_slow5_press_method_t *method);
+struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_method_t *method);
 void slow5_hdr_free(struct slow5_hdr *header);
 
 // slow5 header data

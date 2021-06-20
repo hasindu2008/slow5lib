@@ -21,7 +21,7 @@ static int vfprintf_compress(struct slow5_press *comp, FILE *fp, const char *for
 
 /* --- Init / free slow5_press structure --- */
 
-struct slow5_press *slow5_press_init(slow5_slow5_press_method_t method) {
+struct slow5_press *slow5_press_init(slow5_press_method_t method) {
 
     struct slow5_press *comp = NULL;
 
@@ -173,7 +173,7 @@ static void *ptr_compress_gzip(struct slow5_gzip_stream *gzip, const void *ptr, 
     return out;
 }
 
-void *slow5_ptr_depress_multi(slow5_slow5_press_method_t method, const void *ptr, size_t count, size_t *n) {
+void *slow5_ptr_depress_multi(slow5_press_method_t method, const void *ptr, size_t count, size_t *n) {
     void *out = NULL;
     size_t n_tmp = 0;
 
@@ -396,7 +396,7 @@ void *slow5_fread_depress(struct slow5_press *comp, size_t count, FILE *fp, size
     return out;
 }
 /*
-static void *fread_depress_multi(slow5_slow5_press_method_t method, size_t count, FILE *fp, size_t *n) {
+static void *fread_depress_multi(slow5_press_method_t method, size_t count, FILE *fp, size_t *n) {
     void *raw = (void *) malloc(count);
     SLOW5_MALLOC_CHK(raw);
 
@@ -426,7 +426,7 @@ void *slow5_pread_depress(struct slow5_press *comp, int fd, size_t count, off_t 
     return out;
 }
 
-void *slow5_pread_depress_multi(slow5_slow5_press_method_t method, int fd, size_t count, off_t offset, size_t *n) {
+void *slow5_pread_depress_multi(slow5_press_method_t method, int fd, size_t count, off_t offset, size_t *n) {
     void *raw = (void *) malloc(count);
     SLOW5_MALLOC_CHK(raw);
 

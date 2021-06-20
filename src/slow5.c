@@ -111,7 +111,7 @@ struct slow5_file *slow5_init(FILE *fp, const char *pathname, enum slow5_fmt for
     }
 
     struct slow5_file *s5p;
-    slow5_slow5_press_method_t method;
+    slow5_press_method_t method;
     struct slow5_hdr *header = slow5_hdr_init(fp, format, &method);
     if (header == NULL) {
         fclose(fp);
@@ -286,7 +286,7 @@ struct slow5_hdr *slow5_hdr_init_empty(void) {
 }
 
 // parses a slow5 header
-struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_slow5_press_method_t *method) {
+struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_method_t *method) {
 
     struct slow5_hdr *header = (struct slow5_hdr *) calloc(1, sizeof *(header));
     char *buf = NULL;
@@ -476,7 +476,7 @@ const char **slow5_get_hdr_keys(const slow5_hdr_t *header,uint64_t *len){
 
 //  flattened header returned as a void * (incase of BLOW5 magic number is also included)
 
-void *slow5_hdr_to_mem(struct slow5_hdr *header, enum slow5_fmt format, slow5_slow5_press_method_t comp, size_t *n) {
+void *slow5_hdr_to_mem(struct slow5_hdr *header, enum slow5_fmt format, slow5_press_method_t comp, size_t *n) {
     char *mem = NULL;
 
     if (header == NULL || format == SLOW5_FORMAT_UNKNOWN) {
@@ -759,7 +759,7 @@ char *slow5_hdr_attrs_to_str(struct slow5_aux_meta *aux_meta, size_t *len) {
  * @param   format  slow5 format to write the entry in
  * @return  number of bytes written, -1 on error
  */
-int slow5_hdr_fwrite(FILE *fp, struct slow5_hdr *header, enum slow5_fmt format, slow5_slow5_press_method_t comp) {
+int slow5_hdr_fwrite(FILE *fp, struct slow5_hdr *header, enum slow5_fmt format, slow5_press_method_t comp) {
     int ret;
     void *hdr;
     size_t hdr_size;
@@ -2964,7 +2964,7 @@ char *slow5_get_idx_path(const char *path) {
 // 0    success
 // -1   input invalid
 // -2   failure
-int slow5_convert(struct slow5_file *from, FILE *to_fp, enum slow5_fmt to_format, slow5_slow5_press_method_t to_compress) {
+int slow5_convert(struct slow5_file *from, FILE *to_fp, enum slow5_fmt to_format, slow5_press_method_t to_compress) {
     if (from == NULL || to_fp == NULL || to_format == SLOW5_FORMAT_UNKNOWN) {
         return -1;
     }

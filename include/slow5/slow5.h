@@ -629,7 +629,7 @@ int slow5_hdr_set(const char *attr, const char *value, uint32_t read_group, slow
  * @return  malloced memory storing the slow5 header representation,
  *          to use free() on afterwards
  */
-void *slow5_hdr_to_mem(slow5_hdr_t *header, enum slow5_fmt format, slow5_slow5_press_method_t comp, size_t *written);
+void *slow5_hdr_to_mem(slow5_hdr_t *header, enum slow5_fmt format, slow5_press_method_t comp, size_t *written);
 
 /**
  * Print the header in the specified format to a file pointer.
@@ -642,8 +642,8 @@ void *slow5_hdr_to_mem(slow5_hdr_t *header, enum slow5_fmt format, slow5_slow5_p
  * @param   format  slow5 format to write the entry in
  * @return  number of bytes written, -1 on error
  */
-int slow5_hdr_fwrite(FILE *fp, slow5_hdr_t *header, enum slow5_fmt format, slow5_slow5_press_method_t comp);
-static inline int slow5_hdr_print(slow5_hdr_t *header, enum slow5_fmt format, slow5_slow5_press_method_t comp) {
+int slow5_hdr_fwrite(FILE *fp, slow5_hdr_t *header, enum slow5_fmt format, slow5_press_method_t comp);
+static inline int slow5_hdr_print(slow5_hdr_t *header, enum slow5_fmt format, slow5_press_method_t comp) {
     return slow5_hdr_fwrite(stdout, header, format, comp);
 }
 
@@ -677,7 +677,7 @@ enum slow5_aux_type *slow5_get_aux_types(const slow5_hdr_t *header,uint64_t *len
 // 0    success
 // -1   input invalid
 // -2   failure
-int slow5_convert(slow5_file_t *from, FILE *to_fp, enum slow5_fmt to_format, slow5_slow5_press_method_t to_compress);
+int slow5_convert(slow5_file_t *from, FILE *to_fp, enum slow5_fmt to_format, slow5_press_method_t to_compress);
 
 
 //set the log verbosity level

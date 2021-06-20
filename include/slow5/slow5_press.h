@@ -16,7 +16,7 @@ enum slow5_press_method {
     SLOW5_COMPRESS_NONE,
     SLOW5_COMPRESS_GZIP
 };
-typedef uint8_t slow5_slow5_press_method_t;
+typedef uint8_t slow5_press_method_t;
 
 #define SLOW5_Z_MEM_DEFAULT (8)
 #define SLOW5_Z_OUT_CHUNK (16384) // 2^14
@@ -36,13 +36,13 @@ union slow5_press_stream {
 
 // Compression object
 struct slow5_press {
-    slow5_slow5_press_method_t method;
+    slow5_press_method_t method;
     union slow5_press_stream *stream;
 };
 typedef struct slow5_press slow5_press_t;
 
 /* --- Init / free slow5_press structure --- */
-struct slow5_press *slow5_press_init(slow5_slow5_press_method_t method);
+struct slow5_press *slow5_press_init(slow5_press_method_t method);
 void slow5_press_free(struct slow5_press *comp);
 
 /* --- Compress / decompress a ptr to some memory --- */
@@ -51,7 +51,7 @@ static inline void *slow5_str_compress(struct slow5_press *comp, const char *str
     return slow5_ptr_compress(comp, str, strlen(str) + 1, n); // Include '\0'
 }
 void *slow5_ptr_depress(struct slow5_press *comp, const void *ptr, size_t count, size_t *n);
-void *slow5_ptr_depress_multi(slow5_slow5_press_method_t method, const void *ptr, size_t count, size_t *n);
+void *slow5_ptr_depress_multi(slow5_press_method_t method, const void *ptr, size_t count, size_t *n);
 
 /* --- Compress / decompress a ptr to some file --- */
 size_t slow5_fwrite_compress(struct slow5_press *comp, const void *ptr, size_t size, size_t nmemb, FILE *fp);
@@ -72,7 +72,7 @@ static inline size_t slow5_print_str_compress(struct slow5_press *comp, const ch
 /* --- Decompress to a ptr from some file --- */
 void *slow5_fread_depress(struct slow5_press *comp, size_t count, FILE *fp, size_t *n);
 void *slow5_pread_depress(struct slow5_press *comp, int fd, size_t count, off_t offset, size_t *n);
-void *slow5_pread_depress_multi(slow5_slow5_press_method_t method, int fd, size_t count, off_t offset, size_t *n);
+void *slow5_pread_depress_multi(slow5_press_method_t method, int fd, size_t count, off_t offset, size_t *n);
 
 /* --- Compress with format string to some file --- */
 int slow5_fprintf_compress(struct slow5_press *comp, FILE *fp, const char *format, ...);
