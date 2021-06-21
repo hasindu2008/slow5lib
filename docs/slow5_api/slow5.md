@@ -30,7 +30,7 @@ slow5lib interface consists of following functions:
     Free a slow5 record.
 * [slow5_hdr_get](slow5_hdr_get.md)  
     Fetch a header data value corresponding to a given attribute ID.
-*  slow5_aux_get_*<primitive_datatype>*  
+*  [slow5_aux_get_*<primitive_datatype>*](slow5_aux_get.md)  
     Get an auxiliary field (a primitive datatype) of a SLOW5 record.   
     Following functions are available:
     - [slow5_aux_get_int8](slow5_aux_get.md)
@@ -45,7 +45,7 @@ slow5lib interface consists of following functions:
     - [slow5_aux_get_double](slow5_aux_get.md)
     - [slow5_aux_get_char](slow5_aux_get.md)
 
-*   slow5_aux_get_*<array_datatype> * 
+*   [slow5_aux_get_*<array_datatype>*](slow5_aux_get_array.md)  
     Get an auxiliary field (an array datatype) of a SLOW5 record.   
     Following functions are available:
     * [slow5_aux_get_int8_array](slow5_aux_get_array.md)
