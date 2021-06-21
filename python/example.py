@@ -161,12 +161,21 @@ print("Get aux types")
 aux_types = s52.get_aux_types()
 print("aux types:")
 print(aux_types)
+print("==============================================")
 
 read4 = s52.get_read("a649a4ae-c43d-492a-b6a1-a5b8b8076be4", aux="all")
 print("AUX FIELDS:")
 for name in aux_names:
     print("{}:".format(name), read4[name])
 
+print("==============================================")
+
+print("seq_reads with aux:")
+reads = s52.seq_reads(pA=True, aux='all')
+print("type check reads:", type(reads))
+for read in reads:
+    print(read['read_id'])
+    print("read_number", read['read_number'])
 
 print("==============================================")
 print("done")
