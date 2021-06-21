@@ -12,11 +12,6 @@ SLOW5 is a simple tab-separated values (TSV) file encoding metadata and time-ser
 
 Detailed benchmarking experiments have shown that SLOW5 format is up to X-fold faster and X% smaller than FAST5 [SLOW5 paper].
 
-<todo>
-
-[![SLOW5 C/C++ CI Github](https://github.com/hasindu2008/slow5lib/actions/workflows/c-cpp.yml/badge.svg)](https://github.com/hasindu2008/slow5lib/actions/workflows/c-cpp.yml)
-[![SLOW5 Python CI Github](https://github.com/hasindu2008/slow5lib/actions/workflows/python.yml/badge.svg)](https://github.com/hasindu2008/slow5lib/actions/workflows/python.yml)
-
 ## Building
 
 To build the C/C++ library :
@@ -64,7 +59,6 @@ Examples are provided under [examples](https://github.com/hasindu2008/slow5lib/t
 *random_read.c* demonstrates how to fetch a given read ID from a slow5/blow5 file.
 
 You can invoke `examples/build.sh` to compile the example programmes. Have a look at the script to see the commands used for compiling and linking.
-
 
 
 ## Acknowledgement
