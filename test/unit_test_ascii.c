@@ -119,13 +119,13 @@ int slow5_get_null(void) {
     ASSERT(slow5_idx_load(s5p) == 0);
 
     struct slow5_rec *read = NULL;
-    ASSERT(slow5_get(NULL, &read, s5p) == -1);
-    ASSERT(slow5_get("a649a4ae-c43d-492a-b6a1-a5b8b8076be4", NULL, s5p) == -1);
-    ASSERT(slow5_get("a649a4ae-c43d-492a-b6a1-a5b8b8076be4", &read, NULL) == -1);
-    ASSERT(slow5_get(NULL, NULL, s5p) == -1);
-    ASSERT(slow5_get(NULL, &read, NULL) == -1);
-    ASSERT(slow5_get("a649a4ae-c43d-492a-b6a1-a5b8b8076be4", NULL, NULL) == -1);
-    ASSERT(slow5_get(NULL, NULL, NULL) == -1);
+    ASSERT(slow5_get(NULL, &read, s5p) == SLOW5_ERR_ARG);
+    ASSERT(slow5_get("a649a4ae-c43d-492a-b6a1-a5b8b8076be4", NULL, s5p) == SLOW5_ERR_ARG);
+    ASSERT(slow5_get("a649a4ae-c43d-492a-b6a1-a5b8b8076be4", &read, NULL) == SLOW5_ERR_ARG);
+    ASSERT(slow5_get(NULL, NULL, s5p) == SLOW5_ERR_ARG);
+    ASSERT(slow5_get(NULL, &read, NULL) == SLOW5_ERR_ARG);
+    ASSERT(slow5_get("a649a4ae-c43d-492a-b6a1-a5b8b8076be4", NULL, NULL) == SLOW5_ERR_ARG);
+    ASSERT(slow5_get(NULL, NULL, NULL) == SLOW5_ERR_ARG);
     // Shouldn't need to slow5_rec_free
 
     ASSERT(slow5_close(s5p) == 0);
@@ -140,10 +140,10 @@ int slow5_get_invalid(void) {
     // TODO simulate -2 error
 
     struct slow5_rec *read = NULL;
-    ASSERT(slow5_get("badreadid", &read, s5p) == -3);
-    ASSERT(slow5_get("", &read, s5p) == -3);
-    ASSERT(slow5_get("a649a4ae-c43d-492a-b6a1-a5b8b8076be", &read, s5p) == -3);
-    ASSERT(slow5_get("O_O", &read, s5p) == -3);
+    ASSERT(slow5_get("badreadid", &read, s5p) == SLOW5_ERR_NOTFOUND);
+    ASSERT(slow5_get("", &read, s5p) == SLOW5_ERR_NOTFOUND);
+    ASSERT(slow5_get("a649a4ae-c43d-492a-b6a1-a5b8b8076be", &read, s5p) == SLOW5_ERR_NOTFOUND);
+    ASSERT(slow5_get("O_O", &read, s5p) == SLOW5_ERR_NOTFOUND);
 
     ASSERT(slow5_close(s5p) == 0);
 
@@ -153,14 +153,14 @@ int slow5_get_invalid(void) {
     ASSERT(s5p != NULL);
     ASSERT(slow5_idx_load(s5p) == 0);
 
-    ASSERT(slow5_get("a649a4ae-c43d-492a-b6a1-a5b8b8076be4", &read, s5p) == -5);
-    ASSERT(slow5_get("1", &read, s5p) == -5);
-    ASSERT(slow5_get("2", &read, s5p) == -5);
-    ASSERT(slow5_get("3", &read, s5p) == -5);
-    ASSERT(slow5_get("4", &read, s5p) == -5);
-    ASSERT(slow5_get("5", &read, s5p) == -5);
-    ASSERT(slow5_get("6", &read, s5p) == -5);
-    ASSERT(slow5_get("7", &read, s5p) == -5);
+    ASSERT(slow5_get("a649a4ae-c43d-492a-b6a1-a5b8b8076be4", &read, s5p) == SLOW5_ERR_RECPARSE);
+    ASSERT(slow5_get("1", &read, s5p) == SLOW5_ERR_RECPARSE);
+    ASSERT(slow5_get("2", &read, s5p) == SLOW5_ERR_RECPARSE);
+    ASSERT(slow5_get("3", &read, s5p) == SLOW5_ERR_RECPARSE);
+    ASSERT(slow5_get("4", &read, s5p) == SLOW5_ERR_RECPARSE);
+    ASSERT(slow5_get("5", &read, s5p) == SLOW5_ERR_RECPARSE);
+    ASSERT(slow5_get("6", &read, s5p) == SLOW5_ERR_RECPARSE);
+    ASSERT(slow5_get("7", &read, s5p) == SLOW5_ERR_RECPARSE);
     slow5_rec_free(read);
 
     ASSERT(slow5_close(s5p) == 0);
@@ -174,17 +174,17 @@ int slow5_skip_load_index(void) {
     ASSERT(s5p != NULL);
 
     struct slow5_rec *read = NULL;
-    ASSERT(slow5_get("a649a4ae-c43d-492a-b6a1-a5b8b8076be4", &read, s5p) == -2);
-    ASSERT(slow5_get("", &read, s5p) == -2);
-    ASSERT(slow5_get("a649a4ae-c43d-492a-b6a1-a5b8b8076be", &read, s5p) == -2);
-    ASSERT(slow5_get("O_O", &read, s5p) == -2);
+    ASSERT(slow5_get("a649a4ae-c43d-492a-b6a1-a5b8b8076be4", &read, s5p) == SLOW5_ERR_NOIDX);
+    ASSERT(slow5_get("", &read, s5p) == SLOW5_ERR_NOIDX);
+    ASSERT(slow5_get("a649a4ae-c43d-492a-b6a1-a5b8b8076be", &read, s5p) == SLOW5_ERR_NOIDX);
+    ASSERT(slow5_get("O_O", &read, s5p) == SLOW5_ERR_NOIDX);
 
     ASSERT(slow5_idx_load(s5p) == 0); //skip this
 
     ASSERT(slow5_get("a649a4ae-c43d-492a-b6a1-a5b8b8076be4", &read, s5p) == 0);
-    ASSERT(slow5_get("", &read, s5p) == -3);
-    ASSERT(slow5_get("a649a4ae-c43d-492a-b6a1-a5b8b8076be", &read, s5p) == -3);
-    ASSERT(slow5_get("O_O", &read, s5p) == -3);
+    ASSERT(slow5_get("", &read, s5p) == SLOW5_ERR_NOTFOUND);
+    ASSERT(slow5_get("a649a4ae-c43d-492a-b6a1-a5b8b8076be", &read, s5p) == SLOW5_ERR_NOTFOUND);
+    ASSERT(slow5_get("O_O", &read, s5p) == SLOW5_ERR_NOTFOUND);
 
     slow5_rec_free(read);
     ASSERT(slow5_close(s5p) == 0);
@@ -206,25 +206,25 @@ int slow5_record_parsing_check(void) {
     s5p = slow5_open("test/data/test/parsing_error_check/auxiliary_data_missing.slow5", "r");
     ASSERT(s5p != NULL);
     ASSERT(slow5_idx_load(s5p) == 0); //skip this
-    ASSERT(slow5_get("bc5615d7-dc94-4315-9cf1-5112555c19d5", &read, s5p) == -5);
+    ASSERT(slow5_get("bc5615d7-dc94-4315-9cf1-5112555c19d5", &read, s5p) == SLOW5_ERR_RECPARSE);
     ASSERT(slow5_close(s5p) == 0);
 
     s5p = slow5_open("test/data/test/parsing_error_check/auxiliary_datatype_missing.slow5", "r");
     ASSERT(s5p != NULL);
     ASSERT(slow5_idx_load(s5p) == 0); //skip this
-    ASSERT(slow5_get("bc5615d7-dc94-4315-9cf1-5112555c19d5", &read, s5p) == -5);
+    ASSERT(slow5_get("bc5615d7-dc94-4315-9cf1-5112555c19d5", &read, s5p) == SLOW5_ERR_RECPARSE);
     ASSERT(slow5_close(s5p) == 0);
 
     s5p = slow5_open("test/data/test/parsing_error_check/auxiliary_name_missing.slow5", "r");
     ASSERT(s5p != NULL);
     ASSERT(slow5_idx_load(s5p) == 0); //skip this
-    ASSERT(slow5_get("bc5615d7-dc94-4315-9cf1-5112555c19d5", &read, s5p) == -5);
+    ASSERT(slow5_get("bc5615d7-dc94-4315-9cf1-5112555c19d5", &read, s5p) == SLOW5_ERR_RECPARSE);
     ASSERT(slow5_close(s5p) == 0);
 
     s5p = slow5_open("test/data/test/parsing_error_check/main_attribute_data_missing.slow5", "r");
     ASSERT(s5p != NULL);
     ASSERT(slow5_idx_load(s5p) == 0); //skip this
-    ASSERT(slow5_get("bc5615d7-dc94-4315-9cf1-5112555c19d5", &read, s5p) == -5);
+    ASSERT(slow5_get("bc5615d7-dc94-4315-9cf1-5112555c19d5", &read, s5p) == SLOW5_ERR_RECPARSE);
     ASSERT(slow5_close(s5p) == 0);
 
 //    todo: return -5 with appropriate warning instead of dumping the core.
@@ -238,14 +238,14 @@ int slow5_record_parsing_check(void) {
     s5p = slow5_open("test/data/test/parsing_error_check/main_attribute_name_missing.slow5", "r");
     ASSERT(s5p != NULL);
     ASSERT(slow5_idx_load(s5p) == 0); //skip this
-    ASSERT(slow5_get("bc5615d7-dc94-4315-9cf1-5112555c19d5", &read, s5p) == -5);
+    ASSERT(slow5_get("bc5615d7-dc94-4315-9cf1-5112555c19d5", &read, s5p) == SLOW5_ERR_RECPARSE);
     ASSERT(slow5_close(s5p) == 0);
 
 //    todo: return -5 instead of -3 by correctly detecting that read_id has a '#'
     s5p = slow5_open("test/data/test/parsing_error_check/read_id_starts_with_hash.slow5", "r");
     ASSERT(s5p != NULL);
     ASSERT(slow5_idx_load(s5p) == 0); //skip this
-    ASSERT(slow5_get("bc5615d7-dc94-4315-9cf1-5112555c19d5", &read, s5p) == -3);
+    ASSERT(slow5_get("bc5615d7-dc94-4315-9cf1-5112555c19d5", &read, s5p) == SLOW5_ERR_NOTFOUND);
     ASSERT(slow5_close(s5p) == 0);
 
 //    todo: return -5 with appropriate warning instead of dumping the core.
@@ -258,25 +258,25 @@ int slow5_record_parsing_check(void) {
     s5p = slow5_open("test/data/test/parsing_error_check/more_than_one_tab_attribute_name_header.slow5", "r");
     ASSERT(s5p != NULL);
     ASSERT(slow5_idx_load(s5p) == 0); //skip this
-    ASSERT(slow5_get("bc5615d7-dc94-4315-9cf1-5112555c19d5", &read, s5p) == -5);
+    ASSERT(slow5_get("bc5615d7-dc94-4315-9cf1-5112555c19d5", &read, s5p) == SLOW5_ERR_RECPARSE);
     ASSERT(slow5_close(s5p) == 0);
 
     s5p = slow5_open("test/data/test/parsing_error_check/more_than_one_tab_datarecord.slow5", "r");
     ASSERT(s5p != NULL);
     ASSERT(slow5_idx_load(s5p) == 0); //skip this
-    ASSERT(slow5_get("bc5615d7-dc94-4315-9cf1-5112555c19d5", &read, s5p) == -5);
+    ASSERT(slow5_get("bc5615d7-dc94-4315-9cf1-5112555c19d5", &read, s5p) == SLOW5_ERR_RECPARSE);
     ASSERT(slow5_close(s5p) == 0);
 
     s5p = slow5_open("test/data/test/parsing_error_check/deleted_main_colum_data.slow5", "r");
     ASSERT(s5p != NULL);
     ASSERT(slow5_idx_load(s5p) == 0); //skip this
-    ASSERT(slow5_get("bc5615d7-dc94-4315-9cf1-5112555c19d5", &read, s5p) == -5);
+    ASSERT(slow5_get("bc5615d7-dc94-4315-9cf1-5112555c19d5", &read, s5p) == SLOW5_ERR_RECPARSE);
     ASSERT(slow5_close(s5p) == 0);
 
     s5p = slow5_open("test/data/test/parsing_error_check/deleted_auxiliary_data.slow5", "r");
     ASSERT(s5p != NULL);
     ASSERT(slow5_idx_load(s5p) == 0); //skip this
-    ASSERT(slow5_get("bc5615d7-dc94-4315-9cf1-5112555c19d5", &read, s5p) == -5);
+    ASSERT(slow5_get("bc5615d7-dc94-4315-9cf1-5112555c19d5", &read, s5p) == SLOW5_ERR_RECPARSE);
     ASSERT(slow5_close(s5p) == 0);
 
 //    todo: deleted datatype, name
@@ -356,9 +356,9 @@ int slow5_get_next_null(void) {
     ASSERT(s5p != NULL);
 
     struct slow5_rec *read = NULL;
-    ASSERT(slow5_get_next(NULL, s5p) == SLOW5_EARG);
-    ASSERT(slow5_get_next(&read, NULL) == SLOW5_EARG);
-    ASSERT(slow5_get_next(NULL, NULL) == SLOW5_EARG);
+    ASSERT(slow5_get_next(NULL, s5p) == SLOW5_ERR_ARG);
+    ASSERT(slow5_get_next(&read, NULL) == SLOW5_ERR_ARG);
+    ASSERT(slow5_get_next(NULL, NULL) == SLOW5_ERR_ARG);
     slow5_rec_free(read);
 
     ASSERT(slow5_close(s5p) == 0);
@@ -372,10 +372,10 @@ int slow5_get_next_empty(void) {
 
     struct slow5_rec *read = NULL;
     ASSERT(slow5_get_next(&read, s5p) == 0);
-    ASSERT(slow5_get_next(&read, s5p) == SLOW5_EEOF);
-    ASSERT(slow5_get_next(&read, s5p) == SLOW5_EEOF);
-    ASSERT(slow5_get_next(&read, s5p) == SLOW5_EEOF);
-    ASSERT(slow5_get_next(&read, s5p) == SLOW5_EEOF);
+    ASSERT(slow5_get_next(&read, s5p) == SLOW5_ERR_EOF);
+    ASSERT(slow5_get_next(&read, s5p) == SLOW5_ERR_EOF);
+    ASSERT(slow5_get_next(&read, s5p) == SLOW5_ERR_EOF);
+    ASSERT(slow5_get_next(&read, s5p) == SLOW5_ERR_EOF);
     slow5_rec_free(read);
 
     ASSERT(slow5_close(s5p) == 0);
@@ -388,14 +388,14 @@ int slow5_get_next_invalid(void) {
     ASSERT(s5p != NULL);
 
     struct slow5_rec *read = NULL;
-    ASSERT(slow5_get_next(&read, s5p) == SLOW5_ERPARSE);
-    ASSERT(slow5_get_next(&read, s5p) == SLOW5_ERPARSE);
-    ASSERT(slow5_get_next(&read, s5p) == SLOW5_ERPARSE);
-    ASSERT(slow5_get_next(&read, s5p) == SLOW5_ERPARSE);
-    ASSERT(slow5_get_next(&read, s5p) == SLOW5_ERPARSE);
-    ASSERT(slow5_get_next(&read, s5p) == SLOW5_ERPARSE);
-    ASSERT(slow5_get_next(&read, s5p) == SLOW5_ERPARSE);
-    ASSERT(slow5_get_next(&read, s5p) == SLOW5_ERPARSE);
+    ASSERT(slow5_get_next(&read, s5p) == SLOW5_ERR_RECPARSE);
+    ASSERT(slow5_get_next(&read, s5p) == SLOW5_ERR_RECPARSE);
+    ASSERT(slow5_get_next(&read, s5p) == SLOW5_ERR_RECPARSE);
+    ASSERT(slow5_get_next(&read, s5p) == SLOW5_ERR_RECPARSE);
+    ASSERT(slow5_get_next(&read, s5p) == SLOW5_ERR_RECPARSE);
+    ASSERT(slow5_get_next(&read, s5p) == SLOW5_ERR_RECPARSE);
+    ASSERT(slow5_get_next(&read, s5p) == SLOW5_ERR_RECPARSE);
+    ASSERT(slow5_get_next(&read, s5p) == SLOW5_ERR_RECPARSE);
     slow5_rec_free(read);
 
     ASSERT(slow5_close(s5p) == 0);

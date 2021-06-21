@@ -1,4 +1,4 @@
-# slow5lib
+# slow5_get_next
 
 ## NAME
 slow5_get_next - Gets the read entry at the current file pointer of a slow5 file.
@@ -23,13 +23,13 @@ Upon successful completion, `slow5_get_next()` returns a non negative integer (>
 
 A negative return value indicates an error as follows.
 
- * `SLOW5_EEOF`
+ * `SLOW5_ERR_EOF`
         EOF reached
- * `SLOW5_EARG`
+ * `SLOW5_ERR_ARG`
         read_id, read or s5p is NULL
- * `SLOW5_EREAD`
+ * `SLOW5_ERR_IO`
         other reading error when reading the slow5 file
- * `SLOW5_ERPARSE`
+ * `SLOW5_ERR_RECPARSE`
         record parsing error
 
 ## NOTES
@@ -66,7 +66,7 @@ int main(){
         printf("\n");
     }
 
-    if(ret != SLOW5_EEOF){  //check if proper end of file has been reached
+    if(ret != SLOW5_ERR_EOF){  //check if proper end of file has been reached
         fprintf(stderr,"Error in slow5_get_next. Error code %d\n",ret);
         exit(EXIT_FAILURE);
     }

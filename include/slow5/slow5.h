@@ -394,14 +394,16 @@ char *slow5_hdr_get(const char *attr, uint32_t read_group, const slow5_hdr_t *he
  *
  * Require the slow5 index to be loaded using slow5_idx_load
  *
- * Return
- * TODO are these error codes too much?
- *  0   the read was successfully found and stored
- * -1   read_id, read or s5p is NULL
- * -2   the index has not been loaded
- * -3   read_id was not found in the index
- * -4   reading error when reading the slow5 file
- * -5   parsing error
+ * Return:
+ *  >=0   the read was successfully found and stored
+ *  <0   error code
+ *
+ * Errors:
+ * SLOW5_ERR_NOTFOUND   read_id was not found in the index
+ * SLOW5_ERR_ARG        read_id, read or s5p is NULL
+ * SLOW5_ERR_IO         other error when reading the slow5 file
+ * SLOW5_ERR_RECPARSE   parsing error
+* SLOW5_ERR_NOIDX       the index has not been loaded
  *
  * @param   read_id the read identifier
  * @param   read    address of a slow5_rec pointer
@@ -418,14 +420,15 @@ int slow5_get(const char *read_id, slow5_rec_t **read, slow5_file_t *s5p);
  * Otherwise, the data in *read is freed and overwritten.
  * slow5_rec_free() should be called when finished with the structure.
  *
- * Return
+ * Return value:
  * >=0  the read was successfully found and stored
  * <0   error code
- * Error
- * SLOW5_EEOF       EOF reached
- * SLOW5_EARG       read_id, read or s5p is NULL
- * SLOW5_EREAD      other reading error when reading the slow5 file
- * SLOW5_ERPARSE    record parsing error
+ *
+ * Errors:
+ * SLOW5_ERR_EOF        EOF reached
+ * SLOW5_ERR_ARG        read_id, read or s5p is NULL
+ * SLOW5_ERR_IO         other error when reading the slow5 file
+ * SLOW5_ERR_RECPARSE   record parsing error
  *
  * @param   read    address of a slow5_rec_t pointer
  * @param   s5p     slow5 file

@@ -1,23 +1,28 @@
-# slow5lib
+# slow5_close
 
 ## NAME
-slow5_close - Closes a slow5 file and free its memory.
+slow5_close - Closes an open slow5 file and free the associated memory.
 
 ## SYNOPSYS
 `int slow5_close(slow5_file_t *s5p)`
 
 ## DESCRIPTION
-This is a wrapper function around the standard C library function `fclose()`.
-`slow5_close()` safely closes attributes defined in *slow5_file_t*
+`slow5_close()` closes a slow5 file and frees the associated *slow5_file_t* structure from memory.
+The argument *s5p* is the *slow5_file_t* pointer returned by a previous `slow5_open()` call.
 
-A SLOW5 file *s5p* that was opened using `slow5_open()` or `slow5_open_with()` should be passed to `slow5_close()` to close the file .
+The behaviour of `slow5_close()` is undefined if the parameter is an illegal pointer, or if `slow5_close()` has been previous invoked on the pointer.
+
+If a slow5 index is associated with the *s5p* structure using a previous `slow5_idx_load()` invocation, `slow5_idx_unload()` must be invoked before calling `slow5_close()`.
+
+
 
 ## RETURN VALUE
-Same as the behavior observed in the standard C library function `fclose()`.
+
+Upon successful completion, `slow5_close()` returns 0. Otherwise, a negative value is returned.
 
 ## NOTES
 
-
+Internally uses `fclose()` to close the file stream and calls `free()` on allocated memory.
 
 ## EXAMPLES
 ```

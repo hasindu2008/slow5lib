@@ -255,10 +255,10 @@ int slow5_get_invalid(void) {
     ASSERT(slow5_idx_load(s5p) == 0);
 
      struct slow5_rec *read = NULL;
-    ASSERT(slow5_get("badreadid", &read, s5p) == -3);
-    ASSERT(slow5_get("", &read, s5p) == -3);
-    ASSERT(slow5_get("a649a4ae-c43d-492a-b6a1-a5b8b8076be", &read, s5p) == -3);
-    ASSERT(slow5_get("O_O", &read, s5p) == -3);
+    ASSERT(slow5_get("badreadid", &read, s5p) == SLOW5_ERR_NOTFOUND);
+    ASSERT(slow5_get("", &read, s5p) == SLOW5_ERR_NOTFOUND);
+    ASSERT(slow5_get("a649a4ae-c43d-492a-b6a1-a5b8b8076be", &read, s5p) == SLOW5_ERR_NOTFOUND);
+    ASSERT(slow5_get("O_O", &read, s5p) == SLOW5_ERR_NOTFOUND);
     slow5_rec_free(read);
 
     ASSERT(slow5_close(s5p) == 0);

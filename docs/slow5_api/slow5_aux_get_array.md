@@ -2,7 +2,7 @@
 
 ## NAME
 
-slow5_aux_get_DATA_TYPE_array - Get an auxiliary field in a SLOW5 record as an array of type DATA_TYPE.
+slow5_aux_get_<array_datatype> - Get an auxiliary field (an array field) in a SLOW5 record and returns the pointer to an array of the corresponding data type.
 
 ## SYNOPSYS
 
@@ -31,13 +31,13 @@ slow5_aux_get_DATA_TYPE_array - Get an auxiliary field in a SLOW5 record as an a
 
 
 ## DESCRIPTION
-`slow5_aux_get_DATA_TYPE_array()` fetches the value of an auxiliary field *attr* from the slow5 record *read* as an array of type DATA_TYPE of length *len*. User has to choose the appropriate function to match the datatype of the value returned. 
+`slow5_aux_get_<array_datatype>()` fetches the value of an auxiliary field *attr* from the slow5 record *read* as an array of type DATA_TYPE of length *len*. User has to choose the appropriate function to match the datatype of the value returned.
 
-`slow5_aux_get_DATA_TYPE_array()` sets a non zero error code in *err* in case of failure.
+`slow5_aux_get_<array_datatype>()` sets a non zero error code in *err* in case of failure.
 
 ## RETURN VALUE
 
-Upon successful completion, `slow5_aux_get_DATA_TYPE_array()` returns a value.
+Upon successful completion, `slow5_aux_get_<array_datatype>()` returns a value.
 
 ## ERRORS
 A non zero error code is set in *err*.

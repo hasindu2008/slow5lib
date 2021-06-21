@@ -29,7 +29,7 @@ int main(){
         printf("\n");
     }
 
-    if(ret != SLOW5_EEOF){  //check if proper end of file has been reached
+    if(ret != SLOW5_ERR_EOF){  //check if proper end of file has been reached
         fprintf(stderr,"Error in slow5_get_next. Error code %d\n",ret);
         exit(EXIT_FAILURE);
     }

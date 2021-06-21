@@ -27,7 +27,7 @@ int main(){
 
     ret = slow5_get("r3", &rec, sp);
     if(ret < 0){
-        fprintf(stderr,"Error in locating read\n");
+        fprintf(stderr,"Error in when fetching the read\n");
     }
     else{
         printf("%s\t",rec->read_id);
