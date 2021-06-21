@@ -6,7 +6,7 @@ slow5lib - slow5 Overview
 
 ## DESCRIPTION
 
-slow5lib is a library for reading and writing SLOW5 files.
+slow5lib is a library for reading and writing SLOW5 files. Compiling slow5lib requires a C compiler that conforms to at least c99 standard with X/Open 7, incorporating POSIX 2008 extension support.
 
 
 ### High-level API for reading SLOW5 files
@@ -113,12 +113,8 @@ typedef struct {
     /* Other private members for storing auxilliary field which are not to be directly accessed*/
 
 } slow5_rec_t;
-
+```
 
 ### Low-level API for reading and writing SLOW5 files
 
 <prototypes are not yet finalised and subject to change>
-
-## NOTES
-
-Compiling slow5lib requires a C compiler that conforms to at least c99 standard with X/Open 7, incorporating POSIX 2008 extension support.
