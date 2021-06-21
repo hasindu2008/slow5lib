@@ -12,13 +12,13 @@ The slow5 python library (pyslow5) allows a user to read slow5 and blow5 files.
 
 ## Usage
 
-    import pyslow5
+    import pyslow5 as slow5
 
     # open file
-    s5p = pyslow5.slow5py('examples/example.slow5','r')
+    s5 = slow5.Open('examples/example.slow5','r')
 
     # read all reads sequentially
-    for read in s5p.seq_reads(pA=True):
+    for read in s5.seq_reads(pA=True):
         print("read_id:", read['read_id'])
         print("read_group:", read['read_group'])
         print("digitisation:", read['digitisation'])
@@ -30,11 +30,11 @@ The slow5 python library (pyslow5) allows a user to read slow5 and blow5 files.
 
     # read one read using readID, returns None if not found
     readID = "r4"
-    read = s5p.get_read(readID, pA=True)
+    read = s5.get_read(readID, pA=True)
 
     # random access reads from list, if read not found, returns None
     read_list = ["r1", "r3", "null_read", "r5", "r2", "r1"]
-    selected_reads = s5p.get_read_list(read_list)
+    selected_reads = s5.get_read_list(read_list)
     for r, read in zip(read_list,selected_reads):
         if read is not None:
             print(r, read['read_id'])
@@ -43,11 +43,11 @@ The slow5 python library (pyslow5) allows a user to read slow5 and blow5 files.
 
     # Get header attributes
     attr = "flow_cell_id"
-    val = s5p.get_header_value(attr)
+    val = s5.get_header_value(attr)
     print(f"flow_cell_id: {val}")
     attr = "exp_start_time"
-    val = s5p.get_header_value(attr)
+    val = s5.get_header_value(attr)
     print(f"exp_start_time: {val}")
     attr = "heatsink_temp"
-    val = s5p.get_header_value(attr)
+    val = s5.get_header_value(attr)
     print(f"heatsink_temp: {val}")

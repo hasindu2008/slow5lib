@@ -12,7 +12,7 @@ cimport pyslow5
 #
 
 
-cdef class slow5py:
+cdef class Open:
     cdef pyslow5.slow5_file_t *s5p
     cdef pyslow5.slow5_rec_t *rec
     cdef pyslow5.slow5_rec_t *read

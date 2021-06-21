@@ -1,4 +1,4 @@
-import pyslow5
+import pyslow5 as slow5
 import time
 
 
@@ -12,10 +12,10 @@ debug = 1
 
 # open file and create object
 start_time = time.time()
-s5p = pyslow5.slow5py('examples/example.slow5','r', DEBUG=debug)
+s5 = slow5.Open('examples/example.slow5','r', DEBUG=debug)
 # s5p = pyslow5.slow5py('test/data/exp/aux_array/exp_lossless.slow5','r', DEBUG=1)
 ttime = round(time.time() - start_time, 4)
-print(dir(s5p))
+print(dir(s5))
 print("slow5 file opened and object created in: {} seconds".format(ttime))
 print("==============================================")
 
@@ -23,9 +23,9 @@ print("==============================================")
 print("get_read check, r1")
 # print("get_read check, a649a4ae-c43d-492a-b6a1-a5b8b8076be4")
 start_time = time.time()
-read = s5p.get_read("r1", aux=["read_number", "start_mux", "blah"])
-# read = s5p.get_read("a649a4ae-c43d-492a-b6a1-a5b8b8076be4", aux=["read_number", "start_mux", "blah"])
-# read = s5p.get_read("a649a4ae-c43d-492a-b6a1-a5b8b8076be4", aux="blah")
+read = s5.get_read("r1", aux=["read_number", "start_mux", "blah"])
+# read = s5.get_read("a649a4ae-c43d-492a-b6a1-a5b8b8076be4", aux=["read_number", "start_mux", "blah"])
+# read = s5.get_read("a649a4ae-c43d-492a-b6a1-a5b8b8076be4", aux="blah")
 ttime = round(time.time() - start_time, 4)
 print("get_read in: {} seconds".format(ttime))
 
@@ -50,7 +50,7 @@ print("==============================================")
 # Get data for ANOTHER ONE individual read, random access, check memory
 print("get_read check, r4, converte to pA")
 start_time = time.time()
-read = s5p.get_read("r4", pA=True)
+read = s5.get_read("r4", pA=True)
 ttime = round(time.time() - start_time, 4)
 print("get_read in: {} seconds".format(ttime))
 
@@ -72,7 +72,7 @@ print("==============================================")
 print("seq_reads check, all reads")
 start_time = time.time()
 print("seq_reads readIDs:")
-reads = s5p.seq_reads()
+reads = s5.seq_reads()
 print("type check reads:", type(reads))
 for read in reads:
     print(read['read_id'])
@@ -86,7 +86,7 @@ print("==============================================")
 print("Yield check, selected reads")
 read_list = ["r1", "r3", "null_read", "r5", "r2", "r1"]
 start_time = time.time()
-selected_reads = s5p.get_read_list(read_list)
+selected_reads = s5.get_read_list(read_list)
 ttime = round(time.time() - start_time, 4)
 print("get_read_list in: {} seconds".format(ttime))
 print("yielded readIDs:")
@@ -100,7 +100,7 @@ for r, read in zip(read_list,selected_reads):
 print("==============================================")
 # get header names
 print("Get headder names")
-names = s5p.get_header_names()
+names = s5.get_header_names()
 print("header names:")
 print(names)
 
@@ -108,22 +108,22 @@ print("==============================================")
 # Get header attributes
 print("Get headder attributes")
 attr = "flow_cell_id"
-val = s5p.get_header_value(attr)
+val = s5.get_header_value(attr)
 print("flow_cell_id: {}".format(val))
 attr = "exp_start_time"
-val = s5p.get_header_value(attr)
+val = s5.get_header_value(attr)
 print("exp_start_time: {}".format(val))
 attr = "heatsink_temp"
-val = s5p.get_header_value(attr)
+val = s5.get_header_value(attr)
 print("heatsink_temp: {}".format(val))
 for attr in names:
-    val = s5p.get_header_value(attr)
+    val = s5.get_header_value(attr)
     print("{}: {}".format(attr, val))
 
 
-s5p2 = pyslow5.slow5py('test/data/exp/aux_array/exp_lossless.slow5','r', DEBUG=debug)
+s52 = slow5.Open('test/data/exp/aux_array/exp_lossless.slow5','r', DEBUG=debug)
 print("get_read check, a649a4ae-c43d-492a-b6a1-a5b8b8076be4")
-read1 = s5p2.get_read("a649a4ae-c43d-492a-b6a1-a5b8b8076be4", aux=["read_number", "start_mux", "blah"])
+read1 = s52.get_read("a649a4ae-c43d-492a-b6a1-a5b8b8076be4", aux=["read_number", "start_mux", "blah"])
 # print all fields
 print("read_id:", read1['read_id'])
 print("read_group:", read1['read_group'])
@@ -139,18 +139,18 @@ print("read_number:", read1["read_number"])
 print("start_mux:", read1["start_mux"])
 print("blah:", read1["blah"]) #should be None
 
-read2 = s5p2.get_read("a649a4ae-c43d-492a-b6a1-a5b8b8076be4", aux="blah")
+read2 = s52.get_read("a649a4ae-c43d-492a-b6a1-a5b8b8076be4", aux="blah")
 print("AUX FIELDS:")
 print("blah:", read2["blah"]) #should be None
 
-read3 = s5p2.get_read("a649a4ae-c43d-492a-b6a1-a5b8b8076be4", aux="read_number")
+read3 = s52.get_read("a649a4ae-c43d-492a-b6a1-a5b8b8076be4", aux="read_number")
 print("AUX FIELDS:")
 print("read_number:", read3["read_number"]) #should be None
 
 print("==============================================")
 # get aux names
 print("Get aux names")
-aux_names = s5p2.get_aux_names()
+aux_names = s52.get_aux_names()
 print("aux names:")
 print(aux_names)
 
@@ -158,11 +158,11 @@ print("==============================================")
 # get aux values
 
 print("Get aux types")
-aux_types = s5p2.get_aux_types()
+aux_types = s52.get_aux_types()
 print("aux types:")
 print(aux_types)
 
-read4 = s5p2.get_read("a649a4ae-c43d-492a-b6a1-a5b8b8076be4", aux="all")
+read4 = s52.get_read("a649a4ae-c43d-492a-b6a1-a5b8b8076be4", aux="all")
 print("AUX FIELDS:")
 for name in aux_names:
     print("{}:".format(name), read4[name])
