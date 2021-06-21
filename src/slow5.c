@@ -318,7 +318,7 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
             return NULL;
         }
         if(buf_len==0){
-            SLOW5_WARNING("%s", "'Malformed file. Why is the very first line empty?");
+            SLOW5_WARNING("%s", "'Malformed SLOW5 header. Why is the very first line empty?");
             free(buf);
             free(header);
             return NULL;
@@ -328,7 +328,7 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
         bufp = buf;
         char *tok = slow5_strsep(&bufp, SLOW5_SEP_COL);
         if (strcmp(tok, SLOW5_HEADER_FILE_VERSION_ID) != 0) {
-            SLOW5_WARNING("Malformed file. Expected '%s', instead found '%s'", SLOW5_HEADER_FILE_VERSION_ID, tok);
+            SLOW5_WARNING("Malformed SLOW5 header. Expected '%s', instead found '%s'", SLOW5_HEADER_FILE_VERSION_ID, tok);
             free(buf);
             free(header);
             return NULL;
@@ -337,28 +337,28 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
         tok = slow5_strsep(&bufp, SLOW5_SEP_COL);
         char *toksub;
         if ((toksub = slow5_strsep(&tok, ".")) == NULL) { // Major version
-            SLOW5_WARNING("%s", "Malformed file. Version string is expected to be in the format x.y.z");
+            SLOW5_WARNING("%s", "Malformed SLOW5 header. Version string is expected to be in the format x.y.z");
             free(buf);
             free(header);
             return NULL;
         }
         header->version.major = slow5_ato_uint8(toksub, &err);
         if (err == -1 || (toksub = slow5_strsep(&tok, ".")) == NULL) { // Minor version
-            SLOW5_WARNING("%s", "Malformed file. Version string is expected to be in the format x.y.z");
+            SLOW5_WARNING("%s", "Malformed SLOW5 header. Version string is expected to be in the format x.y.z");
             free(buf);
             free(header);
             return NULL;
         }
         header->version.minor = slow5_ato_uint8(toksub, &err);
         if (err == -1 || (toksub = slow5_strsep(&tok, ".")) == NULL) { // Patch version
-            SLOW5_WARNING("%s", "Malformed file. Version string is expected to be in the format x.y.z");
+            SLOW5_WARNING("%s", "Malformed SLOW5 header. Version string is expected to be in the format x.y.z");
             free(buf);
             free(header);
             return NULL;
         }
         header->version.patch = slow5_ato_uint8(toksub, &err);
         if (err == -1 || slow5_strsep(&tok, ".") != NULL) { // No more tokenators
-            SLOW5_WARNING("%s", "Malformed file. Version string is expected to be in the format x.y.z");
+            SLOW5_WARNING("%s", "Malformed SLOW5 header. Version string is expected to be in the format x.y.z");
             free(buf);
             free(header);
             return NULL;
@@ -376,7 +376,7 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
         bufp = buf;
         tok = slow5_strsep(&bufp, SLOW5_SEP_COL);
         if (strcmp(tok, SLOW5_HEADER_NUM_GROUPS_ID) != 0) {
-            SLOW5_WARNING("Malformed file. Expected '%s', instead found '%s'", SLOW5_HEADER_NUM_GROUPS_ID, tok);
+            SLOW5_WARNING("Malformed SLOW5 header. Expected '%s', instead found '%s'", SLOW5_HEADER_NUM_GROUPS_ID, tok);
             free(buf);
             free(header);
             return NULL;
@@ -385,7 +385,7 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
         tok = slow5_strsep(&bufp, SLOW5_SEP_COL);
         header->num_read_groups = slow5_ato_uint32(tok, &err);
         if (err == -1) {
-            SLOW5_WARNING("Malformed file. Invalid number of read groups - '%s'", tok);
+            SLOW5_WARNING("Malformed SLOW5 header. Invalid number of read groups - '%s'", tok);
             free(buf);
             free(header);
             return NULL;
@@ -410,14 +410,16 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
         // TODO pack and do one read
 
         if (fread(buf_magic, sizeof *magic, sizeof magic, fp) != sizeof magic ||
-            memcmp(magic, buf_magic, sizeof *magic * sizeof magic) != 0 ||
-            fread(&header->version.major, sizeof header->version.major, 1, fp) != 1 ||
-            fread(&header->version.minor, sizeof header->version.minor, 1, fp) != 1 ||
-            fread(&header->version.patch, sizeof header->version.patch, 1, fp) != 1 ||
-            fread(method, sizeof *method, 1, fp) != 1 ||
-            fread(&header->num_read_groups, sizeof header->num_read_groups, 1, fp) != 1 ||
-            fseek(fp, SLOW5_BINARY_HEADER_SIZE_OFFSET, SEEK_SET) == -1 ||
-            fread(&header_size, sizeof header_size, 1, fp) != 1) {
+                memcmp(magic, buf_magic, sizeof *magic * sizeof magic) != 0 ||
+                fread(&header->version.major, sizeof header->version.major, 1, fp) != 1 ||
+                fread(&header->version.minor, sizeof header->version.minor, 1, fp) != 1 ||
+                fread(&header->version.patch, sizeof header->version.patch, 1, fp) != 1 ||
+                fread(method, sizeof *method, 1, fp) != 1 ||
+                fread(&header->num_read_groups, sizeof header->num_read_groups, 1, fp) != 1 ||
+                fseek(fp, SLOW5_BINARY_HEADER_SIZE_OFFSET, SEEK_SET) == -1 ||
+                fread(&header_size, sizeof header_size, 1, fp) != 1) {
+
+            SLOW5_WARNING("%s","Malformed BLOW5 header");
             free(header);
             return NULL;
         }
