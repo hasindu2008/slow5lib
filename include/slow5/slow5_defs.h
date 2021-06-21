@@ -113,6 +113,16 @@ extern "C" {
 //#define SLOW5_INDEX_HEADER_PREFIX   "#"
 #define SLOW5_INDEX_HEADER          SLOW5_INDEX_HEADER_PREFIX "read_id" SLOW5_SEP_COL "offset" SLOW5_SEP_COL "length\n"
 
+
+//error codes
+#define SLOW5_EEOF  -1  //EOF reached
+#define SLOW5_EARG  -4  //bad argument (NULL)
+#define SLOW5_ETRUNC  -5  //file truncated
+#define SLOW5_ERPARSE -10 // record parsing error
+#define SLOW5_EREAD -2 //other file reading error
+
+
+
 #ifdef __cplusplus
 }
 #endif

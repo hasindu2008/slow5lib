@@ -356,9 +356,9 @@ int slow5_get_next_null(void) {
     ASSERT(s5p != NULL);
 
     struct slow5_rec *read = NULL;
-    ASSERT(slow5_get_next(NULL, s5p) == -1);
-    ASSERT(slow5_get_next(&read, NULL) == -1);
-    ASSERT(slow5_get_next(NULL, NULL) == -1);
+    ASSERT(slow5_get_next(NULL, s5p) == SLOW5_EARG);
+    ASSERT(slow5_get_next(&read, NULL) == SLOW5_EARG);
+    ASSERT(slow5_get_next(NULL, NULL) == SLOW5_EARG);
     slow5_rec_free(read);
 
     ASSERT(slow5_close(s5p) == 0);
@@ -372,10 +372,10 @@ int slow5_get_next_empty(void) {
 
     struct slow5_rec *read = NULL;
     ASSERT(slow5_get_next(&read, s5p) == 0);
-    ASSERT(slow5_get_next(&read, s5p) == -2);
-    ASSERT(slow5_get_next(&read, s5p) == -2);
-    ASSERT(slow5_get_next(&read, s5p) == -2);
-    ASSERT(slow5_get_next(&read, s5p) == -2);
+    ASSERT(slow5_get_next(&read, s5p) == SLOW5_EEOF);
+    ASSERT(slow5_get_next(&read, s5p) == SLOW5_EEOF);
+    ASSERT(slow5_get_next(&read, s5p) == SLOW5_EEOF);
+    ASSERT(slow5_get_next(&read, s5p) == SLOW5_EEOF);
     slow5_rec_free(read);
 
     ASSERT(slow5_close(s5p) == 0);
@@ -388,14 +388,14 @@ int slow5_get_next_invalid(void) {
     ASSERT(s5p != NULL);
 
     struct slow5_rec *read = NULL;
-    ASSERT(slow5_get_next(&read, s5p) == -3);
-    ASSERT(slow5_get_next(&read, s5p) == -3);
-    ASSERT(slow5_get_next(&read, s5p) == -3);
-    ASSERT(slow5_get_next(&read, s5p) == -3);
-    ASSERT(slow5_get_next(&read, s5p) == -3);
-    ASSERT(slow5_get_next(&read, s5p) == -3);
-    ASSERT(slow5_get_next(&read, s5p) == -3);
-    ASSERT(slow5_get_next(&read, s5p) == -3);
+    ASSERT(slow5_get_next(&read, s5p) == SLOW5_ERPARSE);
+    ASSERT(slow5_get_next(&read, s5p) == SLOW5_ERPARSE);
+    ASSERT(slow5_get_next(&read, s5p) == SLOW5_ERPARSE);
+    ASSERT(slow5_get_next(&read, s5p) == SLOW5_ERPARSE);
+    ASSERT(slow5_get_next(&read, s5p) == SLOW5_ERPARSE);
+    ASSERT(slow5_get_next(&read, s5p) == SLOW5_ERPARSE);
+    ASSERT(slow5_get_next(&read, s5p) == SLOW5_ERPARSE);
+    ASSERT(slow5_get_next(&read, s5p) == SLOW5_ERPARSE);
     slow5_rec_free(read);
 
     ASSERT(slow5_close(s5p) == 0);

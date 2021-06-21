@@ -80,7 +80,7 @@ static inline void slow5_rec_set_aux_map(khash_t(slow5_s2a) *aux_map, const char
 enum slow5_log_level_opt  slow5_log_level = SLOW5_LOG_INFO;
 enum slow5_exit_condition_opt  slow5_exit_condition = SLOW5_EXIT_OFF;
 
-
+__thread int slow5_errno = 0;
 
 /* Definitions */
 
@@ -224,10 +224,12 @@ struct slow5_file *slow5_open_with(const char *pathname, const char *mode, enum 
     }
     if (pathname == NULL) {
         SLOW5_ERROR("%s","Argument 'pathname' cannot be NULL.");
+        slow5_errno = SLOW5_EARG;
         return NULL;
     }
     if (mode == NULL) {
         SLOW5_ERROR("%s","Argument 'mode' cannot be NULL.");
+        slow5_errno = SLOW5_EARG;
         return NULL;
     }
 
@@ -1861,11 +1863,13 @@ void slow5_rec_aux_free(khash_t(slow5_s2a) *aux_map) {
  * slow5_rec_free() should be called when finished with the structure.
  *
  * Return
- * TODO are these error codes too much?
- *  0   the read was successfully found and stored
- * -1   read_id, read or s5p is NULL
- * -2   reading error when reading the slow5 file
- * -3   parsing error
+ * >=0  the read was successfully found and stored
+ * <0   error code
+ * Error
+ * SLOW5_EEOF       EOF reached
+ * SLOW5_EARG       read_id, read or s5p is NULL
+ * SLOW5_EREAD      ither reading error when reading the slow5 file
+ * SLOW5_ERPARSE    record parsing error
  *
  * @param   read    address of a slow5_rec pointer
  * @param   s5p     slow5 file
@@ -1873,7 +1877,7 @@ void slow5_rec_aux_free(khash_t(slow5_s2a) *aux_map) {
  */
 int slow5_get_next(struct slow5_rec **read, struct slow5_file *s5p) {
     if (read == NULL || s5p == NULL) {
-        return -1;
+        return SLOW5_EARG;
     }
 
     int ret = 0;
@@ -1884,7 +1888,10 @@ int slow5_get_next(struct slow5_rec **read, struct slow5_file *s5p) {
         ssize_t read_len;
         if ((read_len = getline(&read_mem, &cap, s5p->fp)) == -1) {
             free(read_mem);
-            return -2;
+            if(feof(s5p->fp)){
+                return SLOW5_EEOF;
+            }
+            return SLOW5_EREAD;
         }
         read_mem[-- read_len] = '\0'; // Remove newline for parsing
 
@@ -1903,7 +1910,7 @@ int slow5_get_next(struct slow5_rec **read, struct slow5_file *s5p) {
         }
 
         if (slow5_rec_parse(read_mem, read_len, NULL, *read, s5p->format, s5p->header->aux_meta) == -1) {
-            ret = -3;
+            ret = SLOW5_ERPARSE;
         }
 
         free(read_mem);
@@ -1925,17 +1932,20 @@ int slow5_get_next(struct slow5_rec **read, struct slow5_file *s5p) {
 
         slow5_rec_size_t record_size;
         if (fread(&record_size, sizeof record_size, 1, s5p->fp) != 1) {
-            return -2;
+           if(feof(s5p->fp)){
+                return SLOW5_EEOF;
+            }
+            return SLOW5_EREAD;
         }
 
         size_t size_decomp;
         char *rec_decomp = (char *) slow5_fread_depress(s5p->compress, record_size, s5p->fp, &size_decomp);
         if (rec_decomp == NULL) {
-            return -2;
+            return SLOW5_EREAD;
         }
 
         if (slow5_rec_parse(rec_decomp, size_decomp, NULL, *read, s5p->format, s5p->header->aux_meta) == -1) {
-            ret = -3;
+            ret = SLOW5_ERPARSE;
         }
 
         free(rec_decomp);
@@ -2992,7 +3002,7 @@ int slow5_convert(struct slow5_file *from, FILE *to_fp, enum slow5_fmt to_format
     }
     slow5_press_free(press_ptr);
     slow5_rec_free(read);
-    if (ret != -2) {
+    if (ret != SLOW5_EEOF) {
         return -2;
     }
 
