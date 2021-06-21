@@ -1,7 +1,7 @@
 # slow5lib
 
 ## NAME
-slow5_get_next - Gets the read entry under the current file pointer of a slow5 file.
+slow5_get_next - Gets the read entry at the current file pointer of a slow5 file.
 
 ## SYNOPSYS
 `int slow5_get_next(slow5_rec_t **read, slow5_file_t *s5p)`
@@ -17,22 +17,23 @@ If the allocated *slow5_rec_t* is not large enough to hold the record, `slow5_ge
 The argument *s5p* points to a *slow5_file_t* opened using `slow5_open()`.
 
 ## RETURN VALUE
-Upon successful completion, `slow5_get_next()` returns 0. Otherwise, a negative value is returned that indicates the error.
+Upon successful completion, `slow5_get_next()` returns a non negative integer (>=0). Otherwise, a negative value is returned that indicates the error.
 
 ## ERRORS
+
 A negative return value indicates an error as follows.
 
-* `-1`
-    read_id, read or s5p is NULL
-* `-2`
-    reading error when reading the slow5 file
-* `-3`
-    parsing error
+ * `SLOW5_EEOF`
+        EOF reached
+ * `SLOW5_EARG`
+        read_id, read or s5p is NULL
+ * `SLOW5_EREAD`
+        other reading error when reading the slow5 file
+ * `SLOW5_ERPARSE`
+        record parsing error
 
 ## NOTES
  As opposed to `slow5_get()` which requires the SLOW index to be pre-loaded to *s5p* using `slow5_idx_load()`, `slow5_get_next` does not require an index.
-
-Also see [`slow5_get()`](slow5_open.md)
 
 ## EXAMPLES
 
@@ -55,11 +56,7 @@ int main(){
     slow5_rec_t *rec = NULL;
     int ret=0;
 
-    ret = slow5_get_next(&rec, sp);
-    if(ret < 0){
-        fprintf(stderr,"Error in locating read\n");
-    }
-    else{
+    while((ret = slow5_get_next(&rec,sp)) >= 0){
         printf("%s\t",rec->read_id);
         uint64_t len_raw_signal = rec->len_raw_signal;
         for(uint64_t i=0;i<len_raw_signal;i++){
@@ -69,9 +66,19 @@ int main(){
         printf("\n");
     }
 
+    if(ret != SLOW5_EEOF){  //check if proper end of file has been reached
+        fprintf(stderr,"Error in slow5_get_next. Error code %d\n",ret);
+        exit(EXIT_FAILURE);
+    }
+
     slow5_rec_free(rec);
 
     slow5_close(sp);
 
 }
+
 ```
+
+## SEE ALSO
+
+[`slow5_get()`](slow5_open.md)

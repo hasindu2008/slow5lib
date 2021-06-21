@@ -416,14 +416,16 @@ int slow5_get(const char *read_id, slow5_rec_t **read, slow5_file_t *s5p);
  *
  * Allocates memory for *read if it is NULL.
  * Otherwise, the data in *read is freed and overwritten.
- * slow5_rec_free() should always be called when finished with the structure.
+ * slow5_rec_free() should be called when finished with the structure.
  *
  * Return
- * TODO are these error codes too much?
- *  0   the read was successfully found and stored
- * -1   read_id, read or s5p is NULL
- * -2   reading error when reading the slow5 file
- * -3   parsing error
+ * >=0  the read was successfully found and stored
+ * <0   error code
+ * Error
+ * SLOW5_EEOF       EOF reached
+ * SLOW5_EARG       read_id, read or s5p is NULL
+ * SLOW5_EREAD      other reading error when reading the slow5 file
+ * SLOW5_ERPARSE    record parsing error
  *
  * @param   read    address of a slow5_rec_t pointer
  * @param   s5p     slow5 file

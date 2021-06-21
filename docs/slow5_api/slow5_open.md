@@ -30,7 +30,6 @@ Upon successful completion, `slow_open()` returns a *slow5_file_t* pointer. Othe
 ## NOTES
 Internally uses `fopen()`. The stream is positioned at the beginning of the data records.
 
-Also see [`slow5_close()`](slow5_close.md) and [`slow5_open_with()`](low_level_api/slow5_open_with.md).
 
 ## EXAMPLES
 ```
@@ -40,8 +39,6 @@ Also see [`slow5_close()`](slow5_close.md) and [`slow5_open_with()`](low_level_a
 
 #define FILE_PATH "examples/example.slow5"
 
-#define TO_PICOAMPS(RAW_VAL,DIGITISATION,OFFSET,RANGE) (((RAW_VAL)+(OFFSET))*((RANGE)/(DIGITISATION)))
-
 int main(){
 
     slow5_file_t *sp = slow5_open(FILE_PATH,"r");
@@ -49,10 +46,13 @@ int main(){
        fprintf(stderr,"Error in opening file\n");
        exit(EXIT_FAILURE);
     }
-    
+
     //...
- 
+
     slow5_close(sp);
 
 }
 ```
+
+## SEE ALSO
+[`slow5_close()`](slow5_close.md).

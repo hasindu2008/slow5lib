@@ -33,7 +33,7 @@ slow5_aux_get_DATA_TYPE - Get an auxiliary field in a SLOW5 record as specified 
 
 ## DESCRIPTION
 
-`slow5_aux_get_DATA_TYPE()` fetches the value of an auxiliary field *attr* from the slow5 record *read*. User has to choose the appropriate function to match the datatype of the value returned. 
+`slow5_aux_get_DATA_TYPE()` fetches the value of an auxiliary field *attr* from the slow5 record *read*. User has to choose the appropriate function to match the datatype of the value returned.
 
 `slow5_aux_get_DATA_TYPE()` sets a non zero error code in *err* in case of failure.
 
