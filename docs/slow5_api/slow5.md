@@ -117,4 +117,4 @@ typedef struct {
 
 ### Low-level API for reading and writing SLOW5 files
 
-<prototypes are not yet finalised and subject to change>
+prototypes are not yet finalised and subject to change.
