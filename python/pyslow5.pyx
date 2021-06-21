@@ -8,9 +8,8 @@ from libc.string cimport strdup
 cimport pyslow5
 
 #
-# Class slow5py is for read-only of slow5 files.
+# Class Open is for read-only of slow5/blow5 files.
 #
-
 
 cdef class Open:
     cdef pyslow5.slow5_file_t *s5p
@@ -52,7 +51,6 @@ cdef class Open:
 
 
     def __cinit__(self, pathname, mode, DEBUG=0):
-
         # Set NULL for cleanup check end MemoryError check
         self.s5p = NULL
         self.rec = NULL
@@ -86,7 +84,7 @@ cdef class Open:
         self.e21 = NULL
         self.V = DEBUG
         self.logger = logging.getLogger(__name__)
-        if self.V ==1:
+        if self.V == 1:
             lev = logging.DEBUG
         else:
             lev = logging.WARNING
@@ -95,9 +93,9 @@ cdef class Open:
                             datefmt='%d-%b-%y %H:%M:%S', level=lev)
 
         p = str.encode(pathname)
-        self.p=p
+        self.p = p
         m = str.encode(mode)
-        self.m=m
+        self.m = m
         print(self.p, self.m, file=sys.stderr)
         self.s5p = pyslow5.slow5_open(self.p, self.m)
         if self.s5p is NULL:
@@ -143,6 +141,12 @@ cdef class Open:
 
 
     def _get_read(self, read_id, pA, aux):
+        '''
+        read_id = readID of individual read as a string, get's converted to b'str'
+        pA = Bool for converting signal to picoamps
+        aux = str 'name'/'all' or list of names of auxiliary fields added to return dictionary
+        returns dic = dictionary of main fields for read_id, with any aux fields added
+        '''
         dic = {}
         aux_dic = {}
         ID = str.encode(read_id)
@@ -212,10 +216,14 @@ cdef class Open:
             dic.update(aux_dic)
         return dic
 
-    
+
     def _get_read_aux(self, aux_names, aux_types):
         '''
         get aux field for read
+        aux_names and aux_types need to be lists, even if a single element
+        both names and types need to be in the same order, to ensure correct type function is called
+        This ensures correct C -> python object conversion
+        Returns dictionary with dic[name] = value
         '''
         dic = {}
         for name, atype in zip(aux_names, aux_types):
@@ -415,7 +423,11 @@ cdef class Open:
 
     def _get_seq_read_aux(self, aux_names, aux_types):
         '''
-        get aux field for read
+        get aux field for read - when doing sequential read, because of separate self.read (vs rec) call
+        aux_names and aux_types need to be lists, even if a single element
+        both names and types need to be in the same order, to ensure correct type function is called
+        This ensures correct C -> python object conversion
+        Returns dictionary with dic[name] = value
         '''
         dic = {}
         for name, atype in zip(aux_names, aux_types):
@@ -617,22 +629,25 @@ cdef class Open:
         return self._get_read(read_id, pA, aux)
 
 
-    def seq_reads(self, pA=False,  aux=None):
+    def seq_reads(self, pA=False, aux=None):
         '''
         returns generator for sequential reading of slow5 file
-        if pa=True, do pA conversion of signal here.
-        TODO: Add aux=None, take single, list, "all" for aux fields
+        for pA and aux, see _get_read
         '''
         aux_dic = {}
         row = {}
         ret = 0
-        while ret == 0:
+        while ret >= 0:
             ret = slow5_get_next(&self.read, self.s5p)
             self.logger.debug("slow5_get_next return: {}".format(ret))
             # need a ret code for EOF to handle better
             # -2 is the current ret when EOF is hit, but it's not specific
-            if ret != 0:
-                self.logger.debug("slow5_get_next reached end of record (-2): {}".format(ret))
+            if ret < 0:
+                if ret == -1:
+                    self.logger.debug("slow5_get_next reached end of file (EOF)(-1): {}".format(ret))
+                else:
+                    self.logger.error("slow5_get_next error code: {}".format(ret))
+
                 break
 
             aux_dic = {}
@@ -699,8 +714,9 @@ cdef class Open:
 
     def get_read_list(self, read_list, pA=False, aux=None):
         '''
-        returns generator for sequential reading of slow5 file
-        if pa=True, do pA conversion of signal here.
+        returns generator for random access of slow5 file
+        read_list = list of readIDs, if readID not in file, None type returned (need EOF to work)
+        for pA and aux see _get_read
         '''
         for r in read_list:
             yield self._get_read(r, pA, aux)
