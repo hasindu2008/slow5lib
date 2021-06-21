@@ -24,13 +24,14 @@ Upon successful completion, `slow5_get_next()` returns a non negative integer (>
 A negative return value indicates an error as follows.
 
  * `SLOW5_ERR_EOF`
-        EOF reached
+        End of file reached
  * `SLOW5_ERR_ARG`
-        read_id, read or s5p is NULL
- * `SLOW5_ERR_IO`
-        other reading error when reading the slow5 file
+        Bad argument - read_id, read or s5p is NULL
  * `SLOW5_ERR_RECPARSE`
-        record parsing error
+        Record parsing error
+ * `SLOW5_ERR_IO`
+        Other error when reading the slow5 file
+
 
 ## NOTES
  As opposed to `slow5_get()` which requires the SLOW index to be pre-loaded to *s5p* using `slow5_idx_load()`, `slow5_get_next` does not require an index.

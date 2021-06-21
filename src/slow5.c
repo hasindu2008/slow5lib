@@ -2876,7 +2876,7 @@ void slow5_rec_free(struct slow5_rec *read) {
  * Create the index file for slow5 file.
  * Overwrites if already exists.
  *
- * <0> on error,
+ * <0 on error,
  * >=0 on success.
  *
  * @param   s5p slow5 file structure

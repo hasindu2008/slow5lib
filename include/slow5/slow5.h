@@ -299,7 +299,7 @@ typedef struct slow5_idx slow5_idx_t;
 struct slow5_file {
     FILE *fp;                   ///< file pointer
     enum slow5_fmt format;      ///< whether SLOW5, BLOW5 etc...
-    slow5_press_t *compress;          ///< compression related metadata
+    slow5_press_t *compress;    ///< compression related metadata
     slow5_hdr_t *header;        ///< SLOW5 header
     slow5_idx_t *index;         ///< SLOW5 index (NULL if not applicable)
     slow5_file_meta_t meta;     ///< file metadata
@@ -403,14 +403,13 @@ char *slow5_hdr_get(const char *attr, uint32_t read_group, const slow5_hdr_t *he
  * SLOW5_ERR_ARG        read_id, read or s5p is NULL
  * SLOW5_ERR_IO         other error when reading the slow5 file
  * SLOW5_ERR_RECPARSE   parsing error
-* SLOW5_ERR_NOIDX       the index has not been loaded
+ * SLOW5_ERR_NOIDX      the index has not been loaded
  *
  * @param   read_id the read identifier
  * @param   read    address of a slow5_rec pointer
  * @param   s5p     slow5 file
  * @return  error code described above
  */
-
 int slow5_get(const char *read_id, slow5_rec_t **read, slow5_file_t *s5p);
 
 /**
