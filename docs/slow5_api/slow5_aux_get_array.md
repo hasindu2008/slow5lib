@@ -1,4 +1,4 @@
-# slow5_get
+# slow5_aux_get_DATA_TYPE_array
 
 ## NAME
 
@@ -7,6 +7,7 @@ slow5_aux_get_<array_datatype> - Get an auxiliary field (an array field) in a SL
 ## SYNOPSYS
 
 `DATA_TYPE* slow5_aux_get_DATA_TYPE_array(const slow5_rec_t *read, const char *attr, uint64_t *len, int *err)`
+
 `int8_t *slow5_aux_get_int8_array(const slow5_rec_t *read, const char *attr, uint64_t *len, int *err)`
 
 `int16_t *slow5_aux_get_int16_array(const slow5_rec_t *read, const char *attr, uint64_t *len, int *err)`
