@@ -12,7 +12,7 @@ The slow5 python library (pyslow5) allows a user to read slow5 and blow5 files.
 
 ## Usage
 
-`Open(FILE, mode, DEBUG=0)`:
+#### `Open(FILE, mode, DEBUG=0)`:
 
 The pyslow5 libraryr has one main Class, `pyslow5.Open` which opens a slow5/blow5 (slow5 for easy reference) file for reading.
 
@@ -30,7 +30,7 @@ Example:
 
 When opening a slow5 file for the first time, and index will be created and saved in the same directory as the file being read. This index will then be loaded. For files that already have an index, that index will be loaded.
 
-`seq_reads(pA=False, aux=None)`:
+#### `seq_reads(pA=False, aux=None)`:
 
 Access all reads sequentially in an opened slow5.
 
@@ -56,7 +56,7 @@ Example:
         print("================================")
 
 
-`get_read(readID, pA=False, aux=None)`:
+#### `get_read(readID, pA=False, aux=None)`:
 
 Access a specific read using a unique readID. This is a ranom access method, using the index.
 If readID is not found, `None` is returned
@@ -70,7 +70,7 @@ Example:
 
 
 
-`get_read_list(read_list, pA=False, aux=None)`:
+#### `get_read_list(read_list, pA=False, aux=None)`:
 
 Access a list of specific reads using a list of unique readIDs. This is a random access method using the index, so order of readIDs does impact access speed.
 If readID does not exist, `None` is returned
@@ -87,27 +87,27 @@ Example:
 
 
 
-`get_header_names()`:
+#### `get_header_names()`:
 
 Returns a list containing the uninon of header names from all read_groups
 
-`get_header_value(attr, read_group=0)`:
+#### `get_header_value(attr, read_group=0)`:
 
 Returns a `str` of the value of a header attribute (`attr`) for a particular read_group.
 Returns `None` if value can't be found
 
-`get_all_headers(read_group=0)`:
+#### `get_all_headers(read_group=0)`:
 
 Returns a dictionary with all header attributes and values for a particular read_group
 If there are values present for one read_group, and not for another, the attribute will still be returned for the read_group without, but with a value of `None`.
 
-`get_aux_names()`:
+#### `get_aux_names()`:
 
 Returns an ordered list of auxiliary attribute names. (same order as get_aux_types())
 
 This is used for understanding which auxiliary attributes are available within the slow5 file, and providing selections to the `aux` keyword argument in the above functoions
 
-`get_aux_types()`:
+#### `get_aux_types()`:
 
 Returns an ordered list of auxiliary attribute types (same order as get_aux_names())
 
@@ -115,7 +115,7 @@ This can mostly be ignored, but will be used in error tracing in the future, as 
 
 
 
-Full example of capabilities:
+## Full example of capabilities:
 
     import pyslow5 as slow5
     import time
