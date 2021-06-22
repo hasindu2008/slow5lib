@@ -103,6 +103,13 @@ print("Get headder names")
 names = s5.get_header_names()
 print("header names:")
 print(names)
+print("==============================================")
+
+# get all headers
+print("get_all_headers")
+headers = s5.get_all_headers()
+print(headers)
+
 
 print("==============================================")
 # Get header attributes

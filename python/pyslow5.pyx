@@ -747,7 +747,21 @@ cdef class Open:
         ret = slow5_hdr_get(a, read_group, self.s5p.header).decode()
         if not ret:
             self.logger.warning("get_header_value header value not found: {} - rg: {}".format(attr, read_group))
+            return None
         return ret
+
+
+    def get_all_headers(self, read_group=0):
+        '''
+        get all headers present and return dictionary
+        '''
+        dic = {}
+        headers = self.get_header_names()
+        for header in headers:
+            val = self.get_header_value(header, read_group=read_group)
+            dic[header] = val
+        return dic
+
 
     def get_aux_names(self):
         '''
