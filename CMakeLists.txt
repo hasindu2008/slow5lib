@@ -20,6 +20,12 @@ set(slow5_ src/slow5.c)
 set(slow5_idx src/slow5_idx.c)
 set(slow5_misc src/slow5_misc.c)
 set(slow5_press src/slow5_press.c)
+
+set(random_read examples/random_read.c)
+set(sequential_read examples/sequential_read.c)
+set(slow5_hdr_get examples/slow5_hdr_get.c)
+set(slow5_aux_get examples/slow5_aux_get.c)
+add_executable(slow5exmp ${slow5_aux_get})
 #
 # Build a static lib
 #add_library(slow5 STATIC ${slow5_} ${slow5_idx} ${slow5_misc} ${slow5_press})
@@ -35,6 +41,8 @@ add_executable(slow5test test/unit_test_two_rg.c) #run make test to test all tes
 # link with dependencies
 IF (${DEPLOY_PLATFORM} STREQUAL "x86")
     target_link_libraries(slow5test slow5 -lz -ldl -lm -lpthread -lrt)
+    target_link_libraries(slow5exmp slow5 -lz -ldl -lm -lpthread -lrt)
 ELSE()
     target_link_libraries(slow5test slow5 -lz -ldl -lm)
+    target_link_libraries(slow5exmp slow5 -lz -ldl -lm)
 ENDIF()

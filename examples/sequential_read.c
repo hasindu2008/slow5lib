@@ -19,7 +19,7 @@ int main(){
     slow5_rec_t *rec = NULL;
     int ret=0;
 
-    while((ret = slow5_get_next(&rec,sp)) != -2){
+    while((ret = slow5_get_next(&rec,sp)) >= 0){
         if(ret<0){
             fprintf(stderr,"Error in slow5_get_next. Error code %d\n",ret);
             exit(EXIT_FAILURE);
