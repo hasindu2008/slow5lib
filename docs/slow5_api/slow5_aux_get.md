@@ -6,7 +6,7 @@ slow5_aux_get_<primitive_datatype> - Get an auxiliary field in a SLOW5 record as
 
 ## SYNOPSYS
 
-`DATA_TYPE slow5_aux_get_DATA_TYPE(const slow5_rec_t *read, const char *attr, int *err)`
+`DATA_TYPE slow5_aux_get_<primitive_datatype>(const slow5_rec_t *read, const char *attr, int *err)`
 
 `int8_t slow5_aux_get_int8(const slow5_rec_t *read, const char *attr, int *err)`
 
