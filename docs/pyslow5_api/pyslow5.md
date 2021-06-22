@@ -28,7 +28,7 @@ Building and installing the python library, assuming python3 available
 python3 -m venv /path/to/slow5libvenv
 source /path/to/slow5libvenv/bin/activate
 python3 -m pip install --upgrade pip
-python3 -m pip install setuptools cython
+python3 -m pip install setuptools cython numpy
 
 git clone git@github.com:hasindu2008/slow5lib.git
 cd slow5lib

@@ -6,6 +6,13 @@ import logging
 from libc.stdlib cimport malloc, free
 from libc.string cimport strdup
 cimport pyslow5
+# Import the Python-level symbols of numpy
+import numpy as np
+# Import the C-level symbols of numpy
+cimport numpy as np
+# Numpy must be initialized. When using numpy from C or Cython you must
+# _always_ do that, or you will have segfaults
+np.import_array()
 
 #
 # Class Open is for read-only of slow5/blow5 files.
@@ -20,6 +27,8 @@ cdef class Open:
     cdef pyslow5.slow5_aux_type *s5_aux_type
     cdef int aux_get_err
     cdef pyslow5.uint64_t aux_get_len
+    cdef np.npy_intp shape_get[1]
+    cdef np.npy_intp shape_seq[1]
     cdef const char* p
     cdef const char* m
     cdef int V
@@ -61,6 +70,8 @@ cdef class Open:
         self.aux_get_len = 0
         self.head_len = 0
         self.aux_len = 0
+        self.shape_seq[0] = 0
+        self.shape_get[0] = 0
         self.e0 = -1
         self.e1 = -1
         self.e2 = -1
@@ -224,7 +235,15 @@ cdef class Open:
         # This could be handled by numpy.fromiter() or similar
         # Probably MUCH faster
         # https://stackoverflow.com/questions/7543675/how-to-convert-pointer-to-c-array-to-python-array
-        dic['signal'] = [self.rec.raw_signal[i] for i in range(self.rec.len_raw_signal)]
+        # https://groups.google.com/g/cython-users/c/KnjF7ViaHUM
+        # dic['signal'] = [self.rec.raw_signal[i] for i in range(self.rec.len_raw_signal)]
+        # cdef np.npy_intp shape_get[1]
+        self.shape_get[0] = <np.npy_intp> self.rec.len_raw_signal
+        signal = np.PyArray_SimpleNewFromData(1, self.shape_get,
+                    np.NPY_INT16, <void *> self.rec.raw_signal)
+        np.PyArray_UpdateFlags(signal, signal.flags.num | np.NPY_OWNDATA)
+        dic['signal'] = signal
+
         # if pA=True, convert signal to pA
         if pA:
             dic['signal'] = self._convert_to_pA(dic)
@@ -721,7 +740,12 @@ cdef class Open:
             row['range'] = self.read.range
             row['sampling_rate'] = self.read.sampling_rate
             row['len_raw_signal'] = self.read.len_raw_signal
-            row['signal'] = [self.read.raw_signal[i] for i in range(self.read.len_raw_signal)]
+            # row['signal'] = [self.read.raw_signal[i] for i in range(self.read.len_raw_signal)]
+            self.shape_seq[0] = <np.npy_intp> self.read.len_raw_signal
+            signal = np.PyArray_SimpleNewFromData(1, self.shape_seq,
+                        np.NPY_INT16, <void *> self.read.raw_signal)
+            np.PyArray_UpdateFlags(signal, signal.flags.num | np.NPY_OWNDATA)
+            row['signal'] = signal
             # for i in range(self.read.len_raw_signal):
             #     row['signal'].append(self.read.raw_signal[i])
 

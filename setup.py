@@ -6,6 +6,7 @@ except ImportError:
 	from distutils.core import setup
 	from distutils.extension import Extension
 
+import numpy as np
 
 cmdclass={}
 
@@ -23,13 +24,13 @@ depends=['python/pyslow5.pxd', 'python/pyslow5.h',  'slow5/slow5.h',
             'src/klib/ksort.h' ]
 extra_compile_args = ['-g', '-Wall', '-O2', '-std=c99']
 libraries = ['z']
-include_dirs = ['include/']
+include_dirs = ['include/', np.get_include()]
 library_dirs = ['.']
 
 #py_inc = [get_python_inc()]
 
-#np_lib = os.path.dirname(numpy.__file__)
-#np_inc = [os.path.join(np_lib, 'core/include')]
+# np_lib = os.path.dirname(numpy.__file__)
+# np_inc = [os.path.join(np_lib, 'core/include')]
 #cmdclass = {'build_py': build_py}
 
 
@@ -51,7 +52,7 @@ setup(name = 'pyslow5',
       version='0.0',
 	  python_requires='>=3.5.2',
       url = 'https://github.com/hasindu2008/slow5lib',
-      #requires=['numpy (>=1.3.0)'],
+      requires=['numpy (>=1.3.0)'],
       description='slow5 python library',
       author='Hasindu Gamaarachchi, Sasha Jenner, James Ferguson ...',
       author_email='hasindu@garvan.org.au, ..., j.ferguson@garvan.org.au',

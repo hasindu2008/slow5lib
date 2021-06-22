@@ -1,5 +1,6 @@
 import pyslow5 as slow5
 import time
+import numpy as np
 
 
 print("|==============================================|")
