@@ -71,6 +71,9 @@ src/config.h
 /*.txt
 /*.blow5
 python/pyslow5.c
+build/
+dist/
+pyslow5.egg-info/
 docs/doxygen
 examples/xample.slow5.idx
 

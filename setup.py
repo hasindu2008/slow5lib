@@ -47,7 +47,7 @@ extensions = [Extension('pyslow5',
                   language = 'c' )]
 
 #TODO ad all
-setup(name = 'slow5',
+setup(name = 'pyslow5',
       version='0.0',
 	  python_requires='>=3.5.2',
       url = 'https://github.com/hasindu2008/slow5lib',

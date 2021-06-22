@@ -13,7 +13,6 @@ debug = 1
 # open file and create object
 start_time = time.time()
 s5 = slow5.Open('examples/example.slow5','r', DEBUG=debug)
-# s5p = pyslow5.slow5py('test/data/exp/aux_array/exp_lossless.slow5','r', DEBUG=1)
 ttime = round(time.time() - start_time, 4)
 print(dir(s5))
 print("slow5 file opened and object created in: {} seconds".format(ttime))
@@ -21,11 +20,9 @@ print("==============================================")
 
 # # Get data for ONE individual read, random access
 print("get_read check, r1")
-# print("get_read check, a649a4ae-c43d-492a-b6a1-a5b8b8076be4")
+
 start_time = time.time()
 read = s5.get_read("r1", aux=["read_number", "start_mux", "blah"])
-# read = s5.get_read("a649a4ae-c43d-492a-b6a1-a5b8b8076be4", aux=["read_number", "start_mux", "blah"])
-# read = s5.get_read("a649a4ae-c43d-492a-b6a1-a5b8b8076be4", aux="blah")
 ttime = round(time.time() - start_time, 4)
 print("get_read in: {} seconds".format(ttime))
 
