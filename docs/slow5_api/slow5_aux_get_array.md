@@ -1,12 +1,13 @@
-# slow5_get
+# slow5_aux_get_\<datatype\>_array
 
 ## NAME
 
-slow5_aux_get_DATA_TYPE_array - Get an auxiliary field in a SLOW5 record as an array of type DATA_TYPE.
+slow5_aux_get_\<datatype\>_array - Get an auxiliary field (an array field) in a SLOW5 record and returns the pointer to an array of the corresponding data type.
 
 ## SYNOPSYS
 
-`DATA_TYPE* slow5_aux_get_DATA_TYPE_array(const slow5_rec_t *read, const char *attr, uint64_t *len, int *err)`
+`DATA_TYPE* slow5_aux_get_<datatype>_array(const slow5_rec_t *read, const char *attr, uint64_t *len, int *err)`
+
 `int8_t *slow5_aux_get_int8_array(const slow5_rec_t *read, const char *attr, uint64_t *len, int *err)`
 
 `int16_t *slow5_aux_get_int16_array(const slow5_rec_t *read, const char *attr, uint64_t *len, int *err)`
@@ -31,13 +32,13 @@ slow5_aux_get_DATA_TYPE_array - Get an auxiliary field in a SLOW5 record as an a
 
 
 ## DESCRIPTION
-`slow5_aux_get_DATA_TYPE_array()` fetches the value of an auxiliary field *attr* from the slow5 record *read* as an array of type DATA_TYPE of length *len*. User has to choose the appropriate function to match the datatype of the value returned. 
+`slow5_aux_get_<datatype>_array()` fetches the value of an auxiliary field *attr* from the slow5 record *read* as an array of type DATA_TYPE of length *len*. User has to choose the appropriate function to match the datatype of the value returned.
 
-`slow5_aux_get_DATA_TYPE_array()` sets a non zero error code in *err* in case of failure.
+`slow5_aux_get_<datatype>_array()` sets a non zero error code in *err* in case of failure.
 
 ## RETURN VALUE
 
-Upon successful completion, `slow5_aux_get_DATA_TYPE_array()` returns a value.
+Upon successful completion, `slow5_aux_get_<datatype>_array()` returns a value.
 
 ## ERRORS
 A non zero error code is set in *err*.

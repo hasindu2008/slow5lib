@@ -17,7 +17,7 @@
 #define DBL_STRING_BUF_FIXED_CAP (64) // 2^6
 #define FLT_STRING_BUF_FIXED_CAP (64) // 2^6
 
-int uint_check(const char *str);
+int slow5_uint_check(const char *str);
 int slow5_int_check(const char *str);
 int slow5_float_check(const char *str);
 
@@ -75,7 +75,7 @@ slow5_strsep (char **stringp, const char *delim)
   return begin;
 }
 
-int uint_check(const char *str) {
+int slow5_uint_check(const char *str) {
 
     // Check for:
     // empty string
@@ -136,7 +136,7 @@ int slow5_float_check(const char *str) {
 uint64_t slow5_ato_uint64(const char *str, int *err) {
     uint64_t ret = 0;
 
-    if (uint_check(str) == -1) {
+    if (slow5_uint_check(str) == -1) {
         *err = -1;
         return ret;
     }
@@ -162,7 +162,7 @@ uint64_t slow5_ato_uint64(const char *str, int *err) {
 // and without 0 prefixing
 uint32_t slow5_ato_uint32(const char *str, int *err) {
     uint32_t ret = 0;
-    if (uint_check(str) == -1) {
+    if (slow5_uint_check(str) == -1) {
         *err = -1;
         return ret;
     }
@@ -188,7 +188,7 @@ uint32_t slow5_ato_uint32(const char *str, int *err) {
 // and without 0 prefixing
 uint16_t slow5_ato_uint16(const char *str, int *err) {
     uint16_t ret = 0;
-    if (uint_check(str) == -1) {
+    if (slow5_uint_check(str) == -1) {
         *err = -1;
         return ret;
     }
@@ -214,7 +214,7 @@ uint16_t slow5_ato_uint16(const char *str, int *err) {
 // and without 0 prefixing
 uint8_t slow5_ato_uint8(const char *str, int *err) {
     uint8_t ret = 0;
-    if (uint_check(str) == -1) {
+    if (slow5_uint_check(str) == -1) {
         *err = -1;
         return ret;
     }

@@ -20,11 +20,6 @@ int main(){
     int ret=0;
 
     while((ret = slow5_get_next(&rec,sp)) >= 0){
-        if(ret<0){
-            fprintf(stderr,"Error in slow5_get_next. Error code %d\n",ret);
-            exit(EXIT_FAILURE);
-        }
-
         printf("%s\t",rec->read_id);
         uint64_t len_raw_signal = rec->len_raw_signal;
         for(uint64_t i=0;i<len_raw_signal;i++){
@@ -32,7 +27,11 @@ int main(){
             printf("%f ",pA);
         }
         printf("\n");
+    }
 
+    if(ret != SLOW5_ERR_EOF){  //check if proper end of file has been reached
+        fprintf(stderr,"Error in slow5_get_next. Error code %d\n",ret);
+        exit(EXIT_FAILURE);
     }
 
     slow5_rec_free(rec);

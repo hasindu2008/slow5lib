@@ -42,11 +42,16 @@ struct slow5_idx *slow5_idx_init(struct slow5_file *s5p) {
     FILE *index_fp;
 
     // If file doesn't exist
-    if ((index_fp = fopen(index->pathname, "rb")) == NULL) {
+    if ((index_fp = fopen(index->pathname, "r")) == NULL) {
+        SLOW5_INFO("Index file not found. Creating an index at %s.",index->pathname)
         if (slow5_idx_build(index, s5p) != 0) {
             slow5_idx_free(index);
             return NULL;
         }
+        index->fp = fopen(index->pathname, "w");
+        slow5_idx_write(index);
+        fclose(index->fp);
+        index->fp = NULL;
     } else {
         index->fp = index_fp;
         slow5_idx_read(index);
@@ -71,7 +76,7 @@ int slow5_idx_to(struct slow5_file *s5p, const char *pathname) {
         return -1;
     }
 
-    index->fp = fopen(pathname, "wb");
+    index->fp = fopen(pathname, "w");
     slow5_idx_write(index);
 
     slow5_idx_free(index);

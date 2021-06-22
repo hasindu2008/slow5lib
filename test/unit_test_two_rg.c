@@ -59,7 +59,7 @@ int slow5_to_blow5_uncomp(void) {
         ASSERT(slow5_rec_fwrite(to, read, from->header->aux_meta, SLOW5_FORMAT_BINARY, NULL) != -1);
     }
     slow5_rec_free(read);
-    ASSERT(ret == -2);
+    ASSERT(ret == SLOW5_ERR_EOF);
 
     ASSERT(slow5_eof_fwrite(to) != -1);
 
@@ -86,7 +86,7 @@ int slow5_to_blow5_gzip(void) {
         ASSERT(slow5_rec_fwrite(to, read, from->header->aux_meta, SLOW5_FORMAT_BINARY, gzip) != -1);
     }
     slow5_rec_free(read);
-    ASSERT(ret == -2);
+    ASSERT(ret == SLOW5_ERR_EOF);
 
     ASSERT(slow5_eof_fwrite(to) != -1);
 

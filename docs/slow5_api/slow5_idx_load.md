@@ -1,27 +1,19 @@
-# slow5lib
+# slow5_idx_load
 
 ## NAME
-slow5_idx_load - Loads the index file for slow5 file into memory. Creates the index if not found.
+slow5_idx_load - loads the index file for a SLOW5 file
 
 ## SYNOPSYS
 `int slow5_idx_load(slow5_file_t *s5p)`
 
 ## DESCRIPTION
-`slow5_idx_load()` is used to load an index file into the memory. If the index is missing the index is first created and then loaded.
+`slow5_idx_load()` is used to load an index file into the memory from the disk. If the index is not found the index first is created and written to the disk.
 
 `slow5_idx_load()` should be called successfully before using `slow5_get()`.
 
 ## RETURN VALUE
-Upon successful completion, `slow5_idx_load()` returns 0. Otherwise, a negative value is returned that indicates the error.
+Upon successful completion, `slow5_idx_load()` returns a non-negative integer. Otherwise, a negative value is returned.
 
-## ERRORS
-A negative return value indicates an error as follows.
-
-* `-1`
-    for all errors encountered
-
-## NOTES
-Also see [`slow5_idx_create()`](slow5_idx_create.md) and [`slow5_idx_unload()`](slow5_idx_unload.md).
 
 ## EXAMPLES
 
@@ -32,7 +24,6 @@ Also see [`slow5_idx_create()`](slow5_idx_create.md) and [`slow5_idx_unload()`](
 
 #define FILE_PATH "examples/example.slow5"
 
-#define TO_PICOAMPS(RAW_VAL,DIGITISATION,OFFSET,RANGE) (((RAW_VAL)+(OFFSET))*((RANGE)/(DIGITISATION)))
 
 int main(){
 
@@ -41,7 +32,6 @@ int main(){
        fprintf(stderr,"Error in opening file\n");
        exit(EXIT_FAILURE);
     }
-    slow5_rec_t *rec = NULL;
     int ret=0;
 
     ret = slow5_idx_load(sp);
@@ -50,21 +40,7 @@ int main(){
         exit(EXIT_FAILURE);
     }
 
-    ret = slow5_get("r3", &rec, sp);
-    if(ret < 0){
-        fprintf(stderr,"Error in locating read\n");
-    }
-    else{
-        printf("%s\t",rec->read_id);
-        uint64_t len_raw_signal = rec->len_raw_signal;
-        for(uint64_t i=0;i<len_raw_signal;i++){
-            double pA = TO_PICOAMPS(rec->raw_signal[i],rec->digitisation,rec->offset,rec->range);
-            printf("%f ",pA);
-        }
-        printf("\n");
-    }
-
-    slow5_rec_free(rec);
+    //...
 
     slow5_idx_unload(sp);
 
@@ -72,3 +48,7 @@ int main(){
 
 }
 ```
+
+## SEE ALSO
+
+[`slow5_idx_create()`](slow5_idx_create.md) and [`slow5_idx_unload()`](slow5_idx_unload.md).

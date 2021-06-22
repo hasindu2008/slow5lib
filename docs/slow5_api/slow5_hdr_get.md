@@ -1,4 +1,4 @@
-# slow5_get
+# slow5_hdr_get
 
 ## NAME
 
@@ -9,15 +9,13 @@ slow5_hdr_get - Gets a header data attribute for a particular read_group.
 `char *slow5_hdr_get(const char *attr, uint32_t read_group, const slow5_hdr_t *header)`
 
 ## DESCRIPTION
-`slow5_hdr_get()` fetches an attribute value from a SLOW5 file *header* for a specified *attr* in a *read_group* and returns as a *char**.
+`slow5_hdr_get()` fetches an attribute value from a SLOW5 file *header* for a specified attribute name *attr* in a *read_group* and returns as a *char**.
 
 The argument *header* points to a *slow5_hdr_t* of a *slow5_file_t* opened using `slow5_open()`.
 
 ## RETURN VALUE
-Upon successful completion, `slow5_hdr_get()` returns a *char* pointer. Otherwise, NULL is returned, e.g., if *attr* doesn't exist or *read_group* is out of range or an input parameter is NULL. 
+Upon successful completion, `slow5_hdr_get()` returns a *char* pointer. Otherwise, NULL is returned, e.g., if *attr* doesn't exist or *read_group* is out of range or an input parameter is NULL.
 
-## NOTES
-See also [`slow5_get()`](slow5_open.md) and [`slow5_get_next()`](slow5_get_next.md).
 
 ## EXAMPLES
 
@@ -27,8 +25,6 @@ See also [`slow5_get()`](slow5_open.md) and [`slow5_get_next()`](slow5_get_next.
 #include <slow5/slow5.h>
 
 #define FILE_PATH "examples/example.slow5"
-
-#define TO_PICOAMPS(RAW_VAL,DIGITISATION,OFFSET,RANGE) (((RAW_VAL)+(OFFSET))*((RANGE)/(DIGITISATION)))
 
 int main(){
 

@@ -2,7 +2,7 @@
 
 ## NAME
 
-slow5_get - Gets a read entry from a slow5 file corresponding to a read_id.
+slow5_get - fetches a record from a SLOW5 file corresponding to a given read ID
 
 ## SYNOPSYS
 
@@ -21,30 +21,31 @@ If the allocated *slow5_rec_t* is not large enough to hold the record, `slow5_ge
 
 The argument *s5p* points to a *slow5_file_t* opened using `slow5_open()`. `slow5_get()` requires the SLOW index to be pre-loaded to *s5p* using `slow5_idx_load()`.
 
+`slow5_get()` does not affect the file pointer used by `slow5_get_next()`. `slow5_get()` can be called by multiple threads in parallel on the same *slow5_file_t* pointer.
+
 ## RETURN VALUE
 
-Upon successful completion, `slow_get()` returns 0. Otherwise, a negative value is returned that indicates the error.
+Upon successful completion, `slow_get()` returns a non negative integer (>=0). Otherwise, a negative value is returned that indicates the error.
 
 ## ERRORS
 
 A negative return value indicates an error as follows.
 
-* `-1`
-    read_id, read or s5p is NULL
-* `-2`
-    the index has not been loaded
-* `-3`
-    read_id was not found in the index
-* `-4`
-    reading error when reading the slow5 file
-* `-5`
-    parsing error
+* `SLOW5_ERR_NOTFOUND`
+    Read_id was not found in the index
+* `SLOW5_ERR_ARG`
+    Bad argument - read_id, read or s5p is NULL
+* `SLOW5_ERR_RECPARSE`
+    Record parsing error
+* `SLOW5_ERR_NOIDX`
+    The index has not been loaded
+* `SLOW5_ERR_IO`
+    Other error when reading the slow5 file
 
 ## NOTES
 
 Error codes are not finalised and subject to change.
-
-See also [`slow5_get_next()`](slow5_get_next.md) and [`slow5_rec_free()`](slow5_rec_free.md).
+`slow5_get()` internally uses `pread()`.
 
 ## EXAMPLES
 
@@ -75,7 +76,7 @@ int main(){
 
     ret = slow5_get("r3", &rec, sp);
     if(ret < 0){
-        fprintf(stderr,"Error in locating read\n");
+        fprintf(stderr,"Error when fetching the read\n");
     }
     else{
         printf("%s\t",rec->read_id);
@@ -95,3 +96,6 @@ int main(){
 
 }
 ```
+
+## SEE ALSO
+[`slow5_get_next()`](slow5_get_next.md) and [`slow5_rec_free()`](slow5_rec_free.md).

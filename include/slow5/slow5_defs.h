@@ -1,3 +1,34 @@
+/**
+ * @file slow5_defs.h
+ * @brief SLOW5 macro definitions
+ * @author Sasha Jenner (jenner.sasha@gmail.com)
+ * @date 27/02/2021
+ */
+
+/*
+MIT License
+
+Copyright (c) 2020 Sasha Jenner
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 #ifndef SLOW5_DEFS_H
 #define SLOW5_DEFS_H
 
@@ -81,6 +112,17 @@ extern "C" {
 // SLOW5 Index specs
 //#define SLOW5_INDEX_HEADER_PREFIX   "#"
 #define SLOW5_INDEX_HEADER          SLOW5_INDEX_HEADER_PREFIX "read_id" SLOW5_SEP_COL "offset" SLOW5_SEP_COL "length\n"
+
+
+//error codes
+#define SLOW5_ERR_EOF           -1      //EOF reached
+#define SLOW5_ERR_ARG           -2      //bad argument (NULL)
+#define SLOW5_ERR_TRUNC         -3      //file truncated
+#define SLOW5_ERR_RECPARSE      -4      // record parsing error
+#define SLOW5_ERR_IO            -5      //other file I/O error
+#define SLOW5_ERR_NOIDX         -6      //index not loaded
+#define SLOW5_ERR_NOTFOUND      -7      //read id not found
+
 
 #ifdef __cplusplus
 }

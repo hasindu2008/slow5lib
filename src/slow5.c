@@ -77,10 +77,10 @@ static inline khash_t(slow5_s2a) *slow5_rec_aux_init(void);
 static inline void slow5_rec_set_aux_map(khash_t(slow5_s2a) *aux_map, const char *field, const uint8_t *data, size_t len, uint64_t bytes, enum slow5_aux_type type);
 
 
-enum slow5_log_level_opt  slow5_log_level = SLOW5_LOG_WARN;
+enum slow5_log_level_opt  slow5_log_level = SLOW5_LOG_INFO;
 enum slow5_exit_condition_opt  slow5_exit_condition = SLOW5_EXIT_OFF;
 
-
+__thread int slow5_errno = 0;
 
 /* Definitions */
 
@@ -126,12 +126,17 @@ struct slow5_file *slow5_init(FILE *fp, const char *pathname, enum slow5_fmt for
         s5p->compress = slow5_press_init(method);
 
         if ((s5p->meta.fd = fileno(fp)) == -1) {
-            SLOW5_ERROR("%s","Obtaining the fileno failed.");
+            SLOW5_ERROR("%s","Obtaining the fileno() for the file stream failed. Not a valid file stream.");
             slow5_close(s5p);
             s5p = NULL;
         }
         s5p->meta.pathname = pathname;
         s5p->meta.start_rec_offset = ftello(fp);
+        if(s5p->meta.start_rec_offset == -1 ){
+            SLOW5_ERROR("ftello() failed. %s",strerror(errno));
+            slow5_close(s5p);
+            s5p = NULL;
+        }
     }
 
     return s5p;
@@ -219,10 +224,12 @@ struct slow5_file *slow5_open_with(const char *pathname, const char *mode, enum 
     }
     if (pathname == NULL) {
         SLOW5_ERROR("%s","Argument 'pathname' cannot be NULL.");
+        slow5_errno = SLOW5_ERR_ARG;
         return NULL;
     }
     if (mode == NULL) {
         SLOW5_ERROR("%s","Argument 'mode' cannot be NULL.");
+        slow5_errno = SLOW5_ERR_ARG;
         return NULL;
     }
 
@@ -256,8 +263,7 @@ static inline void slow5_free(struct slow5_file *s5p) {
     if (s5p != NULL) {
         slow5_press_free(s5p->compress);
         slow5_hdr_free(s5p->header);
-        //as long a slow5 index is open, it is always writted back
-        //TODO: fix this to avoid issues with RO systems
+
         if (s5p->index != NULL) {
 
             if(s5p->index->dirty){ //if the index has been changed, write it back
@@ -312,7 +318,7 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
             return NULL;
         }
         if(buf_len==0){
-            SLOW5_WARNING("%s", "'Corrupted file. Why is the very first line empty?");
+            SLOW5_WARNING("%s", "'Malformed SLOW5 header. Why is the very first line empty?");
             free(buf);
             free(header);
             return NULL;
@@ -322,7 +328,7 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
         bufp = buf;
         char *tok = slow5_strsep(&bufp, SLOW5_SEP_COL);
         if (strcmp(tok, SLOW5_HEADER_FILE_VERSION_ID) != 0) {
-            SLOW5_WARNING("Corrupted file. Expected '%s', instead found '%s'", SLOW5_HEADER_FILE_VERSION_ID, tok);
+            SLOW5_WARNING("Malformed SLOW5 header. Expected '%s', instead found '%s'", SLOW5_HEADER_FILE_VERSION_ID, tok);
             free(buf);
             free(header);
             return NULL;
@@ -331,28 +337,28 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
         tok = slow5_strsep(&bufp, SLOW5_SEP_COL);
         char *toksub;
         if ((toksub = slow5_strsep(&tok, ".")) == NULL) { // Major version
-            SLOW5_WARNING("%s", "Corrupted file. Version string is expected to be in the format z.y.z");
+            SLOW5_WARNING("%s", "Malformed SLOW5 header. Version string is expected to be in the format x.y.z");
             free(buf);
             free(header);
             return NULL;
         }
         header->version.major = slow5_ato_uint8(toksub, &err);
         if (err == -1 || (toksub = slow5_strsep(&tok, ".")) == NULL) { // Minor version
-            SLOW5_WARNING("%s", "Corrupted file. Version string is expected to be in the format z.y.z");
+            SLOW5_WARNING("%s", "Malformed SLOW5 header. Version string is expected to be in the format x.y.z");
             free(buf);
             free(header);
             return NULL;
         }
         header->version.minor = slow5_ato_uint8(toksub, &err);
         if (err == -1 || (toksub = slow5_strsep(&tok, ".")) == NULL) { // Patch version
-            SLOW5_WARNING("%s", "Corrupted file. Version string is expected to be in the format z.y.z");
+            SLOW5_WARNING("%s", "Malformed SLOW5 header. Version string is expected to be in the format x.y.z");
             free(buf);
             free(header);
             return NULL;
         }
         header->version.patch = slow5_ato_uint8(toksub, &err);
         if (err == -1 || slow5_strsep(&tok, ".") != NULL) { // No more tokenators
-            SLOW5_WARNING("%s", "Corrupted file. Version string is expected to be in the format z.y.z");
+            SLOW5_WARNING("%s", "Malformed SLOW5 header. Version string is expected to be in the format x.y.z");
             free(buf);
             free(header);
             return NULL;
@@ -370,7 +376,7 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
         bufp = buf;
         tok = slow5_strsep(&bufp, SLOW5_SEP_COL);
         if (strcmp(tok, SLOW5_HEADER_NUM_GROUPS_ID) != 0) {
-            SLOW5_WARNING("Corrupted file. Expected '%s', instead found '%s'", SLOW5_HEADER_NUM_GROUPS_ID, tok);
+            SLOW5_WARNING("Malformed SLOW5 header. Expected '%s', instead found '%s'", SLOW5_HEADER_NUM_GROUPS_ID, tok);
             free(buf);
             free(header);
             return NULL;
@@ -379,18 +385,20 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
         tok = slow5_strsep(&bufp, SLOW5_SEP_COL);
         header->num_read_groups = slow5_ato_uint32(tok, &err);
         if (err == -1) {
-            SLOW5_WARNING("Corrupted file. Could not parse the number of read groups which is '%s'", tok);
+            SLOW5_WARNING("Malformed SLOW5 header. Invalid number of read groups - '%s'", tok);
             free(buf);
             free(header);
             return NULL;
         }
 
+        //parse the data header (TODO: assertions inside this function must be replaced properly)
         if(slow5_hdr_data_init(fp, buf, &cap, header, NULL) != 0){
             SLOW5_WARNING("%s","Parsing the data header failed.");
             free(buf);
             free(header);
             return NULL;
         }
+        //parse the datatype and column name fields (TODO: error checking inside this function is really bad - fix it)
         header->aux_meta = slow5_aux_meta_init(fp, buf, &cap, NULL);
 
     } else if (format == SLOW5_FORMAT_BINARY) {
@@ -402,14 +410,16 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
         // TODO pack and do one read
 
         if (fread(buf_magic, sizeof *magic, sizeof magic, fp) != sizeof magic ||
-            memcmp(magic, buf_magic, sizeof *magic * sizeof magic) != 0 ||
-            fread(&header->version.major, sizeof header->version.major, 1, fp) != 1 ||
-            fread(&header->version.minor, sizeof header->version.minor, 1, fp) != 1 ||
-            fread(&header->version.patch, sizeof header->version.patch, 1, fp) != 1 ||
-            fread(method, sizeof *method, 1, fp) != 1 ||
-            fread(&header->num_read_groups, sizeof header->num_read_groups, 1, fp) != 1 ||
-            fseek(fp, SLOW5_BINARY_HEADER_SIZE_OFFSET, SEEK_SET) == -1 ||
-            fread(&header_size, sizeof header_size, 1, fp) != 1) {
+                memcmp(magic, buf_magic, sizeof *magic * sizeof magic) != 0 ||
+                fread(&header->version.major, sizeof header->version.major, 1, fp) != 1 ||
+                fread(&header->version.minor, sizeof header->version.minor, 1, fp) != 1 ||
+                fread(&header->version.patch, sizeof header->version.patch, 1, fp) != 1 ||
+                fread(method, sizeof *method, 1, fp) != 1 ||
+                fread(&header->num_read_groups, sizeof header->num_read_groups, 1, fp) != 1 ||
+                fseek(fp, SLOW5_BINARY_HEADER_SIZE_OFFSET, SEEK_SET) == -1 ||
+                fread(&header_size, sizeof header_size, 1, fp) != 1) {
+
+            SLOW5_WARNING("%s","Malformed BLOW5 header");
             free(header);
             return NULL;
         }
@@ -433,9 +443,10 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
 }
 
 
-//get the list of hdr data keys in sorted order (only the returned pointer must be freed, not the ones inside - subjet to change)
-//len is the numberof elements
-//returns null if no attributes
+//get the list of hdr data keys in sorted order (only the returned pointer must be freed, not the ones inside - subject to change)
+//currently used in pyslow5
+//len is the number of elements in the return char** list
+//returns null if there are no data header attributes
 const char **slow5_get_hdr_keys(const slow5_hdr_t *header,uint64_t *len){
     if(len!=NULL){
         *len = header->data.num_attrs;
@@ -1003,7 +1014,7 @@ void slow5_hdr_free(struct slow5_hdr *header) {
 
 /************************************* slow5 header data *************************************/
 
-//read slow5 header from file
+//read slow5 data header from file
 int slow5_hdr_data_init(FILE *fp, char *buf, size_t *cap, struct slow5_hdr *header, uint32_t *hdr_len) {
 
     int ret = 0;
@@ -1307,11 +1318,35 @@ void slow5_hdr_data_free(struct slow5_hdr *header) {
 
 
 // slow5 record
-
+/**
+ * Get a read entry from a slow5 file corresponding to a read_id.
+ *
+ * Allocates memory for *read if it is NULL.
+ * Otherwise, the data in *read is freed and overwritten.
+ * slow5_rec_free() should always be called when finished with the structure.
+ *
+ * Require the slow5 index to be loaded using slow5_idx_load
+ *
+ * Return:
+ *  >=0   the read was successfully found and stored
+ *  <0   error code
+ *
+ * Errors:
+ * SLOW5_ERR_NOTFOUND   read_id was not found in the index
+ * SLOW5_ERR_ARG        read_id, read or s5p is NULL
+ * SLOW5_ERR_IO         other error when reading the slow5 file
+ * SLOW5_ERR_RECPARSE   parsing error
+ * SLOW5_ERR_NOIDX      the index has not been loaded
+ *
+ * @param   read_id the read identifier
+ * @param   read    address of a slow5_rec pointer
+ * @param   s5p     slow5 file
+ * @return  error code described above
+ */
 int slow5_get(const char *read_id, struct slow5_rec **read, struct slow5_file *s5p) {
     if (read_id == NULL || read == NULL || s5p == NULL) {
         SLOW5_WARNING("%s","read_id, read and s5p cannot be NULL.");
-        return -1;
+        return SLOW5_ERR_ARG;
     }
 
     int ret = 0;
@@ -1322,14 +1357,14 @@ int slow5_get(const char *read_id, struct slow5_rec **read, struct slow5_file *s
     if (s5p->index == NULL) {
         // index not loaded
         SLOW5_WARNING("%s","SLOW5 index should have been loaded using slow5_idx_load() before calling slow5_get().");
-        return -2;
+        return SLOW5_ERR_NOIDX;
     }
 
     // Get index record
     struct slow5_rec_idx read_index;
     if (slow5_idx_get(s5p->index, read_id, &read_index) == -1) {
         // read_id not found in index
-        return -3;
+        return SLOW5_ERR_NOTFOUND;
     }
 
     if (s5p->format == SLOW5_FORMAT_ASCII) {
@@ -1344,7 +1379,7 @@ int slow5_get(const char *read_id, struct slow5_rec **read, struct slow5_file *s
             free(read_mem);
             // reading error
             SLOW5_WARNING("pread could not read %ld bytes as expected.",(long)bytes_to_read);
-            return -4;
+            return SLOW5_ERR_IO;
         }
 
         // Null terminate
@@ -1362,7 +1397,7 @@ int slow5_get(const char *read_id, struct slow5_rec **read, struct slow5_file *s
         if (read_mem == NULL) {
             SLOW5_WARNING("%s","slow5_pread_depress_multi failed.");
             // reading error
-            return -4;
+            return SLOW5_ERR_IO;
         }
         /*
         read_mem = (char *) malloc(read_size);
@@ -1392,7 +1427,7 @@ int slow5_get(const char *read_id, struct slow5_rec **read, struct slow5_file *s
 
     if (slow5_rec_parse(read_mem, bytes_to_read, read_id, *read, s5p->format, s5p->header->aux_meta) == -1) {
         SLOW5_WARNING("%s","SLOW5 record parsing failed.");
-        ret = -5;
+        ret = SLOW5_ERR_RECPARSE;
     }
     free(read_mem);
 
@@ -1732,7 +1767,7 @@ int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struc
         }
 
         if (offset > read_size){// Read too much
-            SLOW5_WARNING("Corrupted record. offset %ld, read_size %ld",(long)offset, (long)read_size);
+            SLOW5_WARNING("Malformed record. offset %ld, read_size %ld",(long)offset, (long)read_size);
             ret = -1;
         }
         else if(aux_meta == NULL && offset < read_size){ // More to read but no auxiliary meta
@@ -1798,7 +1833,7 @@ int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struc
 
             if (offset != read_size) {
                 slow5_rec_aux_free(aux_map);
-                SLOW5_WARNING("Corrupted record. offset %ld, read_size %ld",(long)offset, (long)read_size);
+                SLOW5_WARNING("Malformed record. offset %ld, read_size %ld",(long)offset, (long)read_size);
                 return -1;
             } else {
                 read->aux_map = aux_map;
@@ -1854,11 +1889,13 @@ void slow5_rec_aux_free(khash_t(slow5_s2a) *aux_map) {
  * slow5_rec_free() should be called when finished with the structure.
  *
  * Return
- * TODO are these error codes too much?
- *  0   the read was successfully found and stored
- * -1   read_id, read or s5p is NULL
- * -2   reading error when reading the slow5 file
- * -3   parsing error
+ * >=0  the read was successfully found and stored
+ * <0   error code
+ * Error
+ * SLOW5_ERR_EOF       EOF reached
+ * SLOW5_ERR_ARG       read_id, read or s5p is NULL
+ * SLOW5_ERR_IO      ither reading error when reading the slow5 file
+ * SLOW5_ERR_RECPARSE    record parsing error
  *
  * @param   read    address of a slow5_rec pointer
  * @param   s5p     slow5 file
@@ -1866,7 +1903,7 @@ void slow5_rec_aux_free(khash_t(slow5_s2a) *aux_map) {
  */
 int slow5_get_next(struct slow5_rec **read, struct slow5_file *s5p) {
     if (read == NULL || s5p == NULL) {
-        return -1;
+        return SLOW5_ERR_ARG;
     }
 
     int ret = 0;
@@ -1877,7 +1914,10 @@ int slow5_get_next(struct slow5_rec **read, struct slow5_file *s5p) {
         ssize_t read_len;
         if ((read_len = getline(&read_mem, &cap, s5p->fp)) == -1) {
             free(read_mem);
-            return -2;
+            if(feof(s5p->fp)){
+                return SLOW5_ERR_EOF;
+            }
+            return SLOW5_ERR_IO;
         }
         read_mem[-- read_len] = '\0'; // Remove newline for parsing
 
@@ -1896,7 +1936,7 @@ int slow5_get_next(struct slow5_rec **read, struct slow5_file *s5p) {
         }
 
         if (slow5_rec_parse(read_mem, read_len, NULL, *read, s5p->format, s5p->header->aux_meta) == -1) {
-            ret = -3;
+            ret = SLOW5_ERR_RECPARSE;
         }
 
         free(read_mem);
@@ -1918,17 +1958,20 @@ int slow5_get_next(struct slow5_rec **read, struct slow5_file *s5p) {
 
         slow5_rec_size_t record_size;
         if (fread(&record_size, sizeof record_size, 1, s5p->fp) != 1) {
-            return -2;
+           if(feof(s5p->fp)){
+                return SLOW5_ERR_EOF;
+            }
+            return SLOW5_ERR_IO;
         }
 
         size_t size_decomp;
         char *rec_decomp = (char *) slow5_fread_depress(s5p->compress, record_size, s5p->fp, &size_decomp);
         if (rec_decomp == NULL) {
-            return -2;
+            return SLOW5_ERR_IO;
         }
 
         if (slow5_rec_parse(rec_decomp, size_decomp, NULL, *read, s5p->format, s5p->header->aux_meta) == -1) {
-            ret = -3;
+            ret = SLOW5_ERR_RECPARSE;
         }
 
         free(rec_decomp);
@@ -2833,8 +2876,8 @@ void slow5_rec_free(struct slow5_rec *read) {
  * Create the index file for slow5 file.
  * Overwrites if already exists.
  *
- * Return -1 on error,
- * 0 on success.
+ * <0 on error,
+ * >=0 on success.
  *
  * @param   s5p slow5 file structure
  * @return  error codes described above
@@ -2857,8 +2900,8 @@ int slow5_idx_create(struct slow5_file *s5p) {
  * Loads the index file for slow5 file.
  * Creates the index if not found.
  *
- * Return -1 on error,
- * 0 on success.
+ * <0 on error,
+ * >=0 on success.
  *
  * @param   s5p slow5 file structure
  * @return  error codes described above
@@ -2985,7 +3028,7 @@ int slow5_convert(struct slow5_file *from, FILE *to_fp, enum slow5_fmt to_format
     }
     slow5_press_free(press_ptr);
     slow5_rec_free(read);
-    if (ret != -2) {
+    if (ret != SLOW5_ERR_EOF) {
         return -2;
     }
 

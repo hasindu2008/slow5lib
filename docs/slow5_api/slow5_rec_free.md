@@ -1,20 +1,20 @@
-# slow5lib
+# slow5_rec_free
 
 ## NAME
-slow5_rec_free - Frees a slow5 record.
+slow5_rec_free - frees up a SLOW5 record from memory
 
 ## SYNOPSYS
 `void slow5_rec_free(slow5_rec_t *read)`
 
 ## DESCRIPTION
-This is a wrapper function around standard C library function `free()`
-`slow5_rec_free()` safely closes attributes defined in *slow5_rec_t*
+
+The `slow5_rec_free()` function frees the memory of a *slow5_rec_t* structure pointed by *read*, which must have been returned by a previous call to `slow5_get_next()` or `slow5_get()`. Otherwise, or if free(read) has already been called before, undefined behaviour occurs.
+If *read* is NULL, no operation is performed.
 
 ## RETURN VALUE
-Same as the behavior observed in standard C library function `free()`.
 
-## NOTES
-Also see [`slow5_get()`](slow5_open.md) and [`slow5_get_next()`](slow5_get_next.md). 
+None
+
 
 ## EXAMPLES
 
@@ -24,8 +24,6 @@ Also see [`slow5_get()`](slow5_open.md) and [`slow5_get_next()`](slow5_get_next.
 #include <slow5/slow5.h>
 
 #define FILE_PATH "examples/example.slow5"
-
-#define TO_PICOAMPS(RAW_VAL,DIGITISATION,OFFSET,RANGE) (((RAW_VAL)+(OFFSET))*((RANGE)/(DIGITISATION)))
 
 int main(){
 
@@ -37,31 +35,20 @@ int main(){
     slow5_rec_t *rec = NULL;
     int ret=0;
 
-    ret = slow5_idx_load(sp);
+    ret = slow5_get_next(&rec,sp);
     if(ret<0){
-        fprintf(stderr,"Error in loading index\n");
+        fprintf(stderr,"Error in slow5_get_next. Error code %d\n",ret);
         exit(EXIT_FAILURE);
-    }
-
-    ret = slow5_get("r3", &rec, sp);
-    if(ret < 0){
-        fprintf(stderr,"Error in locating read\n");
-    }
-    else{
-        printf("%s\t",rec->read_id);
-        uint64_t len_raw_signal = rec->len_raw_signal;
-        for(uint64_t i=0;i<len_raw_signal;i++){
-            double pA = TO_PICOAMPS(rec->raw_signal[i],rec->digitisation,rec->offset,rec->range);
-            printf("%f ",pA);
-        }
-        printf("\n");
     }
 
     slow5_rec_free(rec);
 
-    slow5_idx_unload(sp);
-
     slow5_close(sp);
 
 }
+
 ```
+
+## SEE ALSO
+
+[`slow5_get()`](slow5_open.md) and [`slow5_get_next()`](slow5_get_next.md).
