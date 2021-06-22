@@ -1,8 +1,8 @@
-# slow5_aux_get_<datatype>_array
+# slow5_aux_get_\<datatype\>_array
 
 ## NAME
 
-slow5_aux_get_<datatype>_array - Get an auxiliary field (an array field) in a SLOW5 record and returns the pointer to an array of the corresponding data type.
+slow5_aux_get_\<datatype\>_array - Get an auxiliary field (an array field) in a SLOW5 record and returns the pointer to an array of the corresponding data type.
 
 ## SYNOPSYS
 
