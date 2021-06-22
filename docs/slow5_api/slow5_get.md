@@ -2,7 +2,7 @@
 
 ## NAME
 
-slow5_get - Gets a read entry from a slow5 file corresponding to a read_id.
+slow5_get - fetches a record from a SLOW5 file corresponding to a given read ID
 
 ## SYNOPSYS
 

@@ -1,7 +1,7 @@
 # slow5_open
 
 ## NAME
-slow5_open - Opens a SLOW5 file.
+slow5_open - opens a SLOW5 file
 
 ## SYNOPSYS
 `slow5_file_t *slow5_open(const char *pathname, const char *mode)`
@@ -21,15 +21,16 @@ Upon successful completion, `slow_open()` returns a *slow5_file_t* pointer. Othe
 
 ## ERRORS
 
-`slow_open()` fails and returns NULL in the following occasions:
+`slow_open()` fails and returns NULL in the following occasions (not an exhaustive list):
 - pathname or mode is NULL
 - pathname is invalid (i.e., internally `fopen()` failed on the pathname)
-- wrong file extension that is neither .slow5 or .blow5
+- wrong file extension, that is neither *.slow5* nor *.blow5*
 - parsing and populating the header failed
 - `fileno()` failed internally
 
 ## NOTES
 Internally uses `fopen()`. The stream is positioned at the beginning of the data records when `slow_open()` returns.
+In future, a error number will be introduced to indicate the error.
 
 
 ## EXAMPLES
@@ -57,4 +58,4 @@ int main(){
 
 ## SEE ALSO
 
-[`slow5_close()`](slow5_close.md).
+[slow5_close()](slow5_close.md)

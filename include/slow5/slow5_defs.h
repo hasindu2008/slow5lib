@@ -115,13 +115,13 @@ extern "C" {
 
 
 //error codes
-#define SLOW5_ERR_EOF  -10  //EOF reached
-#define SLOW5_ERR_ARG  -40  //bad argument (NULL)
-#define SLOW5_ERR_TRUNC  -50  //file truncated
-#define SLOW5_ERR_RECPARSE -100 // record parsing error
-#define SLOW5_ERR_IO -20 //other file I/O error
-#define SLOW5_ERR_NOIDX -110    //index not loaded
-#define SLOW5_ERR_NOTFOUND -120 //read id not found
+#define SLOW5_ERR_EOF           -1      //EOF reached
+#define SLOW5_ERR_ARG           -2      //bad argument (NULL)
+#define SLOW5_ERR_TRUNC         -3      //file truncated
+#define SLOW5_ERR_RECPARSE      -4      // record parsing error
+#define SLOW5_ERR_IO            -5      //other file I/O error
+#define SLOW5_ERR_NOIDX         -6      //index not loaded
+#define SLOW5_ERR_NOTFOUND      -7      //read id not found
 
 
 #ifdef __cplusplus

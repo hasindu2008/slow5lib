@@ -1,7 +1,7 @@
 # slow5_close
 
 ## NAME
-slow5_close - Closes an open slow5 file and free the associated memory.
+slow5_close - closes an open slow5 file and free the associated memory
 
 ## SYNOPSYS
 `int slow5_close(slow5_file_t *s5p)`
@@ -12,7 +12,7 @@ The argument *s5p* is the *slow5_file_t* pointer returned by a previous `slow5_o
 
 The behaviour of `slow5_close()` is undefined if the parameter is an illegal pointer, or if `slow5_close()` has been previous invoked on the pointer.
 
-If a slow5 index is associated with the *s5p* structure using a previous `slow5_idx_load()` invocation, `slow5_idx_unload()` must be invoked before calling `slow5_close()`.
+If a slow5 index has been associated with the *s5p* structure (using a previous `slow5_idx_load()` invocation), `slow5_idx_unload()` must be invoked before calling `slow5_close()`.
 
 
 
@@ -49,4 +49,4 @@ int main(){
 
 ## SEE ALSO
 
-[`slow5_open()`](slow5_open.md).
+[slow5_open()](slow5_open.md)

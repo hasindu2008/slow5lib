@@ -37,7 +37,7 @@ On OS X : brew install zlib
 ```
 
 To build the Python wrapper see the instructions [here](https://hasindu2008.github.io/slow5lib/pyslow5_api/pyslow5.html).
-  
+
 ## Usage
 
 Simply include `<slow5/slow5.h>` in your C program and call the API functions. To compile your program and statically link against slow5lib:
@@ -54,8 +54,8 @@ gcc [OPTIONS] -I path/to/slow5lib/include your_program.c -L path/to/slow5lib/lib
 ```
 
 For the documentation of the C API visit [here](https://hasindu2008.github.io/slow5lib/slow5_api/slow5.html). and for the Python API visit [here](https://hasindu2008.github.io/slow5lib/pyslow5_api/pyslow5.html).
-  
-  
+
+
 ### Examples
 
 Examples are provided under [examples](https://github.com/hasindu2008/slow5lib/tree/master/examples).
@@ -64,7 +64,7 @@ Examples are provided under [examples](https://github.com/hasindu2008/slow5lib/t
 *random_read.c* demonstrates how to fetch a given read ID from a slow5/blow5 file.
 
 You can invoke `examples/build.sh` to compile the example programmes. Have a look at the script to see the commands used for compiling and linking.
-``
+
 
 
 ## Acknowledgement

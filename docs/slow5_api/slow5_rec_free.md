@@ -1,7 +1,7 @@
 # slow5_rec_free
 
 ## NAME
-slow5_rec_free - Frees a slow5 record.
+slow5_rec_free - frees up a SLOW5 record from memory
 
 ## SYNOPSYS
 `void slow5_rec_free(slow5_rec_t *read)`

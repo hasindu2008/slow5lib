@@ -1,7 +1,7 @@
 # slow5_idx_load
 
 ## NAME
-slow5_idx_load - Loads the index file for a SLOW5 file. Creates the index if not found.
+slow5_idx_load - loads the index file for a SLOW5 file
 
 ## SYNOPSYS
 `int slow5_idx_load(slow5_file_t *s5p)`

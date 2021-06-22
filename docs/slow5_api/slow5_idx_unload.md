@@ -1,7 +1,7 @@
 # slow5_idx_unload
 
 ## NAME
-slow5_idx_unload - Unloads a SLOW5 index from the memory.
+slow5_idx_unload - unloads a SLOW5 index from the memory
 
 ## SYNOPSYS
 `void slow5_idx_unload(slow5_file_t *s5p)`
