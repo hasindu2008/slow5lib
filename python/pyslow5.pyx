@@ -126,6 +126,7 @@ cdef class Open:
         self.aux_names = []
         self.aux_types = []
 
+
     def __dealloc__(self):
         if self.rec is not NULL:
             slow5_rec_free(self.rec)
@@ -170,11 +171,13 @@ cdef class Open:
             self.logger.debug("get_read return not 0: {}".format(ret))
             return None
 
+        # check for aux fields
         if aux is not None:
             if not self.aux_names or not self.aux_types:
                 self.aux_names = self.get_aux_names()
                 self.aux_types = self.get_aux_types()
             if type(aux) is str:
+                # special type 'all'
                 if aux == "all":
                     aux_dic = self._get_read_aux(self.aux_names, self.aux_types)
                 else:
@@ -196,6 +199,7 @@ cdef class Open:
                         t_list.append(t)
 
                 aux_dic = self._get_read_aux(n_list, t_list)
+                # Check for items given that did not exist
                 n_set = set(n_list)
                 aux_set = set(aux)
                 if len(aux_set.difference(n_set)) > 0:
@@ -206,8 +210,7 @@ cdef class Open:
             else:
                 self.logger.debug("get_read aux type unknown, accepts str or list: {}".format(aux))
 
-        # for i in range(20):
-        #     print(self.rec.raw_signal[i])
+        # get read data
         if type(self.rec.read_id) is bytes:
             dic['read_id'] = self.rec.read_id.decode()
         else:
@@ -225,7 +228,7 @@ cdef class Open:
         # if pA=True, convert signal to pA
         if pA:
             dic['signal'] = self._convert_to_pA(dic)
-
+        # if aux data, add to main dic
         if aux_dic:
             dic.update(aux_dic)
         return dic
@@ -240,6 +243,7 @@ cdef class Open:
         Returns dictionary with dic[name] = value
         '''
         dic = {}
+        # treat all input as list to simplify
         for name, atype in zip(aux_names, aux_types):
             a_name = str.encode(name)
             if atype == 0:
@@ -444,6 +448,7 @@ cdef class Open:
         Returns dictionary with dic[name] = value
         '''
         dic = {}
+        # treat all input as a list to simplify
         for name, atype in zip(aux_names, aux_types):
             a_name = str.encode(name)
             if atype == 0:
@@ -651,11 +656,11 @@ cdef class Open:
         aux_dic = {}
         row = {}
         ret = 0
+        # While loops check ret of previous read for errors as fail safe
         while ret >= 0:
             ret = slow5_get_next(&self.read, self.s5)
             self.logger.debug("slow5_get_next return: {}".format(ret))
-            # need a ret code for EOF to handle better
-            # -2 is the current ret when EOF is hit, but it's not specific
+            # check for EOF or other errors
             if ret < 0:
                 if ret == -1:
                     self.logger.debug("slow5_get_next reached end of file (EOF)(-1): {}: {}".format(ret, self.error_codes[ret]))
@@ -666,6 +671,7 @@ cdef class Open:
 
             aux_dic = {}
             row = {}
+            # get aux fields
             if aux is not None:
                 if not self.aux_names or not self.aux_types:
                     self.aux_names = self.get_aux_names()
@@ -692,6 +698,7 @@ cdef class Open:
                             t_list.append(t)
 
                     aux_dic = self._get_read_aux(n_list, t_list)
+                    # check for items in given list that do not exist
                     n_set = set(n_list)
                     aux_set = set(aux)
                     if len(aux_set.difference(n_set)) > 0:
@@ -702,6 +709,7 @@ cdef class Open:
                 else:
                     self.logger.debug("get_read aux type unknown, accepts str or list: {}".format(aux))
 
+            # Get read data
             if type(self.read.read_id) is bytes:
                 row['read_id'] = self.read.read_id.decode()
             else:
@@ -720,6 +728,7 @@ cdef class Open:
             # if pA=True, convert signal to pA
             if pA:
                 row['signal'] = self._convert_to_pA(row)
+            # if aux data update main dic
             if aux_dic:
                 row.update(aux_dic)
 
@@ -751,6 +760,7 @@ cdef class Open:
 
         headers = [ret[i].decode() for i in range(self.head_len)]
         return headers
+
 
     def get_header_value(self, attr, read_group=0):
         '''
@@ -792,6 +802,7 @@ cdef class Open:
 
         aux_names = [ret[i].decode() for i in range(self.aux_len)]
         return aux_names
+
 
     def get_aux_types(self):
         '''

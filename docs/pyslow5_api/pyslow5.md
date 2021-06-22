@@ -48,7 +48,6 @@ python3 ./python/example.py
 
 
 # To Remove the library
-
 python3 -m pip uninstall pyslow5
 ```
 
