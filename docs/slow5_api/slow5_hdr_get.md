@@ -2,20 +2,33 @@
 
 ## NAME
 
-slow5_hdr_get - Gets a header data attribute for a particular read_group.
+slow5_hdr_get -  fetches a header data attribute from a SLOW5 header
 
 ## SYNOPSYS
 
 `char *slow5_hdr_get(const char *attr, uint32_t read_group, const slow5_hdr_t *header)`
 
 ## DESCRIPTION
-`slow5_hdr_get()` fetches an attribute value from a SLOW5 file *header* for a specified attribute name *attr* in a *read_group* and returns as a *char**.
+`slow5_hdr_get()` fetches the attribute value for specified attribute name *attr* of a specified read group *read_group* from a SLOW5 file header pointed by *header* and returns as a *char** pointers.
 
-The argument *header* points to a *slow5_hdr_t* of a *slow5_file_t* opened using `slow5_open()`.
+The argument *header* points to a SLOW5 header of type *slow5_hdr_t* and typically this is the *s5p->header* member inside the *slow5_file_t *s5p* returned by  `slow5_open().
+
 
 ## RETURN VALUE
-Upon successful completion, `slow5_hdr_get()` returns a *char* pointer. Otherwise, NULL is returned, e.g., if *attr* doesn't exist or *read_group* is out of range or an input parameter is NULL.
+Upon successful completion, `slow5_hdr_get()` returns the attribute value as *char** pointer. Otherwise, NULL is returned.
 
+## ERRORS
+
+NULL is returned when an error occurs and can be due to following occasions (not an exhaustive list):
+
+- *attr* doesn't exist
+- *read_group* is out of range
+- input parameter is NULL
+
+## NOTES
+
+The returned pointer is from an internal data structure and the user must NOT free this.
+In the future a error number will be set to indicate the error.
 
 ## EXAMPLES
 

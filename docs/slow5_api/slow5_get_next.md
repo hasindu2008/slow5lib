@@ -9,32 +9,28 @@ slow5_get_next - fetches the record at the current file pointer of a slow5 file
 ## DESCRIPTION
 `slow5_get_next()` fetches a record from a SLOW5 file *s5p* at the current file pointer into a *slow5_rec_t* and stores the address of the *slow5_rec_t* in **read*.
 
-If **read* is set to NULL before the call, then `slow5_get()` will allocate a *slow5_rec_t* for storing the record.
+If **read* is set to NULL before the call, then `slow5_get_next()` will allocate a *slow5_rec_t* for storing the record.
 This *slow5_rec_t* should be freed by the user program using `slow5_rec_free()`.
-Alternatively, before calling `slow5_get()`, **read* can contain a pointer to an allocated *slow5_rec_t* from a previous `slow5_get()` call.
-If the allocated *slow5_rec_t* is not large enough to hold the record, `slow5_get()` will resize it internally.
+Alternatively, before calling `slow5_get_next()`, **read* can contain a pointer to an allocated *slow5_rec_t* from a previous `slow5_get_next()` call.
+If the allocated *slow5_rec_t* is not large enough to hold the record, `slow5_get_next()` will resize it internally.
 
 The argument *s5p* points to a *slow5_file_t* opened using `slow5_open()`.
 
 ## RETURN VALUE
-Upon successful completion, `slow5_get_next()` returns a non negative integer (>=0). Otherwise, a negative value is returned that indicates the error.
+Upon successful completion, `slow5_get_next()` returns a non negative integer (>=0). Otherwise, a negative value is returned that indicates the error (including the end of file).
 
 ## ERRORS
 
 A negative return value indicates an error as follows.
 
- * `SLOW5_ERR_EOF`
-        End of file reached
- * `SLOW5_ERR_ARG`
-        Bad argument - read_id, read or s5p is NULL
- * `SLOW5_ERR_RECPARSE`
-        Record parsing error
- * `SLOW5_ERR_IO`
-        Other error when reading the slow5 file
+ * `SLOW5_ERR_EOF`      &nbsp;&nbsp;&nbsp;&nbsp; End of file reached.
+ * `SLOW5_ERR_ARG`      &nbsp;&nbsp;&nbsp;&nbsp; Bad argument - read_id, read or s5p is NULL
+ * `SLOW5_ERR_RECPARSE` &nbsp;&nbsp;&nbsp;&nbsp; Record parsing error
+ * `SLOW5_ERR_IO`       &nbsp;&nbsp;&nbsp;&nbsp; Other error when reading the slow5 file
 
 
 ## NOTES
- As opposed to `slow5_get()` which requires the SLOW index to be pre-loaded to *s5p* using `slow5_idx_load()`, `slow5_get_next` does not require an index.
+ `slow5_get_next` does not require an index to be pre-loaded, as opposed to `slow5_get()` which so.
 
 ## EXAMPLES
 
@@ -82,4 +78,4 @@ int main(){
 
 ## SEE ALSO
 
-[`slow5_get()`](slow5_open.md)
+[slow5_get()](slow5_open.md)

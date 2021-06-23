@@ -7,7 +7,7 @@ slow5_idx_load - loads the index file for a SLOW5 file
 `int slow5_idx_load(slow5_file_t *s5p)`
 
 ## DESCRIPTION
-`slow5_idx_load()` is used to load an index file into the memory from the disk. If the index is not found the index first is created and written to the disk.
+`slow5_idx_load()` loads an index file for a SLOW5 file pointed by *s5p* into the memory from the disk and associates the index with *s5p*. If the index file is not found, the index is first created and written to the disk.
 
 `slow5_idx_load()` should be called successfully before using `slow5_get()`.
 
@@ -51,4 +51,4 @@ int main(){
 
 ## SEE ALSO
 
-[`slow5_idx_create()`](slow5_idx_create.md) and [`slow5_idx_unload()`](slow5_idx_unload.md).
+[slow5_idx_create()](slow5_idx_create.md), [slow5_idx_unload()](slow5_idx_unload.md)

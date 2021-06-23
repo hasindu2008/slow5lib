@@ -8,7 +8,7 @@ slow5_rec_free - frees up a SLOW5 record from memory
 
 ## DESCRIPTION
 
-The `slow5_rec_free()` function frees the memory of a *slow5_rec_t* structure pointed by *read*, which must have been returned by a previous call to `slow5_get_next()` or `slow5_get()`. Otherwise, or if free(read) has already been called before, undefined behaviour occurs.
+The `slow5_rec_free()` function frees the memory of a *slow5_rec_t* structure pointed by *read*, which must have been returned by a previous call to `slow5_get_next()` or `slow5_get()`. Otherwise, or if *free(read)* has already been called before, undefined behaviour occurs.
 If *read* is NULL, no operation is performed.
 
 ## RETURN VALUE
@@ -51,4 +51,4 @@ int main(){
 
 ## SEE ALSO
 
-[`slow5_get()`](slow5_open.md) and [`slow5_get_next()`](slow5_get_next.md).
+[slow5_get()](slow5_open.md), [slow5_get_next()](slow5_get_next.md)

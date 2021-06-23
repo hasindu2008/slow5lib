@@ -31,20 +31,14 @@ Upon successful completion, `slow_get()` returns a non negative integer (>=0). O
 
 A negative return value indicates an error as follows.
 
-* `SLOW5_ERR_NOTFOUND`
-    Read_id was not found in the index
-* `SLOW5_ERR_ARG`
-    Bad argument - read_id, read or s5p is NULL
-* `SLOW5_ERR_RECPARSE`
-    Record parsing error
-* `SLOW5_ERR_NOIDX`
-    The index has not been loaded
-* `SLOW5_ERR_IO`
-    Other error when reading the slow5 file
+* `SLOW5_ERR_NOTFOUND`  &nbsp;&nbsp;&nbsp;&nbsp; Read_id was not found in the index.
+* `SLOW5_ERR_ARG`       &nbsp;&nbsp;&nbsp;&nbsp; Bad argument - read_id, read or s5p is NULL.
+* `SLOW5_ERR_RECPARSE`  &nbsp;&nbsp;&nbsp;&nbsp; Record parsing error.
+* `SLOW5_ERR_NOIDX`     &nbsp;&nbsp;&nbsp;&nbsp; The index has not been loaded.
+* `SLOW5_ERR_IO`        &nbsp;&nbsp;&nbsp;&nbsp; Other error when reading the slow5 file.
 
 ## NOTES
 
-Error codes are not finalised and subject to change.
 `slow5_get()` internally uses `pread()`.
 
 ## EXAMPLES
@@ -98,4 +92,4 @@ int main(){
 ```
 
 ## SEE ALSO
-[`slow5_get_next()`](slow5_get_next.md) and [`slow5_rec_free()`](slow5_rec_free.md).
+[slow5_get_next()](slow5_get_next.md)

@@ -7,11 +7,11 @@ slow5_idx_unload - unloads a SLOW5 index from the memory
 `void slow5_idx_unload(slow5_file_t *s5p)`
 
 ## DESCRIPTION
-`slow5_idx_unload()` unloads an index file loaded into memory using `slow5_idx_load()`
+`slow5_idx_unload()` unloads an index file loaded into memory for a SLOW5 file pointed by *s5p*, which must have been previously loaded using `slow5_idx_load()`. Otherwise, or if *slow5_idx_unload(s5p)* has already been called before, undefined behaviour occurs.
 
 ## RETURN VALUE
-No return value
 
+No return value
 
 
 ## EXAMPLES
@@ -49,4 +49,4 @@ int main(){
 
 ## SEE ALSO
 
-[`slow5_idx_create()`](slow5_idx_create.md) and [`slow5_idx_load()`](slow5_idx_load.md).
+[slow5_idx_create()](slow5_idx_create.md), [slow5_idx_load()](slow5_idx_load.md)
