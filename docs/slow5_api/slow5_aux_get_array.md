@@ -25,17 +25,17 @@ char *slow5_aux_get_string(const slow5_rec_t *read, const char *field, uint64_t 
 
 
 ## DESCRIPTION
-`slow5_aux_get_\<array_datatype\>()` fetches the value of an auxiliary field of an array datatype specified by the filed name *field* from the slow5 record pointed by *read*. User has to choose the appropriate function to match the datatype of the value returned.
+`slow5_aux_get_<array_datatype>()` fetches the value of an auxiliary field of an array datatype specified by the filed name *field* from the slow5 record pointed by *read*. User has to choose the appropriate function to match the datatype of the value returned.
 
 The argument *len* is an address of an integer which will be set inside the function call to indicate an error.
 
 The argument *err* is an address of a *uint64_t* usigned integer which will be set inside the function to indicate the length of the returned array.
 
-`slow5_aux_get_\<array_datatype\>()` sets a non zero error code in *err* in case of failure.
+`slow5_aux_get_<array_datatype>()` sets a non zero error code in *err* in case of failure.
 
 ## RETURN VALUE
 
-Upon successful completion, `slow5_aux_get_\<array_datatype\>()` returns a pointer to an array.
+Upon successful completion, `slow5_aux_get_<array_datatype>()` returns a pointer to an array.
 
 ## ERRORS
 A non zero error code is set in *err*.
