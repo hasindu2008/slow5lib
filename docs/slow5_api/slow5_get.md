@@ -25,7 +25,7 @@ The argument *s5p* points to a *slow5_file_t* opened using `slow5_open()`. `slow
 
 ## RETURN VALUE
 
-Upon successful completion, `slow_get()` returns a non negative integer (>=0). Otherwise, a negative value is returned that indicates the error.
+Upon successful completion, `slow5_get()` returns a non negative integer (>=0). Otherwise, a negative value is returned that indicates the error.
 
 ## ERRORS
 
