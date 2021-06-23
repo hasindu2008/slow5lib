@@ -126,9 +126,9 @@ for attr in names:
     print("{}: {}".format(attr, val))
 
 
-s52 = slow5.Open('test/data/exp/aux_array/exp_lossless.slow5','r', DEBUG=debug)
-print("get_read check, a649a4ae-c43d-492a-b6a1-a5b8b8076be4")
-read1 = s52.get_read("a649a4ae-c43d-492a-b6a1-a5b8b8076be4", aux=["read_number", "start_mux", "blah"])
+s52 = slow5.Open('examples/example2.slow5','r', DEBUG=debug)
+print("get_read check, 0d624d4b-671f-40b8-9798-84f2ccc4d7fc")
+read1 = s52.get_read("0d624d4b-671f-40b8-9798-84f2ccc4d7fc", aux=["read_number", "start_mux", "blah"])
 # print all fields
 print("read_id:", read1['read_id'])
 print("read_group:", read1['read_group'])
@@ -144,13 +144,14 @@ print("read_number:", read1["read_number"])
 print("start_mux:", read1["start_mux"])
 print("blah:", read1["blah"]) #should be None
 
-read2 = s52.get_read("a649a4ae-c43d-492a-b6a1-a5b8b8076be4", aux="blah")
+# test for a field that doesn't exist, should return None
+read2 = s52.get_read("0d624d4b-671f-40b8-9798-84f2ccc4d7fc", aux="blah")
 print("AUX FIELDS:")
 print("blah:", read2["blah"]) #should be None
 
-read3 = s52.get_read("a649a4ae-c43d-492a-b6a1-a5b8b8076be4", aux="read_number")
+read3 = s52.get_read("0d624d4b-671f-40b8-9798-84f2ccc4d7fc", aux="read_number")
 print("AUX FIELDS:")
-print("read_number:", read3["read_number"]) #should be None
+print("read_number:", read3["read_number"])
 
 print("==============================================")
 # get aux names
@@ -168,7 +169,8 @@ print("aux types:")
 print(aux_types)
 print("==============================================")
 
-read4 = s52.get_read("a649a4ae-c43d-492a-b6a1-a5b8b8076be4", aux="all")
+# get all aux fields
+read4 = s52.get_read("0d624d4b-671f-40b8-9798-84f2ccc4d7fc", aux="all")
 print("AUX FIELDS:")
 for name in aux_names:
     print("{}:".format(name), read4[name])

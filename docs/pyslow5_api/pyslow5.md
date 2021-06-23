@@ -28,16 +28,23 @@ Building and installing the python library, assuming python3 available
 python3 -m venv /path/to/slow5libvenv
 source /path/to/slow5libvenv/bin/activate
 python3 -m pip install --upgrade pip
-python3 -m pip install setuptools cython numpy
+python3 -m pip install setuptools cython numpy wheel
 
 git clone git@github.com:hasindu2008/slow5lib.git
 cd slow5lib
 make
 
-# build the package
-python3 setup.py build
-# If all went well, install the package
-python3 setup.py install
+# CHOOSE A OR B:
+# |=======================================================================|
+# |A. Install with pip if wheel is present, otherwise it uses setuptools  |
+    python3 -m pip install . --use-feature=in-tree-build
+# |=======================================================================|
+# |B. Or build and install manually with setup.py                         |
+# |build the package                                                      |
+    python3 setup.py build
+# |If all went well, install the package                                  |
+    python3 setup.py install
+# |=======================================================================|
 
 # This should not require sudo if using a python virtual environment/venv
 # confirm installation, and find pyslow5==<version>
