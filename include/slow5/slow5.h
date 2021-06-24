@@ -448,41 +448,41 @@ void slow5_rec_free(slow5_rec_t *read);
  * Get an auxiliary field in a SLOW5 record as an 8-bit signed integer.
  *
  * @param   read    address of a slow5_rec_t pointer
- * @param   attr    auxiliary field name
+ * @param   field    auxiliary field name
  * @param   err     error code (non zero error code if failed)
  * @return  field data value
  */
-int8_t slow5_aux_get_int8(const slow5_rec_t *read, const char *attr, int *err);
-int16_t slow5_aux_get_int16(const slow5_rec_t *read, const char *attr, int *err);
-int32_t slow5_aux_get_int32(const slow5_rec_t *read, const char *attr, int *err);
-int64_t slow5_aux_get_int64(const slow5_rec_t *read, const char *attr, int *err);
-uint8_t slow5_aux_get_uint8(const slow5_rec_t *read, const char *attr, int *err);
-uint16_t slow5_aux_get_uint16(const slow5_rec_t *read, const char *attr, int *err);
-uint32_t slow5_aux_get_uint32(const slow5_rec_t *read, const char *attr, int *err);
-uint64_t slow5_aux_get_uint64(const slow5_rec_t *read, const char *attr, int *err);
-float slow5_aux_get_float(const slow5_rec_t *read, const char *attr, int *err);
-double slow5_aux_get_double(const slow5_rec_t *read, const char *attr, int *err);
-char slow5_aux_get_char(const slow5_rec_t *read, const char *attr, int *err);
+int8_t slow5_aux_get_int8(const slow5_rec_t *read, const char *field, int *err);
+int16_t slow5_aux_get_int16(const slow5_rec_t *read, const char *field, int *err);
+int32_t slow5_aux_get_int32(const slow5_rec_t *read, const char *field, int *err);
+int64_t slow5_aux_get_int64(const slow5_rec_t *read, const char *field, int *err);
+uint8_t slow5_aux_get_uint8(const slow5_rec_t *read, const char *field, int *err);
+uint16_t slow5_aux_get_uint16(const slow5_rec_t *read, const char *field, int *err);
+uint32_t slow5_aux_get_uint32(const slow5_rec_t *read, const char *field, int *err);
+uint64_t slow5_aux_get_uint64(const slow5_rec_t *read, const char *field, int *err);
+float slow5_aux_get_float(const slow5_rec_t *read, const char *field, int *err);
+double slow5_aux_get_double(const slow5_rec_t *read, const char *field, int *err);
+char slow5_aux_get_char(const slow5_rec_t *read, const char *field, int *err);
 
 /**
  * Get an auxiliary field in a SLOW5 record as an 8-bit signed integer array.
  *
  * @param   read    address of a slow5_rec_t pointer
- * @param   attr    auxiliary field name
+ * @param   field    auxiliary field name
  * @param   err     error code
  * @return  pointer to the array of data values
  */
-int8_t *slow5_aux_get_int8_array(const slow5_rec_t *read, const char *attr, uint64_t *len, int *err);
-int16_t *slow5_aux_get_int16_array(const slow5_rec_t *read, const char *attr, uint64_t *len, int *err);
-int32_t *slow5_aux_get_int32_array(const slow5_rec_t *read, const char *attr, uint64_t *len, int *err);
-int64_t *slow5_aux_get_int64_array(const slow5_rec_t *read, const char *attr, uint64_t *len, int *err);
-uint8_t *slow5_aux_get_uint8_array(const slow5_rec_t *read, const char *attr, uint64_t *len, int *err);
-uint16_t *slow5_aux_get_uint16_array(const slow5_rec_t *read, const char *attr, uint64_t *len, int *err);
-uint32_t *slow5_aux_get_uint32_array(const slow5_rec_t *read, const char *attr, uint64_t *len, int *err);
-uint64_t *slow5_aux_get_uint64_array(const slow5_rec_t *read, const char *attr, uint64_t *len, int *err);
-float *slow5_aux_get_float_array(const slow5_rec_t *read, const char *attr, uint64_t *len, int *err);
-double *slow5_aux_get_double_array(const slow5_rec_t *read, const char *attr, uint64_t *len, int *err);
-char *slow5_aux_get_string(const slow5_rec_t *read, const char *attr, uint64_t *len, int *err);
+int8_t *slow5_aux_get_int8_array(const slow5_rec_t *read, const char *field, uint64_t *len, int *err);
+int16_t *slow5_aux_get_int16_array(const slow5_rec_t *read, const char *field, uint64_t *len, int *err);
+int32_t *slow5_aux_get_int32_array(const slow5_rec_t *read, const char *field, uint64_t *len, int *err);
+int64_t *slow5_aux_get_int64_array(const slow5_rec_t *read, const char *field, uint64_t *len, int *err);
+uint8_t *slow5_aux_get_uint8_array(const slow5_rec_t *read, const char *field, uint64_t *len, int *err);
+uint16_t *slow5_aux_get_uint16_array(const slow5_rec_t *read, const char *field, uint64_t *len, int *err);
+uint32_t *slow5_aux_get_uint32_array(const slow5_rec_t *read, const char *field, uint64_t *len, int *err);
+uint64_t *slow5_aux_get_uint64_array(const slow5_rec_t *read, const char *field, uint64_t *len, int *err);
+float *slow5_aux_get_float_array(const slow5_rec_t *read, const char *field, uint64_t *len, int *err);
+double *slow5_aux_get_double_array(const slow5_rec_t *read, const char *field, uint64_t *len, int *err);
+char *slow5_aux_get_string(const slow5_rec_t *read, const char *field, uint64_t *len, int *err);
 
 
 

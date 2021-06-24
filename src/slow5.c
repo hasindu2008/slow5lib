@@ -2056,12 +2056,12 @@ static inline void slow5_rec_set_aux_map(khash_t(slow5_s2a) *aux_map, const char
     memcpy(aux_data->data, data, bytes);
 }
 
-int8_t slow5_aux_get_int8(const struct slow5_rec *read, const char *attr, int *err) {
+int8_t slow5_aux_get_int8(const struct slow5_rec *read, const char *field, int *err) {
     int8_t val = INT8_MAX;
     int tmp_err = -1;
 
-    if (read != NULL && attr != NULL && read->aux_map != NULL) {
-        khint_t pos = kh_get(slow5_s2a, read->aux_map, attr);
+    if (read != NULL && field != NULL && read->aux_map != NULL) {
+        khint_t pos = kh_get(slow5_s2a, read->aux_map, field);
         if (pos != kh_end(read->aux_map)) {
             struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos);
             if (aux_data.type == SLOW5_INT8_T) {
@@ -2076,12 +2076,12 @@ int8_t slow5_aux_get_int8(const struct slow5_rec *read, const char *attr, int *e
     }
     return val;
 }
-int16_t slow5_aux_get_int16(const struct slow5_rec *read, const char *attr, int *err) {
+int16_t slow5_aux_get_int16(const struct slow5_rec *read, const char *field, int *err) {
     int16_t val = INT16_MAX;
     int tmp_err = -1;
 
-    if (read != NULL && attr != NULL && read->aux_map != NULL) {
-        khint_t pos = kh_get(slow5_s2a, read->aux_map, attr);
+    if (read != NULL && field != NULL && read->aux_map != NULL) {
+        khint_t pos = kh_get(slow5_s2a, read->aux_map, field);
         if (pos != kh_end(read->aux_map)) {
             struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos);
             if (aux_data.type == SLOW5_INT16_T) {
@@ -2096,12 +2096,12 @@ int16_t slow5_aux_get_int16(const struct slow5_rec *read, const char *attr, int 
     }
     return val;
 }
-int32_t slow5_aux_get_int32(const struct slow5_rec *read, const char *attr, int *err) {
+int32_t slow5_aux_get_int32(const struct slow5_rec *read, const char *field, int *err) {
     int32_t val = INT32_MAX;
     int tmp_err = -1;
 
-    if (read != NULL && attr != NULL && read->aux_map != NULL) {
-        khint_t pos = kh_get(slow5_s2a, read->aux_map, attr);
+    if (read != NULL && field != NULL && read->aux_map != NULL) {
+        khint_t pos = kh_get(slow5_s2a, read->aux_map, field);
         if (pos != kh_end(read->aux_map)) {
             struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos);
             if (aux_data.type == SLOW5_INT32_T) {
@@ -2116,12 +2116,12 @@ int32_t slow5_aux_get_int32(const struct slow5_rec *read, const char *attr, int 
     }
     return val;
 }
-int64_t slow5_aux_get_int64(const struct slow5_rec *read, const char *attr, int *err) {
+int64_t slow5_aux_get_int64(const struct slow5_rec *read, const char *field, int *err) {
     int64_t val = INT64_MAX;
     int tmp_err = -1;
 
-    if (read != NULL && attr != NULL && read->aux_map != NULL) {
-        khint_t pos = kh_get(slow5_s2a, read->aux_map, attr);
+    if (read != NULL && field != NULL && read->aux_map != NULL) {
+        khint_t pos = kh_get(slow5_s2a, read->aux_map, field);
         if (pos != kh_end(read->aux_map)) {
             struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos);
             if (aux_data.type == SLOW5_INT64_T) {
@@ -2136,12 +2136,12 @@ int64_t slow5_aux_get_int64(const struct slow5_rec *read, const char *attr, int 
     }
     return val;
 }
-uint8_t slow5_aux_get_uint8(const struct slow5_rec *read, const char *attr, int *err) {
+uint8_t slow5_aux_get_uint8(const struct slow5_rec *read, const char *field, int *err) {
     uint8_t val = UINT8_MAX;
     int tmp_err = -1;
 
-    if (read != NULL && attr != NULL && read->aux_map != NULL) {
-        khint_t pos = kh_get(slow5_s2a, read->aux_map, attr);
+    if (read != NULL && field != NULL && read->aux_map != NULL) {
+        khint_t pos = kh_get(slow5_s2a, read->aux_map, field);
         if (pos != kh_end(read->aux_map)) {
             struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos);
             if (aux_data.type == SLOW5_UINT8_T) {
@@ -2156,12 +2156,12 @@ uint8_t slow5_aux_get_uint8(const struct slow5_rec *read, const char *attr, int 
     }
     return val;
 }
-uint16_t slow5_aux_get_uint16(const struct slow5_rec *read, const char *attr, int *err) {
+uint16_t slow5_aux_get_uint16(const struct slow5_rec *read, const char *field, int *err) {
     uint16_t val = UINT16_MAX;
     int tmp_err = -1;
 
-    if (read != NULL && attr != NULL && read->aux_map != NULL) {
-        khint_t pos = kh_get(slow5_s2a, read->aux_map, attr);
+    if (read != NULL && field != NULL && read->aux_map != NULL) {
+        khint_t pos = kh_get(slow5_s2a, read->aux_map, field);
         if (pos != kh_end(read->aux_map)) {
             struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos);
             if (aux_data.type == SLOW5_UINT16_T) {
@@ -2176,12 +2176,12 @@ uint16_t slow5_aux_get_uint16(const struct slow5_rec *read, const char *attr, in
     }
     return val;
 }
-uint32_t slow5_aux_get_uint32(const struct slow5_rec *read, const char *attr, int *err) {
+uint32_t slow5_aux_get_uint32(const struct slow5_rec *read, const char *field, int *err) {
     uint32_t val = UINT32_MAX;
     int tmp_err = -1;
 
-    if (read != NULL && attr != NULL && read->aux_map != NULL) {
-        khint_t pos = kh_get(slow5_s2a, read->aux_map, attr);
+    if (read != NULL && field != NULL && read->aux_map != NULL) {
+        khint_t pos = kh_get(slow5_s2a, read->aux_map, field);
         if (pos != kh_end(read->aux_map)) {
             struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos);
             if (aux_data.type == SLOW5_UINT32_T) {
@@ -2196,12 +2196,12 @@ uint32_t slow5_aux_get_uint32(const struct slow5_rec *read, const char *attr, in
     }
     return val;
 }
-uint64_t slow5_aux_get_uint64(const struct slow5_rec *read, const char *attr, int *err) {
+uint64_t slow5_aux_get_uint64(const struct slow5_rec *read, const char *field, int *err) {
     uint64_t val = UINT64_MAX;
     int tmp_err = -1;
 
-    if (read != NULL && attr != NULL && read->aux_map != NULL) {
-        khint_t pos = kh_get(slow5_s2a, read->aux_map, attr);
+    if (read != NULL && field != NULL && read->aux_map != NULL) {
+        khint_t pos = kh_get(slow5_s2a, read->aux_map, field);
         if (pos != kh_end(read->aux_map)) {
             struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos);
             if (aux_data.type == SLOW5_UINT64_T) {
@@ -2216,12 +2216,12 @@ uint64_t slow5_aux_get_uint64(const struct slow5_rec *read, const char *attr, in
     }
     return val;
 }
-float slow5_aux_get_float(const struct slow5_rec *read, const char *attr, int *err) {
+float slow5_aux_get_float(const struct slow5_rec *read, const char *field, int *err) {
     float val = FLT_MAX;
     int tmp_err = -1;
 
-    if (read != NULL && attr != NULL && read->aux_map != NULL) {
-        khint_t pos = kh_get(slow5_s2a, read->aux_map, attr);
+    if (read != NULL && field != NULL && read->aux_map != NULL) {
+        khint_t pos = kh_get(slow5_s2a, read->aux_map, field);
         if (pos != kh_end(read->aux_map)) {
             struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos);
             if (aux_data.type == SLOW5_FLOAT) {
@@ -2236,12 +2236,12 @@ float slow5_aux_get_float(const struct slow5_rec *read, const char *attr, int *e
     }
     return val;
 }
-double slow5_aux_get_double(const struct slow5_rec *read, const char *attr, int *err) {
+double slow5_aux_get_double(const struct slow5_rec *read, const char *field, int *err) {
     double val = DBL_MAX;
     int tmp_err = -1;
 
-    if (read != NULL && attr != NULL && read->aux_map != NULL) {
-        khint_t pos = kh_get(slow5_s2a, read->aux_map, attr);
+    if (read != NULL && field != NULL && read->aux_map != NULL) {
+        khint_t pos = kh_get(slow5_s2a, read->aux_map, field);
         if (pos != kh_end(read->aux_map)) {
             struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos);
             if (aux_data.type == SLOW5_DOUBLE) {
@@ -2256,12 +2256,12 @@ double slow5_aux_get_double(const struct slow5_rec *read, const char *attr, int 
     }
     return val;
 }
-char slow5_aux_get_char(const struct slow5_rec *read, const char *attr, int *err) {
+char slow5_aux_get_char(const struct slow5_rec *read, const char *field, int *err) {
     char val = CHAR_MAX;
     int tmp_err = -1;
 
-    if (read != NULL && attr != NULL && read->aux_map != NULL) {
-        khint_t pos = kh_get(slow5_s2a, read->aux_map, attr);
+    if (read != NULL && field != NULL && read->aux_map != NULL) {
+        khint_t pos = kh_get(slow5_s2a, read->aux_map, field);
         if (pos != kh_end(read->aux_map)) {
             struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos);
             if (aux_data.type == SLOW5_CHAR) {
@@ -2276,12 +2276,12 @@ char slow5_aux_get_char(const struct slow5_rec *read, const char *attr, int *err
     }
     return val;
 }
-int8_t *slow5_aux_get_int8_array(const struct slow5_rec *read, const char *attr, uint64_t *len, int *err) {
+int8_t *slow5_aux_get_int8_array(const struct slow5_rec *read, const char *field, uint64_t *len, int *err) {
     int8_t *val = NULL;
     int tmp_err = -1;
 
-    if (read != NULL && attr != NULL && read->aux_map != NULL) {
-        khint_t pos = kh_get(slow5_s2a, read->aux_map, attr);
+    if (read != NULL && field != NULL && read->aux_map != NULL) {
+        khint_t pos = kh_get(slow5_s2a, read->aux_map, field);
         if (pos != kh_end(read->aux_map)) {
             struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos);
             if (aux_data.type == SLOW5_INT8_T_ARRAY) {
@@ -2297,12 +2297,12 @@ int8_t *slow5_aux_get_int8_array(const struct slow5_rec *read, const char *attr,
     }
     return val;
 }
-int16_t *slow5_aux_get_int16_array(const struct slow5_rec *read, const char *attr, uint64_t *len, int *err) {
+int16_t *slow5_aux_get_int16_array(const struct slow5_rec *read, const char *field, uint64_t *len, int *err) {
     int16_t *val = NULL;
     int tmp_err = -1;
 
-    if (read != NULL && attr != NULL && read->aux_map != NULL) {
-        khint_t pos = kh_get(slow5_s2a, read->aux_map, attr);
+    if (read != NULL && field != NULL && read->aux_map != NULL) {
+        khint_t pos = kh_get(slow5_s2a, read->aux_map, field);
         if (pos != kh_end(read->aux_map)) {
             struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos);
             if (aux_data.type == SLOW5_INT16_T_ARRAY) {
@@ -2318,12 +2318,12 @@ int16_t *slow5_aux_get_int16_array(const struct slow5_rec *read, const char *att
     }
     return val;
 }
-int32_t *slow5_aux_get_int32_array(const struct slow5_rec *read, const char *attr, uint64_t *len, int *err) {
+int32_t *slow5_aux_get_int32_array(const struct slow5_rec *read, const char *field, uint64_t *len, int *err) {
     int32_t *val = NULL;
     int tmp_err = -1;
 
-    if (read != NULL && attr != NULL && read->aux_map != NULL) {
-        khint_t pos = kh_get(slow5_s2a, read->aux_map, attr);
+    if (read != NULL && field != NULL && read->aux_map != NULL) {
+        khint_t pos = kh_get(slow5_s2a, read->aux_map, field);
         if (pos != kh_end(read->aux_map)) {
             struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos);
             if (aux_data.type == SLOW5_INT32_T_ARRAY) {
@@ -2339,12 +2339,12 @@ int32_t *slow5_aux_get_int32_array(const struct slow5_rec *read, const char *att
     }
     return val;
 }
-int64_t *slow5_aux_get_int64_array(const struct slow5_rec *read, const char *attr, uint64_t *len, int *err) {
+int64_t *slow5_aux_get_int64_array(const struct slow5_rec *read, const char *field, uint64_t *len, int *err) {
     int64_t *val = NULL;
     int tmp_err = -1;
 
-    if (read != NULL && attr != NULL && read->aux_map != NULL) {
-        khint_t pos = kh_get(slow5_s2a, read->aux_map, attr);
+    if (read != NULL && field != NULL && read->aux_map != NULL) {
+        khint_t pos = kh_get(slow5_s2a, read->aux_map, field);
         if (pos != kh_end(read->aux_map)) {
             struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos);
             if (aux_data.type == SLOW5_INT64_T_ARRAY) {
@@ -2360,12 +2360,12 @@ int64_t *slow5_aux_get_int64_array(const struct slow5_rec *read, const char *att
     }
     return val;
 }
-uint8_t *slow5_aux_get_uint8_array(const struct slow5_rec *read, const char *attr, uint64_t *len, int *err) {
+uint8_t *slow5_aux_get_uint8_array(const struct slow5_rec *read, const char *field, uint64_t *len, int *err) {
     uint8_t *val = NULL;
     int tmp_err = -1;
 
-    if (read != NULL && attr != NULL && read->aux_map != NULL) {
-        khint_t pos = kh_get(slow5_s2a, read->aux_map, attr);
+    if (read != NULL && field != NULL && read->aux_map != NULL) {
+        khint_t pos = kh_get(slow5_s2a, read->aux_map, field);
         if (pos != kh_end(read->aux_map)) {
             struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos);
             if (aux_data.type == SLOW5_UINT8_T_ARRAY) {
@@ -2381,12 +2381,12 @@ uint8_t *slow5_aux_get_uint8_array(const struct slow5_rec *read, const char *att
     }
     return val;
 }
-uint16_t *slow5_aux_get_uint16_array(const struct slow5_rec *read, const char *attr, uint64_t *len, int *err) {
+uint16_t *slow5_aux_get_uint16_array(const struct slow5_rec *read, const char *field, uint64_t *len, int *err) {
     uint16_t *val = NULL;
     int tmp_err = -1;
 
-    if (read != NULL && attr != NULL && read->aux_map != NULL) {
-        khint_t pos = kh_get(slow5_s2a, read->aux_map, attr);
+    if (read != NULL && field != NULL && read->aux_map != NULL) {
+        khint_t pos = kh_get(slow5_s2a, read->aux_map, field);
         if (pos != kh_end(read->aux_map)) {
             struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos);
             if (aux_data.type == SLOW5_UINT16_T_ARRAY) {
@@ -2402,12 +2402,12 @@ uint16_t *slow5_aux_get_uint16_array(const struct slow5_rec *read, const char *a
     }
     return val;
 }
-uint32_t *slow5_aux_get_uint32_array(const struct slow5_rec *read, const char *attr, uint64_t *len, int *err) {
+uint32_t *slow5_aux_get_uint32_array(const struct slow5_rec *read, const char *field, uint64_t *len, int *err) {
     uint32_t *val = NULL;
     int tmp_err = -1;
 
-    if (read != NULL && attr != NULL && read->aux_map != NULL) {
-        khint_t pos = kh_get(slow5_s2a, read->aux_map, attr);
+    if (read != NULL && field != NULL && read->aux_map != NULL) {
+        khint_t pos = kh_get(slow5_s2a, read->aux_map, field);
         if (pos != kh_end(read->aux_map)) {
             struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos);
             if (aux_data.type == SLOW5_UINT32_T_ARRAY) {
@@ -2423,12 +2423,12 @@ uint32_t *slow5_aux_get_uint32_array(const struct slow5_rec *read, const char *a
     }
     return val;
 }
-uint64_t *slow5_aux_get_uint64_array(const struct slow5_rec *read, const char *attr, uint64_t *len, int *err) {
+uint64_t *slow5_aux_get_uint64_array(const struct slow5_rec *read, const char *field, uint64_t *len, int *err) {
     uint64_t *val = NULL;
     int tmp_err = -1;
 
-    if (read != NULL && attr != NULL && read->aux_map != NULL) {
-        khint_t pos = kh_get(slow5_s2a, read->aux_map, attr);
+    if (read != NULL && field != NULL && read->aux_map != NULL) {
+        khint_t pos = kh_get(slow5_s2a, read->aux_map, field);
         if (pos != kh_end(read->aux_map)) {
             struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos);
             if (aux_data.type == SLOW5_UINT64_T_ARRAY) {
@@ -2444,12 +2444,12 @@ uint64_t *slow5_aux_get_uint64_array(const struct slow5_rec *read, const char *a
     }
     return val;
 }
-float *slow5_aux_get_float_array(const struct slow5_rec *read, const char *attr, uint64_t *len, int *err) {
+float *slow5_aux_get_float_array(const struct slow5_rec *read, const char *field, uint64_t *len, int *err) {
     float *val = NULL;
     int tmp_err = -1;
 
-    if (read != NULL && attr != NULL && read->aux_map != NULL) {
-        khint_t pos = kh_get(slow5_s2a, read->aux_map, attr);
+    if (read != NULL && field != NULL && read->aux_map != NULL) {
+        khint_t pos = kh_get(slow5_s2a, read->aux_map, field);
         if (pos != kh_end(read->aux_map)) {
             struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos);
             if (aux_data.type == SLOW5_FLOAT_ARRAY) {
@@ -2465,12 +2465,12 @@ float *slow5_aux_get_float_array(const struct slow5_rec *read, const char *attr,
     }
     return val;
 }
-double *slow5_aux_get_double_array(const struct slow5_rec *read, const char *attr, uint64_t *len, int *err) {
+double *slow5_aux_get_double_array(const struct slow5_rec *read, const char *field, uint64_t *len, int *err) {
     double *val = NULL;
     int tmp_err = -1;
 
-    if (read != NULL && attr != NULL && read->aux_map != NULL) {
-        khint_t pos = kh_get(slow5_s2a, read->aux_map, attr);
+    if (read != NULL && field != NULL && read->aux_map != NULL) {
+        khint_t pos = kh_get(slow5_s2a, read->aux_map, field);
         if (pos != kh_end(read->aux_map)) {
             struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos);
             if (aux_data.type == SLOW5_DOUBLE_ARRAY) {
@@ -2486,12 +2486,12 @@ double *slow5_aux_get_double_array(const struct slow5_rec *read, const char *att
     }
     return val;
 }
-char *slow5_aux_get_string(const struct slow5_rec *read, const char *attr, uint64_t *len, int *err) {
+char *slow5_aux_get_string(const struct slow5_rec *read, const char *field, uint64_t *len, int *err) {
     char *val = NULL;
     int tmp_err = -1;
 
-    if (read != NULL && attr != NULL && read->aux_map != NULL) {
-        khint_t pos = kh_get(slow5_s2a, read->aux_map, attr);
+    if (read != NULL && field != NULL && read->aux_map != NULL) {
+        khint_t pos = kh_get(slow5_s2a, read->aux_map, field);
         if (pos != kh_end(read->aux_map)) {
             struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos);
             if (aux_data.type == SLOW5_STRING) {
