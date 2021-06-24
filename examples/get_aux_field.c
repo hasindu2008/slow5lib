@@ -35,14 +35,14 @@ int main(){
         fprintf(stderr,"Error in getting auxiliary attribute from the file. Error code %d\n",ret);
         exit(EXIT_FAILURE);
     }
-    fprintf(stderr,"start_time = %u\n", start_time);
+    fprintf(stderr,"start_time = %lu\n", start_time);
 
     //------------------------------------------------------------------------
     //              get auxiliary values with array datatype
     //------------------------------------------------------------------------
 
-    uint64_t *len;
-    char* channel_number = slow5_aux_get_string(rec, "channel_number", len, &ret);
+    uint64_t len;
+    char* channel_number = slow5_aux_get_string(rec, "channel_number", &len, &ret);
     if(ret!=0){
         fprintf(stderr,"Error in getting auxiliary attribute from the file. Error code %d\n",ret);
         exit(EXIT_FAILURE);

@@ -1,3 +1,5 @@
 random_read
 sequential_read
+get_aux_field
+get_hdr_attribute
 *.idx

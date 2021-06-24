@@ -39,6 +39,9 @@ SOFTWARE.
 extern "C" {
 #endif
 
+//slow5lib version
+#define SLOW5_LIB_VERSION "0.0"
+
 // SLOW5 format specs
 #define SLOW5_HEADER_PREFIX             "#"
 #define SLOW5_HEADER_DATA_PREFIX        "@"
