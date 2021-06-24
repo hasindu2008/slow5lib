@@ -49,8 +49,8 @@ extensions = [Extension('pyslow5',
 
 #TODO ad all
 setup(name = 'pyslow5',
-      version='0.0',
-	  python_requires='>=3.5.2',
+      version='0.1',
+	  python_requires='>=3.4.3',
       url = 'https://github.com/hasindu2008/slow5lib',
       # requires=['numpy (>=1.3.0)'],
       description='slow5 python library',

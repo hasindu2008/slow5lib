@@ -9,7 +9,7 @@ Initial setup and example info for environment
 # get zlib1g-dev
 sudo apt-get update && sudo apt-get install -y zlib1g-dev
 
-# slow5lib needs python3.5.2 or higher.
+# slow5lib needs python3.4.2 or higher.
 # Chekc with
 python3 --version
 
@@ -22,7 +22,7 @@ sudo apt-get update
 sudo apt install python3.7 python3.7-dev python3.7-venv
 ```
 
-Building and installing the python library, assuming python3 available
+Building and installing the python library, assuming python3 available (use `python3.7` or whichever version was installed if you used the deadsnakes method above)
 
 ```bash
 python3 -m venv /path/to/slow5libvenv
