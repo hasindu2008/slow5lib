@@ -62,7 +62,7 @@ jobs:
       run: make clean && make CC=clang -j8
     - name: test-clang
       run: make test
-  os_x:
+  os_x_10:
     name: OSX
     runs-on: macos-10.15
     steps:
@@ -75,3 +75,32 @@ jobs:
       run: make test
     - name: examples
       run: make examples
+  os_x_11:
+    name: OSX
+    runs-on: macos-11
+    steps:
+    - uses: actions/checkout@v2
+    - name: install packages
+      run: brew install autoconf automake
+    - name: build
+      run: make -j8
+    - name: test
+      run: make test
+    - name: examples
+      run: make examples
+  arm64:
+    name: ubuntu arm
+    runs-on: ubuntu-latest
+    steps:
+    - run: docker run --rm --privileged multiarch/qemu-user-static:register --reset
+    - uses: docker://multiarch/ubuntu-core:arm64-bionic
+      with:
+        args: 'uname -a'
+    - uses: actions/checkout@v1
+    - uses: docker://multiarch/ubuntu-core:arm64-bionic
+      with:
+        args: >
+          bash -c "apt-get update &&
+          apt-get install -y zlib1g-dev gcc make &&
+          ldd --version && gcc --version &&
+          make && make test
