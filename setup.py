@@ -49,7 +49,7 @@ extensions = [Extension('pyslow5',
 
 #TODO ad all
 setup(name = 'pyslow5',
-      version='0.1',
+      version='0.1.0',
 	  python_requires='>=3.4.3',
       url = 'https://github.com/hasindu2008/slow5lib',
       # requires=['numpy (>=1.3.0)'],
