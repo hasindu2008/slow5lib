@@ -5,13 +5,13 @@ The slow5 python library (pyslow5) allows a user to read slow5 and blow5 files.
 ## Installation
 
 Initial setup and example info for environment
+###### slow5lib needs python3.4.2 or higher.
 ```bash
-# get zlib1g-dev
-sudo apt-get update && sudo apt-get install -y zlib1g-dev
-
-# slow5lib needs python3.4.2 or higher.
-# Chekc with
-python3 --version
+# If your native python3 meets this requirement, you can use that, or use a
+# specific version installed with deadsnakes below. If you install with deadsnakes,
+# you will need to call that specific python, such as python3.8 or python3.9,
+# in all the following commands until you create a virtual environment with venv.
+# Then once activated, you can just use python3.
 
 # To install a specific version of python, the deadsnakes ppa is a good place to start
 # This is an example for installing python3.7
@@ -20,9 +20,20 @@ python3 --version
 sudo add-apt-repository ppa:deadsnakes/ppa
 sudo apt-get update
 sudo apt install python3.7 python3.7-dev python3.7-venv
+
+
+# get zlib1g-dev
+sudo apt-get update && sudo apt-get install -y zlib1g-dev
+
+# Chekc with
+python3 --version
+
+# You will also need the python headers if you don't already have them installed.
+
+sudo apt-get install python3-dev
 ```
 
-Building and installing the python library, assuming python3 available (use `python3.7` or whichever version was installed if you used the deadsnakes method above)
+Building and installing the python library.
 
 ```bash
 python3 -m venv /path/to/slow5libvenv
