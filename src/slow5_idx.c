@@ -262,7 +262,7 @@ static void slow5_idx_read(struct slow5_idx *index) {
 
     if(slow5_idx_is_version_compatible(index->version)==0){
         struct slow5_version supported_max_version = SLOW5_INDEX_VERSION;
-        SLOW5_ERROR("file version (%d.%d.%d) in your slow5 index file is higher that the maximally compatible version (%d.%d.%d) by this slow5lib. Please re-index or use a newer version of slow5lib",
+        SLOW5_ERROR("file version (%d.%d.%d) in your slow5 index file is higher than the maximally compatible version (%d.%d.%d) by this slow5lib. Please re-index or use a newer version of slow5lib",
                 index->version.major, index->version.minor, index->version.patch,
                      supported_max_version.major,  supported_max_version.minor,  supported_max_version.patch);
         SLOW5_ASSERT(0);

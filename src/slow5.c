@@ -382,7 +382,7 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
             return NULL;
         }
         if(slow5_is_version_compatible(header->version)==0){
-            SLOW5_ERROR("file version (%d.%d.%d) in your slow5 file is higher that the maximally compatible version (%d.%d.%d) by this slow5lib. Please use a newer version of slow5lib",
+            SLOW5_ERROR("file version (%d.%d.%d) in your slow5 file is higher than the maximally compatible version (%d.%d.%d) by this slow5lib. Please use a newer version of slow5lib",
                 header->version.major, header->version.minor, header->version.patch,
                      SLOW5_ASCII_VERSION_STRUCT.major,  SLOW5_ASCII_VERSION_STRUCT.minor,  SLOW5_ASCII_VERSION_STRUCT.patch);
             free(buf);
@@ -451,7 +451,7 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
         }
 
         if(slow5_is_version_compatible(header->version)==0){
-            SLOW5_ERROR("file version (%d.%d.%d) in your slow5 file is higher that the maximally compatible version (%d.%d.%d) by this slow5lib. Please use a newer version of slow5lib",
+            SLOW5_ERROR("file version (%d.%d.%d) in your slow5 file is higher than the maximally compatible version (%d.%d.%d) by this slow5lib. Please use a newer version of slow5lib",
                 header->version.major, header->version.minor, header->version.patch,
                      SLOW5_ASCII_VERSION_STRUCT.major,  SLOW5_ASCII_VERSION_STRUCT.minor,  SLOW5_ASCII_VERSION_STRUCT.patch);
             free(header);
