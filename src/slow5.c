@@ -86,6 +86,7 @@ __thread int slow5_errno = 0;
 
 // slow5 file
 
+
 /*
 * core function for opening a SLOW5 file
 * determines if SLOW5 ASCII or binary based on the file extension
@@ -291,6 +292,23 @@ struct slow5_hdr *slow5_hdr_init_empty(void) {
     return header;
 }
 
+
+
+static inline int slow5_is_version_compatible(struct slow5_version file_version){
+    if(file_version.major > SLOW5_ASCII_VERSION_STRUCT.major){
+        return 0;
+    }
+    else if (file_version.minor > SLOW5_ASCII_VERSION_STRUCT.minor){
+        return 0;
+    }
+    else if (file_version.patch > SLOW5_ASCII_VERSION_STRUCT.patch){
+        return 0;
+    }
+    else{
+        return 1;
+    }
+}
+
 // parses a slow5 header
 struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_method_t *method) {
 
@@ -363,6 +381,14 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
             free(header);
             return NULL;
         }
+        if(slow5_is_version_compatible(header->version)==0){
+            SLOW5_ERROR("file version (%d.%d.%d) in your slow5 file is higher that the maximally compatible version (%d.%d.%d) by this slow5lib. Please use a newer version of slow5lib",
+                header->version.major, header->version.minor, header->version.patch,
+                     SLOW5_ASCII_VERSION_STRUCT.major,  SLOW5_ASCII_VERSION_STRUCT.minor,  SLOW5_ASCII_VERSION_STRUCT.patch);
+            free(buf);
+            free(header);
+            return NULL;
+        }
 
         // 2nd line - num_read_groups
         if ((buf_len = getline(&buf, &cap, fp)) <= 0) {
@@ -420,6 +446,14 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
                 fread(&header_size, sizeof header_size, 1, fp) != 1) {
 
             SLOW5_WARNING("%s","Malformed BLOW5 header");
+            free(header);
+            return NULL;
+        }
+
+        if(slow5_is_version_compatible(header->version)==0){
+            SLOW5_ERROR("file version (%d.%d.%d) in your slow5 file is higher that the maximally compatible version (%d.%d.%d) by this slow5lib. Please use a newer version of slow5lib",
+                header->version.major, header->version.minor, header->version.patch,
+                     SLOW5_ASCII_VERSION_STRUCT.major,  SLOW5_ASCII_VERSION_STRUCT.minor,  SLOW5_ASCII_VERSION_STRUCT.patch);
             free(header);
             return NULL;
         }

@@ -231,6 +231,24 @@ void slow5_idx_write(struct slow5_idx *index) {
     SLOW5_ASSERT(fwrite(eof, sizeof *eof, sizeof eof, index->fp) == sizeof eof);
 }
 
+static inline int slow5_idx_is_version_compatible(struct slow5_version file_version){
+
+    struct slow5_version supported_max_version = SLOW5_INDEX_VERSION;
+
+    if(file_version.major > supported_max_version.major){
+        return 0;
+    }
+    else if (file_version.minor > supported_max_version.minor){
+        return 0;
+    }
+    else if (file_version.patch > supported_max_version.patch){
+        return 0;
+    }
+    else{
+        return 1;
+    }
+}
+
 static void slow5_idx_read(struct slow5_idx *index) {
 
     const char magic[] = SLOW5_INDEX_MAGIC_NUMBER;
@@ -241,6 +259,14 @@ static void slow5_idx_read(struct slow5_idx *index) {
     SLOW5_ASSERT(fread(&index->version.major, sizeof index->version.major, 1, index->fp) == 1);
     SLOW5_ASSERT(fread(&index->version.minor, sizeof index->version.minor, 1, index->fp) == 1);
     SLOW5_ASSERT(fread(&index->version.patch, sizeof index->version.patch, 1, index->fp) == 1);
+
+    if(slow5_idx_is_version_compatible(index->version)==0){
+        struct slow5_version supported_max_version = SLOW5_INDEX_VERSION;
+        SLOW5_ERROR("file version (%d.%d.%d) in your slow5 index file is higher that the maximally compatible version (%d.%d.%d) by this slow5lib. Please re-index or use a newer version of slow5lib",
+                index->version.major, index->version.minor, index->version.patch,
+                     supported_max_version.major,  supported_max_version.minor,  supported_max_version.patch);
+        SLOW5_ASSERT(0);
+    }
 
     SLOW5_ASSERT(fseek(index->fp, SLOW5_INDEX_HEADER_SIZE_OFFSET, SEEK_SET) != -1);
 
