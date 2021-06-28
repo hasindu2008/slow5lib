@@ -12,11 +12,12 @@ SLOW5 is a simple tab-separated values (TSV) file encoding metadata and time-ser
 
 Detailed benchmarking experiments have shown that SLOW5 format is up to X-fold faster and X% smaller than FAST5 [SLOW5 paper].
 
-<todo>
 
 [![SLOW5 C/C++ CI Github](https://github.com/hasindu2008/slow5lib/actions/workflows/c-cpp.yml/badge.svg)](https://github.com/hasindu2008/slow5lib/actions/workflows/c-cpp.yml)
 [![SLOW5 Python CI Github](https://github.com/hasindu2008/slow5lib/actions/workflows/python.yml/badge.svg)](https://github.com/hasindu2008/slow5lib/actions/workflows/python.yml)
 
+Full documentation: https://hasindu2008.github.io/slow5lib
+  
 ## Building
 
 To build the C/C++ library :
