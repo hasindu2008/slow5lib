@@ -23,7 +23,7 @@ depends=['python/pyslow5.pxd', 'python/pyslow5.h',  'slow5/slow5.h',
             'src/slow5_extra.h', 'src/slow5_idx.h', 'src/slow5_misc.h',
             'src/klib/ksort.h' ]
 extra_compile_args = ['-g', '-Wall', '-O2', '-std=c99']
-libraries = ['z']
+libraries = ['m', 'z']
 include_dirs = ['include/', np.get_include()]
 library_dirs = ['.']
 

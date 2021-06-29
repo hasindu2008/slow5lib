@@ -8,14 +8,15 @@ About SLOW5:
 
 SLOW5 is a new file format for storing signal data from Oxford Nanopore Technologies (ONT) devices. SLOW5 was developed to overcome inherent limitations in the standard FAST5 signal data format that prevent efficient, scalable analysis and cause many headaches for developers.
 
-SLOW5 is a simple tab-separated values (TSV) file encoding metadata and time-series signal data for one nanopore read per line, with global metadata stored in a file header. Parallel file access is facilitated by an accompanying index file, also in TSV format, that specifies the position of each read (in Bytes) within the main SLOW5 file. SLOW5 can be encoded in human-readable ASCII format, or a more compact and efficient binary format (BLOW5) - this is analogous to the seminal SAM/BAM format for storing DNA sequence alignments. The BLOW5 binary format can be compressed using standard gzip compression, or other compression methods, thereby minimising the data storage footprint while still permitting efficient parallel access.
+SLOW5 is a simple tab-separated values (TSV) file encoding metadata and time-series signal data for one nanopore read per line, with global metadata stored in a file header. Parallel file access is facilitated by an accompanying index file, also in TSV format, that specifies the position of each read (in Bytes) within the main SLOW5 file. SLOW5 can be encoded in human-readable ASCII format, or a more compact and efficient binary format (BLOW5) - this is analogous to the seminal SAM/BAM format for storing DNA sequence alignments. The BLOW5 binary format can be compressed using *zlib* (DEFLATE) compression, or other compression methods, thereby minimising the data storage footprint while still permitting efficient parallel access.
 
 Detailed benchmarking experiments have shown that SLOW5 format is up to X-fold faster and X% smaller than FAST5 [SLOW5 paper].
 
-<todo>
 
 [![SLOW5 C/C++ CI Github](https://github.com/hasindu2008/slow5lib/actions/workflows/c-cpp.yml/badge.svg)](https://github.com/hasindu2008/slow5lib/actions/workflows/c-cpp.yml)
 [![SLOW5 Python CI Github](https://github.com/hasindu2008/slow5lib/actions/workflows/python.yml/badge.svg)](https://github.com/hasindu2008/slow5lib/actions/workflows/python.yml)
+
+Full documentation: https://hasindu2008.github.io/slow5lib
 
 ## Building
 
@@ -43,14 +44,14 @@ To build the Python wrapper see the instructions [here](https://hasindu2008.gith
 Simply include `<slow5/slow5.h>` in your C program and call the API functions. To compile your program and statically link against slow5lib:
 
 ```
-gcc [OPTIONS] -I path/to/slow5lib/include your_program.c path/to/slow5lib/lib/libslow5.a -lz
+gcc [OPTIONS] -I path/to/slow5lib/include your_program.c path/to/slow5lib/lib/libslow5.a -lm -lz
 ```
 *path/to/slow5lib/* is the absolute or relative path to the *slow5lib* repository cloned above.
 
 
 To dynamically link:
 ```
-gcc [OPTIONS] -I path/to/slow5lib/include your_program.c -L path/to/slow5lib/lib/ -lslow5 -lz
+gcc [OPTIONS] -I path/to/slow5lib/include your_program.c -L path/to/slow5lib/lib/ -lslow5 -lm -lz
 ```
 
 For the documentation of the C API visit [here](https://hasindu2008.github.io/slow5lib/slow5_api/slow5.html). and for the Python API visit [here](https://hasindu2008.github.io/slow5lib/pyslow5_api/pyslow5.html).
