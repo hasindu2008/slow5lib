@@ -2,7 +2,7 @@ CC			= gcc
 AR			= ar
 CPPFLAGS	+= -I include/
 CFLAGS		+= -g -Wall -O2 -std=c99
-LDFLAGS		+=  -lz
+LDFLAGS		+=  -lm -lz
 BUILD_DIR	= lib
 
 OBJ_LIB = $(BUILD_DIR)/slow5.o \
@@ -57,7 +57,7 @@ pyslow5:
 	python3 < python/example.py
 
 test-prep: slow5lib
-	gcc test/make_blow5.c -Isrc src/slow5.c src/slow5_press.c -lz src/slow5_idx.c src/slow5_misc.c -o test/bin/make_blow5 -g
+	gcc test/make_blow5.c -Isrc src/slow5.c src/slow5_press.c -lm -lz src/slow5_idx.c src/slow5_misc.c -o test/bin/make_blow5 -g
 	./test/bin/make_blow5
 
 valgrind: slow5lib

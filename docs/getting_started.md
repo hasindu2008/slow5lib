@@ -38,14 +38,14 @@ To build the Python wrapper see the instructions [here](https://hasindu2008.gith
 Simply include `<slow5/slow5.h>` in your C program and call the API functions. To compile your program and statically link against slow5lib:
 
 ```
-gcc [OPTIONS] -I path/to/slow5lib/include your_program.c path/to/slow5lib/lib/libslow5.a -lz
+gcc [OPTIONS] -I path/to/slow5lib/include your_program.c path/to/slow5lib/lib/libslow5.a -lm -lz
 ```
 *path/to/slow5lib/* is the absolute or relative path to the *slow5lib* repository cloned above.
 
 
 To dynamically link:
 ```
-gcc [OPTIONS] -I path/to/slow5lib/include your_program.c -L path/to/slow5lib/lib/ -lslow5 -lz
+gcc [OPTIONS] -I path/to/slow5lib/include your_program.c -L path/to/slow5lib/lib/ -lslow5 -lm -lz
 ```
 
 For the documentation of the C API visit [here](https://hasindu2008.github.io/slow5lib/slow5_api/slow5.html). and for the Python API visit [here](https://hasindu2008.github.io/slow5lib/pyslow5_api/pyslow5.html).
