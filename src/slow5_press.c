@@ -26,6 +26,7 @@ struct slow5_press *slow5_press_init(slow5_press_method_t method) {
     struct slow5_press *comp = NULL;
 
     comp = (struct slow5_press *) malloc(sizeof *comp);
+    SLOW5_MALLOC_CHK(comp);
     comp->method = method;
 
     switch (method) {
@@ -38,6 +39,7 @@ struct slow5_press *slow5_press_init(slow5_press_method_t method) {
             struct slow5_gzip_stream *gzip;
 
             gzip = (struct slow5_gzip_stream *) malloc(sizeof *gzip);
+            SLOW5_MALLOC_CHK(gzip);
             if (gzip_init_deflate(&(gzip->strm_deflate)) != Z_OK) {
                 free(gzip);
                 comp->stream = NULL;
@@ -50,6 +52,7 @@ struct slow5_press *slow5_press_init(slow5_press_method_t method) {
             } else {
                 gzip->flush = Z_NO_FLUSH;
                 comp->stream = (union slow5_press_stream *) malloc(sizeof *comp->stream);
+                SLOW5_MALLOC_CHK(comp->stream);
                 comp->stream->gzip = gzip;
             }
 
@@ -114,6 +117,7 @@ void *slow5_ptr_compress(struct slow5_press *comp, const void *ptr, size_t count
 
             case SLOW5_COMPRESS_NONE:
                 out = (void *) malloc(count);
+                SLOW5_MALLOC_CHK(out);
                 if (out == NULL) {
                     // Malloc failed
                     return out;
@@ -150,6 +154,7 @@ static void *ptr_compress_gzip(struct slow5_gzip_stream *gzip, const void *ptr, 
 
     do {
         out = (uint8_t *) realloc(out, n_cur + chunk_sz);
+        SLOW5_MALLOC_CHK(out);
 
         strm->avail_out = chunk_sz;
         strm->next_out = out + n_cur;
@@ -185,6 +190,7 @@ void *slow5_ptr_depress_multi(slow5_press_method_t method, const void *ptr, size
 
             case SLOW5_COMPRESS_NONE:
                 out = (void *) malloc(count);
+                SLOW5_MALLOC_CHK(out);
                 if (out == NULL) {
                     // Malloc failed
                     return out;
@@ -219,6 +225,7 @@ void *slow5_ptr_depress(struct slow5_press *comp, const void *ptr, size_t count,
 
             case SLOW5_COMPRESS_NONE:
                 out = (void *) malloc(count);
+                SLOW5_MALLOC_CHK(out);
                 if (out == NULL) {
                     // Malloc failed
                     return out;
@@ -253,6 +260,7 @@ static void *ptr_depress_gzip(struct slow5_gzip_stream *gzip, const void *ptr, s
 
     do {
         out = (uint8_t *) realloc(out, n_cur + SLOW5_Z_OUT_CHUNK);
+        SLOW5_MALLOC_CHK(out);
 
         strm->avail_out = SLOW5_Z_OUT_CHUNK;
         strm->next_out = out + n_cur;
@@ -289,7 +297,7 @@ static void *ptr_depress_gzip_multi(const void *ptr, size_t count, size_t *n) {
 
     do {
         out = (uint8_t *) realloc(out, n_cur + SLOW5_Z_OUT_CHUNK);
-        SLOW5_ASSERT(out);
+        SLOW5_MALLOC_CHK(out);
 
         strm->avail_out = SLOW5_Z_OUT_CHUNK;
         strm->next_out = out + n_cur;
@@ -348,6 +356,7 @@ static size_t fwrite_compress_gzip(struct slow5_gzip_stream *gzip, const void *p
 
     uLong chunk_sz = SLOW5_Z_OUT_CHUNK;
     uint8_t *buf = (uint8_t *) malloc(sizeof *buf * chunk_sz);
+    SLOW5_MALLOC_CHK(buf);
     if (buf == NULL) {
         return -1;
     }
@@ -542,6 +551,7 @@ unsigned char *z_inflate_buf(const char *comp_str, size_t *n) {
     uLong prev_sz = 0;
     uLong out_sz = 16328;
     unsigned char *out = (unsigned char *) malloc(sizeof *out * out_sz);
+    SLOW5_MALLOC_CHK(out);
 
     int ret = inflateInit2(&strm, GZIP_WBITS);
 
@@ -573,6 +583,7 @@ unsigned char *z_inflate_buf(const char *comp_str, size_t *n) {
 
         if (strm.avail_out == 0) {
             out = (unsigned char *) realloc(out, sizeof *out * (prev_sz + out_sz));
+            SLOW5_MALLOC_CHK(out);
         }
 
     } while (strm.avail_out == 0);
@@ -592,6 +603,7 @@ unsigned char *z_inflate_buf(const char *comp_str, size_t *n) {
 
     uLong out_sz = SLOW5_Z_OUT_CHUNK;
     unsigned char *out = (unsigned char *) malloc(sizeof *out * out_sz);
+    SLOW5_MALLOC_CHK(out);
 
     do {
         strmp->avail_out = out_sz;

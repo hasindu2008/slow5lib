@@ -14,6 +14,9 @@
 #include "slow5_misc.h"
 #include <slow5/slow5_error.h>
 
+extern enum slow5_log_level_opt  slow5_log_level;
+extern enum slow5_exit_condition_opt  slow5_exit_condition;
+
 #define DBL_STRING_BUF_FIXED_CAP (64) // 2^6
 #define FLT_STRING_BUF_FIXED_CAP (64) // 2^6
 
@@ -31,6 +34,7 @@ int slow5_vasprintf(char **strp, const char *fmt, va_list ap) {
     size = vsnprintf(NULL, 0, fmt, ap1) + 1;
     va_end(ap1);
     buffer = (char *) calloc(1, size);
+    SLOW5_MALLOC_CHK(buffer);
 
     if (!buffer)
         return -1;
