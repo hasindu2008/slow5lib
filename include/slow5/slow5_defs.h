@@ -39,7 +39,7 @@ SOFTWARE.
 extern "C" {
 #endif
 
-//slow5lib version
+// slow5lib version
 #define SLOW5_LIB_VERSION "0.1.0-dirty"
 
 // SLOW5 format specs
@@ -117,14 +117,14 @@ extern "C" {
 #define SLOW5_INDEX_HEADER          SLOW5_INDEX_HEADER_PREFIX "read_id" SLOW5_SEP_COL "offset" SLOW5_SEP_COL "length\n"
 
 
-//error codes
-#define SLOW5_ERR_EOF           -1      //EOF reached
-#define SLOW5_ERR_ARG           -2      //bad argument (NULL)
-#define SLOW5_ERR_TRUNC         -3      //file truncated
+// error codes
+#define SLOW5_ERR_EOF           -1      // EOF reached
+#define SLOW5_ERR_ARG           -2      // bad argument (NULL)
+#define SLOW5_ERR_TRUNC         -3      // file truncated
 #define SLOW5_ERR_RECPARSE      -4      // record parsing error
-#define SLOW5_ERR_IO            -5      //other file I/O error
-#define SLOW5_ERR_NOIDX         -6      //index not loaded
-#define SLOW5_ERR_NOTFOUND      -7      //read id not found
+#define SLOW5_ERR_IO            -5      // other file I/O error
+#define SLOW5_ERR_NOIDX         -6      // index not loaded
+#define SLOW5_ERR_NOTFOUND      -7      // read id not found
 
 
 #ifdef __cplusplus
