@@ -40,7 +40,6 @@ SOFTWARE.
 // TODO structure pack to min size
 // TODO fix and add function descriptions
 // TODO remove unnessary header inclusions
-// TODO move klib to src/
 
 #ifndef SLOW5_H
 #define SLOW5_H

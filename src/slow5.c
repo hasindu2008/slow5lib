@@ -96,7 +96,8 @@ __thread int slow5_errno = 0;
 struct slow5_file *slow5_init(FILE *fp, const char *pathname, enum slow5_fmt format) {
     // Pathname cannot be NULL at this point
     if (fp == NULL) {
-        SLOW5_WARNING("%s","Cannot initialise a SLOW5 file with a NULL file pointer.");
+        SLOW5_WARNING("%s", "Cannot initialise a SLOW5 file with a NULL file pointer.");
+        slow5_errno = SLOW5_ERR_ARG;
         return NULL;
     }
 
@@ -105,8 +106,11 @@ struct slow5_file *slow5_init(FILE *fp, const char *pathname, enum slow5_fmt for
         // Attempt to determine format
         // from pathname
         if ((format = slow5_path_get_fmt(pathname)) == SLOW5_FORMAT_UNKNOWN) {
-            fclose(fp);
-            SLOW5_ERROR("%s","Could not determine SLOW5 file format. Extension must be .slow5 or .blow5");
+            SLOW5_ERROR("%s", "Could not determine SLOW5 file format. Extension must be '.slow5' or '.blow5'.");
+            slow5_errno = SLOW5_ERR_EXTUNK;
+            if (fclose(fp) == EOF) {
+                SLOW5_ERROR("%s", "Error closing file. See errno for details.");
+            }
             return NULL;
         }
     }
@@ -221,31 +225,33 @@ struct slow5_file *slow5_open(const char *pathname, const char *mode) {
  * @return              slow5 file structure
  */
 struct slow5_file *slow5_open_with(const char *pathname, const char *mode, enum slow5_fmt format) {
-    if(slow5_is_big_endian()){
-        SLOW5_ERROR("%s","Big endian machine detected. SLOW5lib only support little endian at this time. Please open a github issue stating your machine spec.");
+    if (slow5_is_big_endian()) {
+        SLOW5_ERROR("%s", "Big endian machine detected. SLOW5lib only supports little endian at this time. Please open a github issue stating your machine spec.");
+        slow5_errno = SLOW5_ERR_BIGEND;
         return NULL;
     }
     if (pathname == NULL) {
-        SLOW5_ERROR("%s","Argument 'pathname' cannot be NULL.");
+        SLOW5_ERROR("%s", "Argument 'pathname' cannot be NULL.");
         slow5_errno = SLOW5_ERR_ARG;
         return NULL;
     }
     if (mode == NULL) {
-        SLOW5_ERROR("%s","Argument 'mode' cannot be NULL.");
+        SLOW5_ERROR("%s", "Argument 'mode' cannot be NULL.");
         slow5_errno = SLOW5_ERR_ARG;
         return NULL;
     }
 
-    if(strcmp(mode,"r")){
-        SLOW5_WARNING("Currently, the only supported mode is 'r'. You entered %s",mode);
+    if (strcmp(mode, "r") != 0) {
+        SLOW5_WARNING("Currently, the only supported mode is 'r'. You entered %s.", mode);
     }
 
     FILE *fp = fopen(pathname, mode);
-    if(fp==NULL){
-        SLOW5_ERROR("Error opening file %s: %s",pathname, strerror(errno));
+    if (fp == NULL) {
+        SLOW5_ERROR("Error opening file %s: %s. See errno for details.", pathname, strerror(errno));
+        slow5_errno = SLOW5_ERR_IO;
+        return NULL;
     }
     return slow5_init(fp, pathname, format);
-
 }
 
 /* Close a slow5 file and free its memory.

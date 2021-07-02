@@ -112,19 +112,16 @@ extern "C" {
 #define SLOW5_BINARY_EOF                      { '5', 'W', 'O', 'L', 'B' }
 #define SLOW5_BINARY_HEADER_SIZE_OFFSET       (64L)
 
-// SLOW5 Index specs
-//#define SLOW5_INDEX_HEADER_PREFIX   "#"
-#define SLOW5_INDEX_HEADER          SLOW5_INDEX_HEADER_PREFIX "read_id" SLOW5_SEP_COL "offset" SLOW5_SEP_COL "length\n"
-
-
 // error codes
-#define SLOW5_ERR_EOF           -1      // EOF reached
-#define SLOW5_ERR_ARG           -2      // bad argument (NULL)
-#define SLOW5_ERR_TRUNC         -3      // file truncated
-#define SLOW5_ERR_RECPARSE      -4      // record parsing error
-#define SLOW5_ERR_IO            -5      // other file I/O error
-#define SLOW5_ERR_NOIDX         -6      // index not loaded
-#define SLOW5_ERR_NOTFOUND      -7      // read id not found
+#define SLOW5_ERR_EOF           (-1)    // EOF reached
+#define SLOW5_ERR_ARG           (-2)    // bad argument (NULL)
+#define SLOW5_ERR_TRUNC         (-3)    // file truncated
+#define SLOW5_ERR_RECPARSE      (-4)    // record parsing error
+#define SLOW5_ERR_IO            (-5)    // other file I/O error
+#define SLOW5_ERR_NOIDX         (-6)    // index not loaded
+#define SLOW5_ERR_NOTFOUND      (-7)    // read id not found
+#define SLOW5_ERR_BIGEND        (-8)    // big endian machine
+#define SLOW5_ERR_EXTUNK        (-9)    // file extension unknown
 
 
 #ifdef __cplusplus

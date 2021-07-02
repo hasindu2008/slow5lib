@@ -11,6 +11,7 @@
 
 extern enum slow5_log_level_opt  slow5_log_level;
 extern enum slow5_exit_condition_opt  slow5_exit_condition;
+extern __thread int slow5_errno;
 
 #define BUF_INIT_CAP (20*1024*1024)
 #define SLOW5_INDEX_BUF_INIT_CAP (64) // 2^6 TODO is this too little?
@@ -188,8 +189,6 @@ static int slow5_idx_build(struct slow5_idx *index, struct slow5_file *s5p) {
 
 void slow5_idx_write(struct slow5_idx *index) {
 
-    //fprintf(index->fp, SLOW5_INDEX_HEADER);
-
     const char magic[] = SLOW5_INDEX_MAGIC_NUMBER;
     SLOW5_ASSERT(fwrite(magic, sizeof *magic, sizeof magic, index->fp) == sizeof magic);
 
@@ -215,12 +214,6 @@ void slow5_idx_write(struct slow5_idx *index) {
 
         struct slow5_rec_idx read_index = kh_value(index->hash, pos);
 
-        /*
-        SLOW5_ASSERT(fprintf(index->fp, "%s" SLOW5_SEP_COL "%" PRIu64 SLOW5_SEP_COL "%" PRIu64 "\n",
-                index->ids[i],
-                read_index.offset,
-                read_index.size) >= 0);
-        */
         slow5_rid_len_t read_id_len = strlen(index->ids[i]);
         SLOW5_ASSERT(fwrite(&read_id_len, sizeof read_id_len, 1, index->fp) == 1);
         SLOW5_ASSERT(fwrite(index->ids[i], sizeof *index->ids[i], read_id_len, index->fp) == read_id_len);
@@ -340,11 +333,20 @@ int slow5_idx_get(struct slow5_idx *index, const char *read_id, struct slow5_rec
     return ret;
 }
 
+/*
+ * return:
+ * SLOW5_ERR_IO - issue closing index file pointer
+ */
 void slow5_idx_free(struct slow5_idx *index) {
-    //NULL_CHK(index); // TODO necessary?
+    if (index == NULL) {
+        return;
+    }
 
     if (index->fp != NULL) {
-        SLOW5_ASSERT(fclose(index->fp) == 0);
+        if (fclose(index->fp) == EOF) {
+            SLOW5_ERROR("%s: %s", "Failure when closing index file", strerror(errno));
+            slow5_errno = SLOW5_ERR_IO;
+        }
     }
 
     for (uint64_t i = 0; i < index->num_ids; ++ i) {
