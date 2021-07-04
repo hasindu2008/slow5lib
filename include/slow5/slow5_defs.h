@@ -117,7 +117,7 @@ extern "C" {
 #define SLOW5_ERR_ARG           (-2)    // bad argument (NULL)
 #define SLOW5_ERR_TRUNC         (-3)    // file truncated
 #define SLOW5_ERR_RECPARSE      (-4)    // record parsing error
-#define SLOW5_ERR_IO            (-5)    // other file I/O error
+#define SLOW5_ERR_IO            (-5)    // other file I/O error (check errno for details)
 #define SLOW5_ERR_NOIDX         (-6)    // index not loaded
 #define SLOW5_ERR_NOTFOUND      (-7)    // read id not found
 #define SLOW5_ERR_BIGEND        (-8)    // big endian machine
