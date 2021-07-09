@@ -47,6 +47,7 @@ SOFTWARE.
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <math.h>
 #include "klib/khash.h"
 #include "klib/kvec.h"
 #include "slow5_press.h"
@@ -134,7 +135,7 @@ enum slow5_aux_type {
 #define SLOW5_IS_PTR(type)        (type >= SLOW5_INT8_T_ARRAY)
 #define SLOW5_TO_PRIM_TYPE(type)  ((enum slow5_aux_type) (type - SLOW5_INT8_T_ARRAY))
 
-//NULL (missing value) representation
+/* NULL (missing value) representation */
 #define SLOW5_INT8_T_NULL     INT8_MAX
 #define SLOW5_INT16_T_NULL    INT16_MAX
 #define SLOW5_INT32_T_NULL    INT32_MAX

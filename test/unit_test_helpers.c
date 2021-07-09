@@ -279,6 +279,17 @@ int name_get_slow5_fmt_test(void) {
     return EXIT_SUCCESS;
 }
 
+int fmt_get_name_test(void) {
+    ASSERT(slow5_fmt_get_name(0) == NULL);
+    ASSERT(strcmp(slow5_fmt_get_name(1), "slow5") == 0);
+    ASSERT(strcmp(slow5_fmt_get_name(2), "blow5") == 0);
+    ASSERT(slow5_fmt_get_name(3) == NULL);
+    ASSERT(slow5_fmt_get_name(100) == NULL);
+    ASSERT(slow5_fmt_get_name(-991) == NULL);
+
+    return EXIT_SUCCESS;
+}
+
 int asprintf_mine_valid(void) {
     char *str = NULL;
 
@@ -326,6 +337,7 @@ int main(void) {
 
         CMD(path_get_slow5_fmt_test)
         CMD(name_get_slow5_fmt_test)
+        CMD(fmt_get_name_test)
 
         CMD(asprintf_mine_valid)
     };

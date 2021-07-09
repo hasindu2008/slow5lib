@@ -24,7 +24,12 @@ int slow5_uint_check(const char *str);
 int slow5_int_check(const char *str);
 int slow5_float_check(const char *str);
 
-// From https://stackoverflow.com/questions/3774417/sprintf-with-automatic-memory-allocation
+/*
+ * From https://stackoverflow.com/questions/3774417/sprintf-with-automatic-memory-allocation
+ * sprintf with automatic memory allocation and variable list argument
+ * returns -1 on calloc error, which may be a result of vsnprintf returning a negative size from an invalid fmt ap combination
+ * returns negative value if the 2nd vsnprintf fails
+ */
 int slow5_vasprintf(char **strp, const char *fmt, va_list ap) {
     va_list ap1;
     size_t size;
@@ -44,7 +49,12 @@ int slow5_vasprintf(char **strp, const char *fmt, va_list ap) {
     return vsnprintf(buffer, size, fmt, ap);
 }
 
-// From https://stackoverflow.com/questions/3774417/sprintf-with-automatic-memory-allocation
+/*
+ * From https://stackoverflow.com/questions/3774417/sprintf-with-automatic-memory-allocation
+ * sprintf with automatic memory allocation
+ * returns -1 on calloc/fmt error
+ * returns negative value on other vsnprintf error
+ */
 int slow5_asprintf(char **strp, const char *fmt, ...) {
     int error;
     va_list ap;

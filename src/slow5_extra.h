@@ -58,10 +58,11 @@ char *slow5_get_idx_path(const char *path);
 // auxilary type
 enum slow5_aux_type slow5_str_to_aux_type(const char *str, int *err);
 int slow5_memcpy_type_from_str(uint8_t *data, const char *value, enum slow5_aux_type type);
-void slow5_memcpy_type_from_null_str(uint8_t *data, enum slow5_aux_type type);
+void slow5_memcpy_null_type(uint8_t *data, enum slow5_aux_type type);
 char *slow5_type_to_str(uint8_t *data, const char *type, size_t len, size_t *str_len);
 char *slow5_aux_type_to_str(enum slow5_aux_type type);
-char *slow5_data_to_str(uint8_t *data, enum slow5_aux_type type, uint64_t len, size_t *str_len);
+char *slow5_data_to_str(uint8_t *data, enum slow5_aux_type type, uint64_t ptr_len, size_t *str_len);
+
 
 
 

@@ -149,7 +149,7 @@ int slow5_aux_get_invalid(void) {
     ASSERT(cn == NULL);
     ASSERT(err == -1);
     double mb = slow5_aux_get_double(read, "", &err);
-    ASSERT(mb == DBL_MAX);
+    ASSERT(isnan(mb));
     ASSERT(err == -1);
     ASSERT(slow5_aux_get_int32(read, "read_nu", &err) == INT32_MAX);
     ASSERT(err == -1);
