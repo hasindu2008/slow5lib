@@ -1931,34 +1931,18 @@ static inline khash_t(slow5_s2a) *slow5_rec_aux_init(void) {
     return aux_map;
 }
 
+/* free a slow5 record auxiliary hash map DONE */
 void slow5_rec_aux_free(khash_t(slow5_s2a) *aux_map) {
     if (aux_map != NULL) {
         for (khint_t i = kh_begin(aux_map); i != kh_end(aux_map); ++ i) {
             if (kh_exist(aux_map, i)) {
                 kh_del(slow5_s2a, aux_map, i);
                 struct slow5_rec_aux_data *aux_data = &kh_value(aux_map, i);
+                /* TODO aux_data better not be null here because I'm not checking */
                 free(aux_data->data);
             }
         }
 
-        // Using aux_meta?
-        // Then no independence between different slow5_file pointers
-        // Hence, always close slow5 files after slow5 records?
-        // Is this a restriction on the library or ok?
-        /*
-        for (uint16_t i = 0; i < aux_meta->num; ++ i) {
-            char *attr = aux_meta->attrs[i];
-
-            khint_t pos = kh_get(slow5_s2a, aux_map, attr);
-
-            if (kh_exist(aux_map, pos)) {
-                free((void *) kh_key(aux_map, pos)); // TODO avoid void *
-                kh_del(slow5_s2a, aux_map, pos);
-                struct slow5_rec_aux_data *aux_data = &kh_value(aux_map, pos);
-                free(aux_data->data);
-            }
-        }
-        */
         kh_destroy(slow5_s2a, aux_map);
     }
 }
@@ -1968,101 +1952,113 @@ void slow5_rec_aux_free(khash_t(slow5_s2a) *aux_map) {
  *
  * Allocates memory for *read if it is NULL.
  * Otherwise, the data in *read is freed and overwritten.
- * slow5_rec_free() should be called when finished with the structure.
+ *
+ * slow5_rec_free() should be called when finished with the read, even on failure.
  *
  * Return
  * >=0  the read was successfully found and stored
  * <0   error code
  * Error
+ * SLOW5_ERR_ARG        read or s5p is NULL
  * SLOW5_ERR_EOF        EOF reached
- * SLOW5_ERR_ARG        read_id, read or s5p is NULL
  * SLOW5_ERR_IO         other reading error when reading the slow5 file
  * SLOW5_ERR_RECPARSE   record parsing error
+ * SLOW5_ERR_MEM        memory allocation error
  *
  * @param   read    address of a slow5_rec pointer
  * @param   s5p     slow5 file
  * @return  error code described above
  */
 int slow5_get_next(struct slow5_rec **read, struct slow5_file *s5p) {
-    if (read == NULL || s5p == NULL) {
+    if (read == NULL) {
+        SLOW5_ERROR("%s", "Argument 'read' cannot be NULL.");
+        slow5_errno = SLOW5_ERR_ARG;
+        return SLOW5_ERR_ARG;
+    }
+    if (s5p == NULL) {
+        SLOW5_ERROR("%s", "Argument 's5p' cannot be NULL.");
         slow5_errno = SLOW5_ERR_ARG;
         return SLOW5_ERR_ARG;
     }
 
+    if (*read == NULL) {
+        *read = (struct slow5_rec *) calloc(1, sizeof **read); /* allocate memory for read */
+        SLOW5_MALLOC_CHK(*read);
+        if (*read == NULL) {
+            slow5_errno = SLOW5_ERR_MEM;
+            return SLOW5_ERR_MEM;
+        }
+    } else {
+        free((*read)->read_id); /* free read */
+        (*read)->read_id = NULL;
+        slow5_rec_aux_free((*read)->aux_map); /* free auxiliary data */
+        (*read)->aux_map = NULL;
+    }
+
     int ret = 0;
+    size_t read_len;
     char *read_mem = NULL;
 
     if (s5p->format == SLOW5_FORMAT_ASCII) {
+
         size_t cap = 0;
-        ssize_t read_len;
-        if ((read_len = getline(&read_mem, &cap, s5p->fp)) == -1) {
+        ssize_t read_len_tmp;
+        if ((read_len_tmp = getline(&read_mem, &cap, s5p->fp)) == -1) { /* getline failed */
+            int errno_save = errno;
             free(read_mem);
             if (feof(s5p->fp)) {
+                SLOW5_ERROR("%s", "End of file reached.")
                 slow5_errno = SLOW5_ERR_EOF;
                 return SLOW5_ERR_EOF;
             }
+            if (errno_save == EINVAL) {
+                SLOW5_ERROR("%s", "File pointer cannot be NULL.")
+                slow5_errno = SLOW5_ERR_IO;
+                return SLOW5_ERR_IO;
+            }
+            if (errno_save == ENOMEM) {
+                SLOW5_ERROR("%s", "Allocation of the line buffer failed.")
+                slow5_errno = SLOW5_ERR_MEM;
+                return SLOW5_ERR_MEM;
+            }
+            SLOW5_ERROR("Failure to get the next read: %s", strerror(errno_save))
             slow5_errno = SLOW5_ERR_IO;
             return SLOW5_ERR_IO;
         }
-        read_mem[-- read_len] = '\0'; // Remove newline for parsing
-
-        if (*read == NULL) {
-            // Allocate memory for read
-            *read = (struct slow5_rec *) calloc(1, sizeof **read);
-            SLOW5_MALLOC_CHK(*read);
-        } else {
-            // Free previously allocated read id
-            free((*read)->read_id);
-            (*read)->read_id = NULL;
-            if ((*read)->aux_map != NULL) {
-                // Free previously allocated auxiliary data
-                slow5_rec_aux_free((*read)->aux_map);
-                (*read)->aux_map = NULL;
-            }
-        }
-
-        if (slow5_rec_parse(read_mem, read_len, NULL, *read, s5p->format, s5p->header->aux_meta) == -1) {
-            ret = SLOW5_ERR_RECPARSE;
-        }
-
-        free(read_mem);
+        read_len = read_len_tmp;
+        read_mem[-- read_len] = '\0'; /* remove newline for parsing */
 
     } else if (s5p->format == SLOW5_FORMAT_BINARY) {
-        if (*read == NULL) {
-            // Allocate memory for read
-            *read = (struct slow5_rec *) calloc(1, sizeof **read);
-            SLOW5_MALLOC_CHK(*read);
-        } else {
-            // Free previously allocated read id
-            free((*read)->read_id);
-            (*read)->read_id = NULL;
-            if ((*read)->aux_map != NULL) {
-                // Free previously allocated auxiliary data
-                slow5_rec_aux_free((*read)->aux_map);
-                (*read)->aux_map = NULL;
-            }
-        }
 
         slow5_rec_size_t record_size;
         if (fread(&record_size, sizeof record_size, 1, s5p->fp) != 1) {
             if (feof(s5p->fp)) {
+                SLOW5_ERROR("%s", "End of file reached.")
+                slow5_errno = SLOW5_ERR_EOF;
                 return SLOW5_ERR_EOF;
             }
+            SLOW5_ERROR("%s", "Failure to get the next read.")
+            slow5_errno = SLOW5_ERR_IO;
             return SLOW5_ERR_IO;
         }
 
-        size_t size_decomp;
-        char *rec_decomp = (char *) slow5_fread_depress(s5p->compress, record_size, s5p->fp, &size_decomp);
-        if (rec_decomp == NULL) {
+        /* TODO investigate errors on slow5_fread_depress */
+        read_mem = (char *) slow5_fread_depress(s5p->compress, record_size, s5p->fp, &read_len);
+        if (read_mem == NULL) {
+            SLOW5_ERROR("%s", "Decompression failed.")
+            slow5_errno = SLOW5_ERR_IO;
             return SLOW5_ERR_IO;
         }
-
-        if (slow5_rec_parse(rec_decomp, size_decomp, NULL, *read, s5p->format, s5p->header->aux_meta) == -1) {
-            ret = SLOW5_ERR_RECPARSE;
-        }
-
-        free(rec_decomp);
     }
+
+    /* TODO investigate errors on slow5_rec_parse */
+    if (slow5_rec_parse(read_mem, read_len, NULL, *read, s5p->format, s5p->header->aux_meta) == -1) {
+        SLOW5_ERROR("%s", "Read could not be parsed.")
+        slow5_errno = SLOW5_ERR_RECPARSE;
+        ret = slow5_errno;
+    }
+
+    free(read_mem);
 
     return ret;
 }
@@ -2149,15 +2145,15 @@ static inline void slow5_rec_set_aux_map(khash_t(slow5_s2a) *aux_map, const char
     raw_type val = null; \
     if (read == NULL || field == NULL) { \
         slow5_errno = SLOW5_ERR_ARG; \
-        tmp_err = SLOW5_ERR_ARG; \
+        tmp_err = slow5_errno; \
     } else if (read->aux_map == NULL) { \
         slow5_errno = SLOW5_ERR_NOAUX; \
-        tmp_err = SLOW5_ERR_NOAUX; \
+        tmp_err = slow5_errno; \
     } else { \
         khint_t pos = kh_get(slow5_s2a, read->aux_map, field); \
         if (pos == kh_end(read->aux_map)) { \
             slow5_errno = SLOW5_ERR_NOFLD; \
-            tmp_err = SLOW5_ERR_NOFLD; \
+            tmp_err = slow5_errno; \
         } else  { \
             struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos); \
             if (aux_data.type == prim_type) { \
@@ -2175,6 +2171,7 @@ static inline void slow5_rec_set_aux_map(khash_t(slow5_s2a) *aux_map, const char
  * SLOW5_ERR_ARG if read or field is NULL
  * SLOW5_ERR_NOAUX if no auxiliary hash map for the record
  * SLOW5_ERR_NOFLD if the field was not found
+ * DONE
  */
 int8_t slow5_aux_get_int8(const struct slow5_rec *read, const char *field, int *err) {
     SLOW5_AUX_GET(read, field, int8_t, SLOW5_INT8_T_NULL, SLOW5_INT8_T)
@@ -2214,15 +2211,15 @@ char slow5_aux_get_char(const struct slow5_rec *read, const char *field, int *er
     raw_type val = NULL; \
     if (read == NULL || field == NULL) { \
         slow5_errno = SLOW5_ERR_ARG; \
-        tmp_err = SLOW5_ERR_ARG; \
+        tmp_err = slow5_errno; \
     } else if (read->aux_map == NULL) { \
         slow5_errno = SLOW5_ERR_NOAUX; \
-        tmp_err = SLOW5_ERR_NOAUX; \
+        tmp_err = slow5_errno; \
     } else { \
         khint_t pos = kh_get(slow5_s2a, read->aux_map, field); \
         if (pos == kh_end(read->aux_map)) { \
             slow5_errno = SLOW5_ERR_NOFLD; \
-            tmp_err = SLOW5_ERR_NOFLD; \
+            tmp_err = slow5_errno; \
         } else { \
             struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos); \
             if (aux_data.type == ptr_type) { \
@@ -2243,6 +2240,7 @@ char slow5_aux_get_char(const struct slow5_rec *read, const char *field, int *er
  * SLOW5_ERR_ARG if read or field is NULL
  * SLOW5_ERR_NOAUX if no auxiliary hash map for the record
  * SLOW5_ERR_NOFLD if the field was not found
+ * DONE
  */
 int8_t *slow5_aux_get_int8_array(const struct slow5_rec *read, const char *field, uint64_t *len, int *err) {
     SLOW5_AUX_GET_ARRAY(read, field, len, int8_t*, SLOW5_INT8_T_ARRAY)
@@ -2641,6 +2639,7 @@ void *slow5_rec_to_mem(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, 
 /*
  * free a slow5 record
  * if slow5_rec_free(read) has already been called undefined behaviour occurs
+ * DONE
  */
 void slow5_rec_free(struct slow5_rec *read) {
     if (read != NULL) {

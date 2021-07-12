@@ -124,7 +124,7 @@ extern "C" {
 #define SLOW5_ERR_NOTFOUND      (-7)    // read id not found
 #define SLOW5_ERR_BIGEND        (-8)    // big endian machine
 #define SLOW5_ERR_EXTUNK        (-9)    // file extension unknown
-#define SLOW5_ERR_MEM           (-10)   // malloc error
+#define SLOW5_ERR_MEM           (-10)   // memory (re)allocation error
 #define SLOW5_ERR_NOAUX         (-11)   // no auxiliary map
 #define SLOW5_ERR_NOFLD         (-12)   // field not found
 
