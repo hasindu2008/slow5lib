@@ -448,9 +448,12 @@ void slow5_rec_free(slow5_rec_t *read);
  * Get an auxiliary field in a SLOW5 record as an 8-bit signed integer.
  *
  * @param   read    address of a slow5_rec_t pointer
- * @param   field    auxiliary field name
- * @param   err     error code (non zero error code if failed)
- * @return  field data value
+ * @param   field   auxiliary field name
+ * @param   err     error code, 0 on success, <0 on failure and slow5_errno is set
+ *                  SLOW5_ERR_ARG   if read or field is NULL
+ *                  SLOW5_ERR_NOAUX if no auxiliary hash map for the record
+ *                  SLOW5_ERR_NOFLD if the field was not found
+ * @return  field data value or SLOW5_INT8_T_NULL on failure
  */
 int8_t slow5_aux_get_int8(const slow5_rec_t *read, const char *field, int *err);
 int16_t slow5_aux_get_int16(const slow5_rec_t *read, const char *field, int *err);
@@ -468,8 +471,12 @@ char slow5_aux_get_char(const slow5_rec_t *read, const char *field, int *err);
  * Get an auxiliary field in a SLOW5 record as an 8-bit signed integer array.
  *
  * @param   read    address of a slow5_rec_t pointer
- * @param   field    auxiliary field name
- * @param   err     error code
+ * @param   field   auxiliary field name
+ * @param   len     number of data values in the returned array
+ * @param   err     error code, 0 on success, <0 on failure and slow5_errno is set
+ *                  SLOW5_ERR_ARG   if read or field is NULL
+ *                  SLOW5_ERR_NOAUX if no auxiliary hash map for the record
+ *                  SLOW5_ERR_NOFLD if the field was not found
  * @return  pointer to the array of data values
  */
 int8_t *slow5_aux_get_int8_array(const slow5_rec_t *read, const char *field, uint64_t *len, int *err);

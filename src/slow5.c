@@ -1974,10 +1974,10 @@ void slow5_rec_aux_free(khash_t(slow5_s2a) *aux_map) {
  * >=0  the read was successfully found and stored
  * <0   error code
  * Error
- * SLOW5_ERR_EOF       EOF reached
- * SLOW5_ERR_ARG       read_id, read or s5p is NULL
- * SLOW5_ERR_IO      ither reading error when reading the slow5 file
- * SLOW5_ERR_RECPARSE    record parsing error
+ * SLOW5_ERR_EOF        EOF reached
+ * SLOW5_ERR_ARG        read_id, read or s5p is NULL
+ * SLOW5_ERR_IO         other reading error when reading the slow5 file
+ * SLOW5_ERR_RECPARSE   record parsing error
  *
  * @param   read    address of a slow5_rec pointer
  * @param   s5p     slow5 file
@@ -1985,6 +1985,7 @@ void slow5_rec_aux_free(khash_t(slow5_s2a) *aux_map) {
  */
 int slow5_get_next(struct slow5_rec **read, struct slow5_file *s5p) {
     if (read == NULL || s5p == NULL) {
+        slow5_errno = SLOW5_ERR_ARG;
         return SLOW5_ERR_ARG;
     }
 
@@ -1997,8 +1998,10 @@ int slow5_get_next(struct slow5_rec **read, struct slow5_file *s5p) {
         if ((read_len = getline(&read_mem, &cap, s5p->fp)) == -1) {
             free(read_mem);
             if (feof(s5p->fp)) {
+                slow5_errno = SLOW5_ERR_EOF;
                 return SLOW5_ERR_EOF;
             }
+            slow5_errno = SLOW5_ERR_IO;
             return SLOW5_ERR_IO;
         }
         read_mem[-- read_len] = '\0'; // Remove newline for parsing
@@ -2146,15 +2149,15 @@ static inline void slow5_rec_set_aux_map(khash_t(slow5_s2a) *aux_map, const char
     raw_type val = null; \
     if (read == NULL || field == NULL) { \
         slow5_errno = SLOW5_ERR_ARG; \
-        tmp_err = -1; \
+        tmp_err = SLOW5_ERR_ARG; \
     } else if (read->aux_map == NULL) { \
         slow5_errno = SLOW5_ERR_NOAUX; \
-        tmp_err = -1; \
+        tmp_err = SLOW5_ERR_NOAUX; \
     } else { \
         khint_t pos = kh_get(slow5_s2a, read->aux_map, field); \
         if (pos == kh_end(read->aux_map)) { \
             slow5_errno = SLOW5_ERR_NOFLD; \
-            tmp_err = -1; \
+            tmp_err = SLOW5_ERR_NOFLD; \
         } else  { \
             struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos); \
             if (aux_data.type == prim_type) { \
@@ -2169,6 +2172,9 @@ static inline void slow5_rec_set_aux_map(khash_t(slow5_s2a) *aux_map, const char
 /*
  * get the auxiliary entry of a primitive type field from a slow5 record
  * err is deprecated, check slow5_errno instead
+ * SLOW5_ERR_ARG if read or field is NULL
+ * SLOW5_ERR_NOAUX if no auxiliary hash map for the record
+ * SLOW5_ERR_NOFLD if the field was not found
  */
 int8_t slow5_aux_get_int8(const struct slow5_rec *read, const char *field, int *err) {
     SLOW5_AUX_GET(read, field, int8_t, SLOW5_INT8_T_NULL, SLOW5_INT8_T)
@@ -2208,15 +2214,15 @@ char slow5_aux_get_char(const struct slow5_rec *read, const char *field, int *er
     raw_type val = NULL; \
     if (read == NULL || field == NULL) { \
         slow5_errno = SLOW5_ERR_ARG; \
-        tmp_err = -1; \
+        tmp_err = SLOW5_ERR_ARG; \
     } else if (read->aux_map == NULL) { \
         slow5_errno = SLOW5_ERR_NOAUX; \
-        tmp_err = -1; \
+        tmp_err = SLOW5_ERR_NOAUX; \
     } else { \
         khint_t pos = kh_get(slow5_s2a, read->aux_map, field); \
         if (pos == kh_end(read->aux_map)) { \
             slow5_errno = SLOW5_ERR_NOFLD; \
-            tmp_err = -1; \
+            tmp_err = SLOW5_ERR_NOFLD; \
         } else { \
             struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos); \
             if (aux_data.type == ptr_type) { \
@@ -2234,6 +2240,9 @@ char slow5_aux_get_char(const struct slow5_rec *read, const char *field, int *er
 /*
  * get the auxiliary entry of an array type field from a slow5 record
  * err is deprecated, check slow5_errno instead
+ * SLOW5_ERR_ARG if read or field is NULL
+ * SLOW5_ERR_NOAUX if no auxiliary hash map for the record
+ * SLOW5_ERR_NOFLD if the field was not found
  */
 int8_t *slow5_aux_get_int8_array(const struct slow5_rec *read, const char *field, uint64_t *len, int *err) {
     SLOW5_AUX_GET_ARRAY(read, field, len, int8_t*, SLOW5_INT8_T_ARRAY)
@@ -2629,6 +2638,10 @@ void *slow5_rec_to_mem(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, 
     return (void *) mem;
 }
 
+/*
+ * free a slow5 record
+ * if slow5_rec_free(read) has already been called undefined behaviour occurs
+ */
 void slow5_rec_free(struct slow5_rec *read) {
     if (read != NULL) {
         free(read->read_id);
