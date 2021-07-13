@@ -113,6 +113,14 @@ enum slow5_exit_condition_opt {
                 "At %s:%d\n", \
                 __func__, __VA_ARGS__, __FILE__, __LINE__ - 1); \
     } \
+}
+
+#define SLOW5_ERROR_EXIT(msg, ...) { \
+    if (slow5_log_level >= SLOW5_LOG_ERR) { \
+        fprintf(stderr, SLOW5_ERROR_PREFIX msg SLOW5_NO_COLOUR \
+                "At %s:%d\n", \
+                __func__, __VA_ARGS__, __FILE__, __LINE__ - 1); \
+    } \
     if (slow5_exit_condition == SLOW5_EXIT_ON_ERR){ \
         fprintf(stderr,"Exiting on error.\n"); \
         exit(EXIT_FAILURE); \
@@ -121,18 +129,15 @@ enum slow5_exit_condition_opt {
 
 #define SLOW5_MALLOC_CHK(ret) { \
     if ((ret) == NULL) { \
-        if (slow5_log_level >= SLOW5_LOG_ERR) { \
-            fprintf(stderr, SLOW5_ERROR_PREFIX "Failed to allocate memory." SLOW5_NO_COLOUR \
-                    "At %s:%d\n", \
-                    __func__, __FILE__, __LINE__ - 1); \
-        } \
-        if (slow5_exit_condition == SLOW5_EXIT_ON_ERR){ \
-            fprintf(stderr,"Exiting on error.\n"); \
-            exit(EXIT_FAILURE); \
-        } \
+        SLOW5_ERROR("%s", "Failed to allocate memory") \
     }\
 }
 
+#define SLOW5_MALLOC_CHK_EXIT(ret) { \
+    if ((ret) == NULL) { \
+        SLOW5_ERROR_EXIT("%s", "Failed to allocate memory") \
+    }\
+}
 
 #define SLOW5_ASSERT(ret) { \
     if((ret) == 0){ \

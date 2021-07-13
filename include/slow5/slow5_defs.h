@@ -127,6 +127,7 @@ extern "C" {
 #define SLOW5_ERR_MEM           (-10)   // memory (re)allocation error
 #define SLOW5_ERR_NOAUX         (-11)   // no auxiliary map
 #define SLOW5_ERR_NOFLD         (-12)   // field not found
+#define SLOW5_ERR_PRESS         (-13)   // (de)compression failed
 
 
 #ifdef __cplusplus
