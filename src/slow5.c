@@ -2494,14 +2494,14 @@ void *slow5_rec_to_mem(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, 
 
         uint64_t i;
         for (i = 1; i < read->len_raw_signal; ++ i) {
-            int sig_len = sprintf(sig_buf, SLOW5_FORMAT_STRING_RAW_SIGNAL SLOW5_SEP_ARRAY, read->raw_signal[i - 1]);
+            int sig_len = sprintf(sig_buf, SLOW5_FORMAT_STRING_RAW_SIGNAL SLOW5_SEP_ARRAY, read->raw_signal[i-1]);
 
             memcpy(mem + curr_len, sig_buf, sig_len);
             curr_len += sig_len;
         }
         if (read->len_raw_signal > 0) {
             // Trailing signal
-            int len_to_cp = sprintf(sig_buf, SLOW5_FORMAT_STRING_RAW_SIGNAL, read->raw_signal[i - 1]);
+            int len_to_cp = sprintf(sig_buf, SLOW5_FORMAT_STRING_RAW_SIGNAL, read->raw_signal[i-1]);
             memcpy(mem + curr_len, sig_buf, len_to_cp);
             curr_len += len_to_cp;
         }
@@ -2519,25 +2519,28 @@ void *slow5_rec_to_mem(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, 
                 }
                 mem[curr_len ++] = '\t';
 
+                size_t type_len;
+                char *type_str;
+
                 khint_t pos = kh_get(slow5_s2a, read->aux_map, aux_meta->attrs[i]);
                 if (pos != kh_end(read->aux_map)) {
-                    size_t type_len;
                     struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos);
-                    char *type_str = slow5_data_to_str(aux_data.data, aux_data.type, aux_data.len, &type_len);
-
-                    // Realloc if necessary
-                    if (curr_len + type_len >= cap) {
-                        cap *= 2;
-                        mem = (char *) realloc(mem, cap);
-                        SLOW5_MALLOC_CHK(mem);
-                    }
-
-                    memcpy(mem + curr_len, type_str, type_len);
-                    curr_len += type_len;
-
-                    free(type_str);
+                    type_str = slow5_data_to_str(aux_data.data, aux_data.type, aux_data.len, &type_len);
+                } else {
+                    type_str = get_missing_str(&type_len);
                 }
 
+                // Realloc if necessary
+                if (curr_len + type_len >= cap) {
+                    cap *= 2;
+                    mem = (char *) realloc(mem, cap);
+                    SLOW5_MALLOC_CHK(mem);
+                }
+
+                memcpy(mem + curr_len, type_str, type_len);
+                curr_len += type_len;
+
+                free(type_str);
             }
         }
 
@@ -2593,34 +2596,39 @@ void *slow5_rec_to_mem(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, 
         // Auxiliary fields
         if (read->aux_map != NULL && aux_meta != NULL) { // TODO error if one is NULL but not another
             for (uint16_t i = 0; i < aux_meta->num; ++ i) {
+                struct slow5_rec_aux_data aux_data = { 0 };
+
                 khint_t pos = kh_get(slow5_s2a, read->aux_map, aux_meta->attrs[i]);
                 if (pos != kh_end(read->aux_map)) {
-                    struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos);
-
-                    if (SLOW5_IS_PTR(aux_meta->types[i])) {
-                        // Realloc if necessary
-                        if (curr_len + sizeof aux_data.len + aux_data.bytes >= cap) {
-                            cap *= 2;
-                            mem = (char *) realloc(mem, cap);
-                            SLOW5_MALLOC_CHK(mem);
-                        }
-
-                        memcpy(mem + curr_len, &aux_data.len, sizeof aux_data.len);
-                        curr_len += sizeof aux_data.len;
-
-                    } else {
-                        // Realloc if necessary
-                        if (curr_len + aux_data.bytes >= cap) {
-                            cap *= 2;
-                            mem = (char *) realloc(mem, cap);
-                            SLOW5_MALLOC_CHK(mem);
-                        }
-                    }
-                    if (aux_data.len != 0) {
-                        memcpy(mem + curr_len, aux_data.data, aux_data.bytes);
-                    }
-                    curr_len += aux_data.bytes;
+                    aux_data = kh_value(read->aux_map, pos);
+                } else if (!SLOW5_IS_PTR(aux_meta->types[i])) {
+                    aux_data.len = 1;
+                    aux_data.bytes = SLOW5_AUX_TYPE_META[aux_meta->types[i]].size;
+                    aux_data.data = (uint8_t *) malloc(aux_data.bytes);
+                    slow5_memcpy_null_type(aux_data.data, aux_meta->types[i]);
                 }
+
+                if (SLOW5_IS_PTR(aux_meta->types[i])) {
+                    // Realloc if necessary
+                    if (curr_len + sizeof aux_data.len + aux_data.bytes >= cap) {
+                        cap *= 2;
+                        mem = (char *) realloc(mem, cap);
+                        SLOW5_MALLOC_CHK(mem);
+                    }
+
+                    memcpy(mem + curr_len, &aux_data.len, sizeof aux_data.len);
+                    curr_len += sizeof aux_data.len;
+
+                } else if (curr_len + aux_data.bytes >= cap) { // Realloc if necessary
+                    cap *= 2;
+                    mem = (char *) realloc(mem, cap);
+                    SLOW5_MALLOC_CHK(mem);
+                }
+
+                if (aux_data.len != 0) {
+                    memcpy(mem + curr_len, aux_data.data, aux_data.bytes);
+                }
+                curr_len += aux_data.bytes;
             }
         }
 
@@ -2953,7 +2961,7 @@ int slow5_memcpy_type_from_str(uint8_t *data, const char *value, enum slow5_aux_
 /*
  * write to data the null representative of the type
  * data cannot be NULL
- * type shouldn't be a pointer
+ * type should only be primitive
  * undefined behaviour if data doesn't have enough space for its type
  */
 void slow5_memcpy_null_type(uint8_t *data, enum slow5_aux_type type) {
