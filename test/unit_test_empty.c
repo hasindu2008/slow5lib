@@ -60,6 +60,7 @@ int slow5_rec_set_valid(void) {
     ASSERT(slow5_aux_meta_add(aux_meta, "read_number", SLOW5_INT32_T) == 0);
     ASSERT(slow5_aux_meta_add(aux_meta, "start_mux", SLOW5_UINT8_T) == 0);
     ASSERT(slow5_aux_meta_add(aux_meta, "start_time", SLOW5_UINT64_T) == 0);
+    ASSERT(slow5_aux_meta_add(aux_meta, "some_char", SLOW5_CHAR) == 0);
 
     ASSERT(strcmp(aux_meta->attrs[0], "channel_number") == 0);
     ASSERT(strcmp(aux_meta->attrs[1], "median_before") == 0);
@@ -69,7 +70,7 @@ int slow5_rec_set_valid(void) {
     ASSERT(aux_meta->types[1] == SLOW5_DOUBLE);
     ASSERT(aux_meta->types[2] == SLOW5_INT32_T);
 
-    ASSERT(aux_meta->num == 5);
+    ASSERT(aux_meta->num == 6);
 
     struct slow5_hdr *header = slow5_hdr_init_empty();
     header->version = SLOW5_ASCII_VERSION_STRUCT;
@@ -82,6 +83,7 @@ int slow5_rec_set_valid(void) {
     int32_t rn = 292;
     uint8_t sm = 1;
     uint64_t st = 1019283;
+    char x = '\0';
 
     //ASSERT(slow5_rec_set_array(read, aux_meta, "channel_number", cn, strlen(cn) + 1) == 0);
     ASSERT(slow5_rec_set_string(read, aux_meta, "channel_number", cn) == 0);
@@ -89,6 +91,7 @@ int slow5_rec_set_valid(void) {
     ASSERT(slow5_rec_set(read, aux_meta, "read_number", &rn) == 0);
     ASSERT(slow5_rec_set(read, aux_meta, "median_before", &mb) == 0);
     ASSERT(slow5_rec_set(read, aux_meta, "start_mux", &sm) == 0);
+    ASSERT(slow5_rec_set(read, aux_meta, "some_char", &x) == 0);
 
     ASSERT(slow5_rec_print(read, aux_meta, SLOW5_FORMAT_ASCII, NULL) != -1);
     slow5_rec_free(read);

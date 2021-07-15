@@ -67,7 +67,13 @@ int slow5_asprintf(char **strp, const char *fmt, ...) {
 }
 
 
-// From https://code.woboq.org/userspace/glibc/string/strsep.c.html
+/*
+ * from https://code.woboq.org/userspace/glibc/string/strsep.c.html
+ * strsep source code
+ * updates *stringp to after delim, sets *stringp to NULL if delim isn't found
+ * returns pointer to where *stringp was before, NULL if *stringp is NULL
+ * DONE
+ */
 char *
 slow5_strsep (char **stringp, const char *delim)
 {
