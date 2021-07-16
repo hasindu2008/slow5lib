@@ -1422,8 +1422,17 @@ void slow5_hdr_data_free(struct slow5_hdr *header) {
  * @return  error code described above
  */
 int slow5_get(const char *read_id, struct slow5_rec **read, struct slow5_file *s5p) {
-    if (read_id == NULL || read == NULL || s5p == NULL) {
-        SLOW5_ERROR("%s","read_id, read and s5p cannot be NULL.");
+    if (read_id == NULL) {
+        SLOW5_ERROR_EXIT("%s", "Argument 'read_id' cannot be NULL.");
+        slow5_errno = SLOW5_ERR_ARG;
+        return SLOW5_ERR_ARG;
+    } else if (read == NULL) {
+        SLOW5_ERROR_EXIT("%s", "Argument 'read' cannot be NULL.");
+        slow5_errno = SLOW5_ERR_ARG;
+        return SLOW5_ERR_ARG;
+    } else if (s5p == NULL) {
+        SLOW5_ERROR_EXIT("%s", "Argument 's5p' cannot be NULL.");
+        slow5_errno = SLOW5_ERR_ARG;
         return SLOW5_ERR_ARG;
     }
 
@@ -1431,10 +1440,9 @@ int slow5_get(const char *read_id, struct slow5_rec **read, struct slow5_file *s
     char *read_mem = NULL;
     ssize_t bytes_to_read = -1;
 
-    // index must be loaded
-    if (s5p->index == NULL) {
-        // index not loaded
-        SLOW5_ERROR("%s","SLOW5 index should have been loaded using slow5_idx_load() before calling slow5_get().");
+    /* index must be loaded */
+    if (s5p->index == NULL) { /* index not loaded */
+        SLOW5_ERROR_EXIT("%s", "No SLOW5 index has been loaded. Call slow5_idx_load() before slow5_get().");
         return SLOW5_ERR_NOIDX;
     }
 
@@ -1457,7 +1465,7 @@ int slow5_get(const char *read_id, struct slow5_rec **read, struct slow5_file *s
         if (pread(s5p->meta.fd, read_mem, bytes_to_read, read_index.offset) != bytes_to_read) {
             free(read_mem);
             // reading error
-            SLOW5_ERROR("pread could not read %ld bytes as expected.",(long)bytes_to_read);
+            SLOW5_ERROR_EXIT("pread could not read %zd bytes as expected.", bytes_to_read);
             return SLOW5_ERR_IO;
         }
 
@@ -1474,7 +1482,7 @@ int slow5_get(const char *read_id, struct slow5_rec **read, struct slow5_file *s
                                                 &bytes_to_read_sizet);
         bytes_to_read = bytes_to_read_sizet;
         if (read_mem == NULL) {
-            SLOW5_ERROR("%s","slow5_pread_depress_multi failed.");
+            SLOW5_ERROR_EXIT("%s","slow5_pread_depress_multi failed.");
             // reading error
             return SLOW5_ERR_IO;
         }
@@ -1507,7 +1515,7 @@ int slow5_get(const char *read_id, struct slow5_rec **read, struct slow5_file *s
     }
 
     if (slow5_rec_parse(read_mem, bytes_to_read, read_id, *read, s5p->format, s5p->header->aux_meta) == -1) {
-        SLOW5_ERROR("%s","SLOW5 record parsing failed.");
+        SLOW5_ERROR_EXIT("%s","SLOW5 record parsing failed.");
         ret = SLOW5_ERR_RECPARSE;
     }
     free(read_mem);
@@ -1797,13 +1805,13 @@ int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struc
         }
 
         if (offset > read_size) { /* Read too much */
-            SLOW5_ERROR("Read more bytes than record size. At offset [%ld] but record size is [%ld].", (long) offset, (long) read_size);
+            SLOW5_ERROR("Read more bytes than record size. At offset [%" PRIu64 "] but record size is [%zu].", offset, read_size);
             ret = -1;
         } else if (aux_meta == NULL && offset < read_size) { /* More to read but no auxiliary meta */
-            SLOW5_ERROR("No auxiliary meta data but more data in record. At offset [%ld] but record size is [%ld].", (long) offset, (long) read_size);
+            SLOW5_ERROR("No auxiliary meta data but more data in record. At offset [%" PRIu64 "] but record size is [%zu].", offset, read_size);
             ret = -1;
         } else if (aux_meta != NULL && offset == read_size) { /* No more to read but auxiliary meta expected */
-            SLOW5_ERROR("Missing auxiliary data in record. At offset [%ld] which equals the record size.", (long) offset);
+            SLOW5_ERROR("Missing auxiliary data in record. At offset [%" PRIu64 "] which equals the record size.", offset);
             ret = -1;
         } else if (aux_meta != NULL) {
             /* Parse auxiliary data */
@@ -2011,7 +2019,7 @@ static int slow5_rec_aux_parse(char *tok, char *read_mem, uint64_t offset, size_
         }
 
         if (offset != read_size) {
-            SLOW5_ERROR("More auxiliary record data exists but all header auxiliary columns were parsed. At offset [%ld] but record size is [%ld].", (long) offset, (long) read_size);
+            SLOW5_ERROR("More auxiliary record data exists but all header auxiliary columns were parsed. At offset [%" PRIu64 "] but record size is [%zu].", offset, read_size);
             slow5_rec_aux_free(aux_map);
             return -1;
         }
@@ -2106,7 +2114,7 @@ int slow5_get_next(struct slow5_rec **read, struct slow5_file *s5p) {
             int errno_save = errno;
             free(read_mem);
             if (feof(s5p->fp)) {
-                SLOW5_ERROR_EXIT("%s", "End of file reached.")
+                /*SLOW5_ERROR_EXIT("%s", "End of file reached.")*/
                 slow5_errno = SLOW5_ERR_EOF;
                 return SLOW5_ERR_EOF;
             }
@@ -2132,7 +2140,7 @@ int slow5_get_next(struct slow5_rec **read, struct slow5_file *s5p) {
         slow5_rec_size_t record_size;
         if (fread(&record_size, sizeof record_size, 1, s5p->fp) != 1) {
             if (feof(s5p->fp)) {
-                SLOW5_ERROR_EXIT("%s", "End of file reached.")
+                /*SLOW5_ERROR_EXIT("%s", "End of file reached.")*/
                 slow5_errno = SLOW5_ERR_EOF;
                 return SLOW5_ERR_EOF;
             }
@@ -2166,6 +2174,7 @@ int slow5_get_next(struct slow5_rec **read, struct slow5_file *s5p) {
 // -1   input invalid
 // -2   attr not found
 // -3   type is an array type
+// TODO add setting a non-aux?
 int slow5_rec_set(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, const char *attr, const void *data) {
     if (read == NULL || aux_meta == NULL || aux_meta->num == 0 || attr == NULL || data == NULL) {
         return -1;
@@ -2181,6 +2190,8 @@ int slow5_rec_set(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, const
     if (SLOW5_IS_PTR(aux_meta->types[i])) {
         return -3;
     }
+
+    // TODO warning if setting null attribute here
 
     if (read->aux_map == NULL) {
         read->aux_map = kh_init(slow5_s2a);
@@ -3027,11 +3038,7 @@ int slow5_memcpy_type_from_str(uint8_t *data, const char *value, enum slow5_aux_
     else if MEMCPY_TYPE_FROM_STR(data, value, type, err,    float,      SLOW5_FLOAT,    slow5_strtof_check)
     else if MEMCPY_TYPE_FROM_STR(data, value, type, err,    double,     SLOW5_DOUBLE,   slow5_strtod_check)
     else if (type == SLOW5_CHAR &&
-            strnlen(value, 2) != 1) {
-        /*
-         * TODO check this, particularly is empty string valid?
-         * I don't think so because '\0' is the missing value character
-         */
+            strnlen(value, 2) == 1) { /* don't allow empty string "" or "\0" or more than one character */
         err = 0;
         char value_conv = value[0];
         memcpy(data, &value_conv, sizeof value_conv);
