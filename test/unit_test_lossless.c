@@ -147,14 +147,14 @@ int slow5_aux_get_invalid(void) {
     int err;
     char *cn = slow5_aux_get_string(read, "channel_numbe", NULL, &err);
     ASSERT(cn == NULL);
-    ASSERT(err == -1);
+    ASSERT(err == SLOW5_ERR_NOFLD);
     double mb = slow5_aux_get_double(read, "", &err);
-    ASSERT(mb == DBL_MAX);
-    ASSERT(err == -1);
+    ASSERT(isnan(mb));
+    ASSERT(err == SLOW5_ERR_NOFLD);
     ASSERT(slow5_aux_get_int32(read, "read_nu", &err) == INT32_MAX);
-    ASSERT(err == -1);
+    ASSERT(err == SLOW5_ERR_NOFLD);
     ASSERT(slow5_aux_get_uint8(read, "mux", &err) == UINT8_MAX);
-    ASSERT(err == -1);
+    ASSERT(err == SLOW5_ERR_NOFLD);
     ASSERT(slow5_aux_get_uint64(read, "start_time", &err) != 2817563);
     ASSERT(err == 0);
 

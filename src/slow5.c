@@ -55,26 +55,23 @@ KSORT_INIT_STR
 // TODO Make sure all mallocs are checked for success
 // TODO replace SLOW5_ASSERT with proper error messages and handling
 
-// Initial string buffer capacity for parsing the data header
-#define SLOW5_HEADER_DATA_BUF_INIT_CAP (1024) // 2^10 TODO is this too much? Or put to a page length
-// Max length is 6 (−32768) for a int16_t
-#define INT16_MAX_LENGTH (6)
-// Max length is 10 (4294967295) for a uint32_t
-#define UINT32_MAX_LENGTH (10)
-// Fixed string buffer capacity for storing signal
-#define SLOW5_SIGNAL_BUF_FIXED_CAP (8) // 2^3 since INT16_MAX_LENGTH=6
-// Initial capacity for converting the header to a string
-#define SLOW5_HEADER_STR_INIT_CAP (1024) // 2^10 TODO is this good? Or put to a page length
-// Initial capacity for the number of auxiliary fields
-#define SLOW5_AUX_META_CAP_INIT (32) // 2^5 TODO is this good? Too small?
-// Initial capacity for parsing auxiliary array
-#define SLOW5_AUX_ARRAY_CAP_INIT (256) // 2^8
-// Initial capacity for storing auxiliary array string
-#define SLOW5_AUX_ARRAY_STR_CAP_INIT (1024) // 2^10
+#define INT16_MAX_LENGTH (6) /* Max length is 6 (−32768) for a int16_t */
+#define UINT32_MAX_LENGTH (10) /* Max length is 10 (4294967295) for a uint32_t */
+
+/* TODO is this too much? Or put to a page length */
+#define SLOW5_HEADER_DATA_BUF_INIT_CAP (1024) /* Initial string buffer capacity for parsing the data header: 2^10 */
+#define SLOW5_SIGNAL_BUF_FIXED_CAP (8) /* Fixed string buffer capacity for storing signal: 2^3 since INT16_MAX_LENGTH=6 */
+/* TODO is this good? Or put to a page length */
+#define SLOW5_HEADER_STR_INIT_CAP (1024) /* Initial capacity for converting the header to a string: 2^10 */
+#define SLOW5_AUX_META_CAP_INIT (32) /* Initial capacity for the number of auxiliary fields: 2^5 */
+#define SLOW5_AUX_ARRAY_CAP_INIT (256) /* Initial capacity for parsing auxiliary array: 2^8 */
+#define SLOW5_AUX_ARRAY_STR_CAP_INIT (1024) /* Initial capacity for storing auxiliary array string: 2^10 */
 
 static inline void slow5_free(struct slow5_file *s5p);
+static int slow5_rec_aux_parse(char *tok, char *read_mem, uint64_t offset, size_t read_size, struct slow5_rec *read, enum slow5_fmt format, struct slow5_aux_meta *aux_meta);
 static inline khash_t(slow5_s2a) *slow5_rec_aux_init(void);
 static inline void slow5_rec_set_aux_map(khash_t(slow5_s2a) *aux_map, const char *field, const uint8_t *data, size_t len, uint64_t bytes, enum slow5_aux_type type);
+static char *get_missing_str(size_t *len);
 
 
 enum slow5_log_level_opt  slow5_log_level = SLOW5_LOG_INFO;
@@ -96,7 +93,8 @@ __thread int slow5_errno = 0;
 struct slow5_file *slow5_init(FILE *fp, const char *pathname, enum slow5_fmt format) {
     // Pathname cannot be NULL at this point
     if (fp == NULL) {
-        SLOW5_WARNING("%s","Cannot initialise a SLOW5 file with a NULL file pointer.");
+        SLOW5_ERROR("%s", "Cannot initialise a SLOW5 file with a NULL file pointer.");
+        slow5_errno = SLOW5_ERR_ARG;
         return NULL;
     }
 
@@ -105,8 +103,12 @@ struct slow5_file *slow5_init(FILE *fp, const char *pathname, enum slow5_fmt for
         // Attempt to determine format
         // from pathname
         if ((format = slow5_path_get_fmt(pathname)) == SLOW5_FORMAT_UNKNOWN) {
-            fclose(fp);
-            SLOW5_ERROR("%s","Could not determine SLOW5 file format. Extension must be .slow5 or .blow5");
+            SLOW5_ERROR("%s", "Could not determine SLOW5 file format. Extension must be '.slow5' or '.blow5'.");
+            slow5_errno = SLOW5_ERR_EXTUNK;
+            if (fclose(fp) == EOF) {
+                SLOW5_ERROR("%s", "Error closing file. See errno for details.");
+                slow5_errno = SLOW5_ERR_IO;
+            }
             return NULL;
         }
     }
@@ -120,6 +122,7 @@ struct slow5_file *slow5_init(FILE *fp, const char *pathname, enum slow5_fmt for
         s5p = NULL;
     } else {
         s5p = (struct slow5_file *) calloc(1, sizeof *s5p);
+        SLOW5_MALLOC_CHK(s5p);
 
         s5p->fp = fp;
         s5p->format = format;
@@ -133,8 +136,8 @@ struct slow5_file *slow5_init(FILE *fp, const char *pathname, enum slow5_fmt for
         }
         s5p->meta.pathname = pathname;
         s5p->meta.start_rec_offset = ftello(fp);
-        if(s5p->meta.start_rec_offset == -1 ){
-            SLOW5_ERROR("ftello() failed. %s",strerror(errno));
+        if (s5p->meta.start_rec_offset == -1) {
+            SLOW5_ERROR("ftello() failed. %s", strerror(errno));
             slow5_close(s5p);
             s5p = NULL;
         }
@@ -146,7 +149,7 @@ struct slow5_file *slow5_init(FILE *fp, const char *pathname, enum slow5_fmt for
 // TODO this needs to be refined: talk to Sasha (he wrote this here)
 struct slow5_file *slow5_init_empty(FILE *fp, const char *pathname, enum slow5_fmt format) {
 
-    if(slow5_is_big_endian()){
+    if (slow5_is_big_endian()) {
         SLOW5_ERROR("%s","Big endian machine detected. SLOW5lib only support little endian at this time. Please open a github issue stating your machine spec.");
         return NULL;
     }
@@ -169,6 +172,7 @@ struct slow5_file *slow5_init_empty(FILE *fp, const char *pathname, enum slow5_f
     struct slow5_hdr *header = slow5_hdr_init_empty();
     header->version = SLOW5_ASCII_VERSION_STRUCT;
     s5p = (struct slow5_file *) calloc(1, sizeof *s5p);
+    SLOW5_MALLOC_CHK(s5p);
 
     s5p->fp = fp;
     s5p->format = format;
@@ -219,34 +223,47 @@ struct slow5_file *slow5_open(const char *pathname, const char *mode) {
  * @return              slow5 file structure
  */
 struct slow5_file *slow5_open_with(const char *pathname, const char *mode, enum slow5_fmt format) {
-    if(slow5_is_big_endian()){
-        SLOW5_ERROR("%s","Big endian machine detected. SLOW5lib only support little endian at this time. Please open a github issue stating your machine spec.");
+    if (slow5_is_big_endian()) {
+        SLOW5_ERROR("%s", "Big endian machine detected. SLOW5lib only supports little endian at this time. Please open a github issue stating your machine spec.");
+        slow5_errno = SLOW5_ERR_BIGEND;
         return NULL;
     }
     if (pathname == NULL) {
-        SLOW5_ERROR("%s","Argument 'pathname' cannot be NULL.");
+        SLOW5_ERROR("%s", "Argument 'pathname' cannot be NULL.");
         slow5_errno = SLOW5_ERR_ARG;
         return NULL;
     }
     if (mode == NULL) {
-        SLOW5_ERROR("%s","Argument 'mode' cannot be NULL.");
+        SLOW5_ERROR("%s", "Argument 'mode' cannot be NULL.");
         slow5_errno = SLOW5_ERR_ARG;
         return NULL;
     }
 
-    if(strcmp(mode,"r")){
-        SLOW5_WARNING("Currently, the only supported mode is 'r'. You entered %s",mode);
+    if (strcmp(mode, "r") != 0) {
+        SLOW5_WARNING("Currently, the only supported mode is 'r'. You entered %s.", mode);
     }
 
     FILE *fp = fopen(pathname, mode);
-    if(fp==NULL){
-        SLOW5_ERROR("Error opening file %s: %s",pathname, strerror(errno));
+    if (fp == NULL) {
+        SLOW5_ERROR("Error opening file %s: %s.", pathname, strerror(errno));
+        slow5_errno = SLOW5_ERR_IO;
+        return NULL;
     }
     return slow5_init(fp, pathname, format);
-
 }
 
-// Close a slow5 file
+/* Close a slow5 file and free its memory.
+ *
+ * Return:
+ *  0   file successfully closed and memory freed
+ *  <0  error code
+ *
+ * Errors:
+ * EOF  file closing error, see errno for details
+ *
+ * @param   s5p     slow5 file
+ * @return  see above
+ */
 int slow5_close(struct slow5_file *s5p) {
     int ret;
 
@@ -267,7 +284,7 @@ static inline void slow5_free(struct slow5_file *s5p) {
 
         if (s5p->index != NULL) {
 
-            if(s5p->index->dirty){ //if the index has been changed, write it back
+            if (s5p->index->dirty) { // if the index has been changed, write it back
                 if (s5p->index->fp != NULL) {
                     SLOW5_ASSERT(fclose(s5p->index->fp) == 0);
                 }
@@ -288,23 +305,21 @@ static inline void slow5_free(struct slow5_file *s5p) {
 struct slow5_hdr *slow5_hdr_init_empty(void) {
 
     struct slow5_hdr *header = (struct slow5_hdr *) calloc(1, sizeof *(header));
+    SLOW5_MALLOC_CHK(header);
 
     return header;
 }
 
 
 
-static inline int slow5_is_version_compatible(struct slow5_version file_version){
-    if(file_version.major > SLOW5_ASCII_VERSION_STRUCT.major){
+static inline int slow5_is_version_compatible(struct slow5_version file_version) {
+    if (file_version.major > SLOW5_ASCII_VERSION_STRUCT.major) {
         return 0;
-    }
-    else if (file_version.minor > SLOW5_ASCII_VERSION_STRUCT.minor){
+    } else if (file_version.minor > SLOW5_ASCII_VERSION_STRUCT.minor) {
         return 0;
-    }
-    else if (file_version.patch > SLOW5_ASCII_VERSION_STRUCT.patch){
+    } else if (file_version.patch > SLOW5_ASCII_VERSION_STRUCT.patch) {
         return 0;
-    }
-    else{
+    } else {
         return 1;
     }
 }
@@ -313,6 +328,7 @@ static inline int slow5_is_version_compatible(struct slow5_version file_version)
 struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_method_t *method) {
 
     struct slow5_hdr *header = (struct slow5_hdr *) calloc(1, sizeof *(header));
+    SLOW5_MALLOC_CHK(header);
     char *buf = NULL;
 
     // Parse slow5 header
@@ -324,19 +340,20 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
         // Buffer for file parsing
         size_t cap = SLOW5_HEADER_DATA_BUF_INIT_CAP;
         buf = (char *) malloc(cap * sizeof *buf);
+        SLOW5_MALLOC_CHK(buf);
         char *bufp;
         ssize_t buf_len;
         int err;
 
         // 1st line - slow5_version
         if ((buf_len = getline(&buf, &cap, fp)) == -1) {
-            SLOW5_WARNING("%s", "'getline()' failed. Is this an empty file?");
+            SLOW5_ERROR("%s", "'getline()' failed. Is this an empty file?");
             free(buf);
             free(header);
             return NULL;
         }
-        if(buf_len==0){
-            SLOW5_WARNING("%s", "'Malformed SLOW5 header. Why is the very first line empty?");
+        if (buf_len == 0) {
+            SLOW5_ERROR("%s", "'Malformed SLOW5 header. Why is the very first line empty?");
             free(buf);
             free(header);
             return NULL;
@@ -346,7 +363,7 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
         bufp = buf;
         char *tok = slow5_strsep(&bufp, SLOW5_SEP_COL);
         if (strcmp(tok, SLOW5_HEADER_FILE_VERSION_ID) != 0) {
-            SLOW5_WARNING("Malformed SLOW5 header. Expected '%s', instead found '%s'", SLOW5_HEADER_FILE_VERSION_ID, tok);
+            SLOW5_ERROR("Malformed SLOW5 header. Expected '%s', instead found '%s'", SLOW5_HEADER_FILE_VERSION_ID, tok);
             free(buf);
             free(header);
             return NULL;
@@ -355,33 +372,33 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
         tok = slow5_strsep(&bufp, SLOW5_SEP_COL);
         char *toksub;
         if ((toksub = slow5_strsep(&tok, ".")) == NULL) { // Major version
-            SLOW5_WARNING("%s", "Malformed SLOW5 header. Version string is expected to be in the format x.y.z");
+            SLOW5_ERROR("%s", "Malformed SLOW5 header. Version string is expected to be in the format x.y.z");
             free(buf);
             free(header);
             return NULL;
         }
         header->version.major = slow5_ato_uint8(toksub, &err);
         if (err == -1 || (toksub = slow5_strsep(&tok, ".")) == NULL) { // Minor version
-            SLOW5_WARNING("%s", "Malformed SLOW5 header. Version string is expected to be in the format x.y.z");
+            SLOW5_ERROR("%s", "Malformed SLOW5 header. Version string is expected to be in the format x.y.z");
             free(buf);
             free(header);
             return NULL;
         }
         header->version.minor = slow5_ato_uint8(toksub, &err);
         if (err == -1 || (toksub = slow5_strsep(&tok, ".")) == NULL) { // Patch version
-            SLOW5_WARNING("%s", "Malformed SLOW5 header. Version string is expected to be in the format x.y.z");
+            SLOW5_ERROR("%s", "Malformed SLOW5 header. Version string is expected to be in the format x.y.z");
             free(buf);
             free(header);
             return NULL;
         }
         header->version.patch = slow5_ato_uint8(toksub, &err);
         if (err == -1 || slow5_strsep(&tok, ".") != NULL) { // No more tokenators
-            SLOW5_WARNING("%s", "Malformed SLOW5 header. Version string is expected to be in the format x.y.z");
+            SLOW5_ERROR("%s", "Malformed SLOW5 header. Version string is expected to be in the format x.y.z");
             free(buf);
             free(header);
             return NULL;
         }
-        if(slow5_is_version_compatible(header->version)==0){
+        if (slow5_is_version_compatible(header->version)==0) {
             SLOW5_ERROR("file version (%d.%d.%d) in your slow5 file is higher than the maximally compatible version (%d.%d.%d) by this slow5lib. Please use a newer version of slow5lib",
                 header->version.major, header->version.minor, header->version.patch,
                      SLOW5_ASCII_VERSION_STRUCT.major,  SLOW5_ASCII_VERSION_STRUCT.minor,  SLOW5_ASCII_VERSION_STRUCT.patch);
@@ -392,7 +409,7 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
 
         // 2nd line - num_read_groups
         if ((buf_len = getline(&buf, &cap, fp)) <= 0) {
-            SLOW5_WARNING("%s", "'getline()' failed. Where is the num_read_groups?");
+            SLOW5_ERROR("%s", "'getline()' failed. Where is the num_read_groups?");
             free(buf);
             free(header);
             return NULL;
@@ -402,7 +419,7 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
         bufp = buf;
         tok = slow5_strsep(&bufp, SLOW5_SEP_COL);
         if (strcmp(tok, SLOW5_HEADER_NUM_GROUPS_ID) != 0) {
-            SLOW5_WARNING("Malformed SLOW5 header. Expected '%s', instead found '%s'", SLOW5_HEADER_NUM_GROUPS_ID, tok);
+            SLOW5_ERROR("Malformed SLOW5 header. Expected '%s', instead found '%s'", SLOW5_HEADER_NUM_GROUPS_ID, tok);
             free(buf);
             free(header);
             return NULL;
@@ -411,15 +428,15 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
         tok = slow5_strsep(&bufp, SLOW5_SEP_COL);
         header->num_read_groups = slow5_ato_uint32(tok, &err);
         if (err == -1) {
-            SLOW5_WARNING("Malformed SLOW5 header. Invalid number of read groups - '%s'", tok);
+            SLOW5_ERROR("Malformed SLOW5 header. Invalid number of read groups - '%s'", tok);
             free(buf);
             free(header);
             return NULL;
         }
 
         //parse the data header (TODO: assertions inside this function must be replaced properly)
-        if(slow5_hdr_data_init(fp, buf, &cap, header, NULL) != 0){
-            SLOW5_WARNING("%s","Parsing the data header failed.");
+        if (slow5_hdr_data_init(fp, buf, &cap, header, NULL) != 0) {
+            SLOW5_ERROR("%s","Parsing the data header failed.");
             free(buf);
             free(header);
             return NULL;
@@ -445,12 +462,12 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
                 fseek(fp, SLOW5_BINARY_HEADER_SIZE_OFFSET, SEEK_SET) == -1 ||
                 fread(&header_size, sizeof header_size, 1, fp) != 1) {
 
-            SLOW5_WARNING("%s","Malformed BLOW5 header");
+            SLOW5_ERROR("%s","Malformed BLOW5 header");
             free(header);
             return NULL;
         }
 
-        if(slow5_is_version_compatible(header->version)==0){
+        if (slow5_is_version_compatible(header->version)==0) {
             SLOW5_ERROR("file version (%d.%d.%d) in your slow5 file is higher than the maximally compatible version (%d.%d.%d) by this slow5lib. Please use a newer version of slow5lib",
                 header->version.major, header->version.minor, header->version.patch,
                      SLOW5_ASCII_VERSION_STRUCT.major,  SLOW5_ASCII_VERSION_STRUCT.minor,  SLOW5_ASCII_VERSION_STRUCT.patch);
@@ -460,6 +477,7 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
 
         size_t cap = SLOW5_HEADER_DATA_BUF_INIT_CAP;
         buf = (char *) malloc(cap * sizeof *buf);
+        SLOW5_MALLOC_CHK(buf);
 
         // Header data
         uint32_t header_act_size;
@@ -481,14 +499,15 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
 //currently used in pyslow5
 //len is the number of elements in the return char** list
 //returns null if there are no data header attributes
-const char **slow5_get_hdr_keys(const slow5_hdr_t *header,uint64_t *len){
-    if(len!=NULL){
+const char **slow5_get_hdr_keys(const slow5_hdr_t *header,uint64_t *len) {
+    if (len!=NULL) {
         *len = header->data.num_attrs;
     }
-    if(header->data.num_attrs == 0){
+    if (header->data.num_attrs == 0) {
         return NULL;
     }
     const char **data_attrs = (const char **) malloc(header->data.num_attrs * sizeof *data_attrs);
+    SLOW5_MALLOC_CHK(data_attrs);
     uint32_t i = 0;
     for (khint_t j = kh_begin(header->data.attrs); j != kh_end(header->data.attrs); ++ j) {
         if (kh_exist(header->data.attrs, j)) {
@@ -531,6 +550,7 @@ void *slow5_hdr_to_mem(struct slow5_hdr *header, enum slow5_fmt format, slow5_pr
     size_t len = 0;
     size_t cap = SLOW5_HEADER_STR_INIT_CAP;
     mem = (char *) malloc(cap * sizeof *mem);
+    SLOW5_MALLOC_CHK(mem);
     uint32_t header_size;
 
     if (format == SLOW5_FORMAT_ASCII) {
@@ -590,6 +610,7 @@ void *slow5_hdr_to_mem(struct slow5_hdr *header, enum slow5_fmt format, slow5_pr
             if (len + 1 + strlen(attr) >= cap) { // + 1 for SLOW5_HEADER_DATA_PREFIX_CHAR
                 cap *= 2;
                 mem = (char *) realloc(mem, cap * sizeof *mem);
+                SLOW5_MALLOC_CHK(mem);
             }
 
             mem[len] = SLOW5_HEADER_DATA_PREFIX_CHAR;
@@ -608,6 +629,7 @@ void *slow5_hdr_to_mem(struct slow5_hdr *header, enum slow5_fmt format, slow5_pr
                     if (len + 1 >= cap) { // +1 for SLOW5_SEP_COL_CHAR
                         cap *= 2;
                         mem = (char *) realloc(mem, cap * sizeof *mem);
+                        SLOW5_MALLOC_CHK(mem);
                     }
 
                     mem[len] = SLOW5_SEP_COL_CHAR;
@@ -617,7 +639,7 @@ void *slow5_hdr_to_mem(struct slow5_hdr *header, enum slow5_fmt format, slow5_pr
                         len_to_cp = strlen(value);
 
                         //special case for "."
-                        if(strlen(value)==0){
+                        if (strlen(value)==0) {
                             len_to_cp++;
                         }
 
@@ -625,12 +647,12 @@ void *slow5_hdr_to_mem(struct slow5_hdr *header, enum slow5_fmt format, slow5_pr
                         if (len + len_to_cp >= cap) {
                             cap *= 2;
                             mem = (char *) realloc(mem, cap * sizeof *mem);
+                            SLOW5_MALLOC_CHK(mem);
                         }
 
-                        if(strlen(value)==0){ //special case for "."
+                        if (strlen(value)==0) { //special case for "."
                             memcpy(mem + len, ".", len_to_cp);
-                        }
-                        else {
+                        } else {
                             memcpy(mem + len, value, len_to_cp);
                         }
                         len += len_to_cp;
@@ -640,6 +662,7 @@ void *slow5_hdr_to_mem(struct slow5_hdr *header, enum slow5_fmt format, slow5_pr
                     if (len + 1 >= cap) { // +1 for SLOW5_SEP_COL_CHAR
                         cap *= 2;
                         mem = (char *) realloc(mem, cap * sizeof *mem);
+                        SLOW5_MALLOC_CHK(mem);
                     }
 
                     mem[len] = SLOW5_SEP_COL_CHAR;
@@ -651,6 +674,7 @@ void *slow5_hdr_to_mem(struct slow5_hdr *header, enum slow5_fmt format, slow5_pr
             if (len + 1 >= cap) { // +1 for '\n'
                 cap *= 2;
                 mem = (char *) realloc(mem, cap * sizeof *mem);
+                SLOW5_MALLOC_CHK(mem);
             }
 
             mem[len] = '\n';
@@ -666,6 +690,7 @@ void *slow5_hdr_to_mem(struct slow5_hdr *header, enum slow5_fmt format, slow5_pr
     if (len + len_to_cp >= cap) {
         cap *= 2;
         mem = (char *) realloc(mem, cap * sizeof *mem);
+        SLOW5_MALLOC_CHK(mem);
     }
     memcpy(mem + len, str_to_cp, len_to_cp);
     len += len_to_cp;
@@ -677,6 +702,7 @@ void *slow5_hdr_to_mem(struct slow5_hdr *header, enum slow5_fmt format, slow5_pr
     if (len + len_to_cp >= cap) {
         cap *= 2;
         mem = (char *) realloc(mem, cap * sizeof *mem);
+        SLOW5_MALLOC_CHK(mem);
     }
     memcpy(mem + len, str_to_cp, len_to_cp);
     len += len_to_cp;
@@ -687,6 +713,7 @@ void *slow5_hdr_to_mem(struct slow5_hdr *header, enum slow5_fmt format, slow5_pr
         if (len + 1 >= cap) { // +1 for '\0'
             cap *= 2;
             mem = (char *) realloc(mem, cap * sizeof *mem);
+            SLOW5_MALLOC_CHK(mem);
         }
 
         mem[len] = '\0';
@@ -709,6 +736,7 @@ char *slow5_hdr_types_to_str(struct slow5_aux_meta *aux_meta, size_t *len) {
     if (aux_meta != NULL) {
         size_t types_cap = SLOW5_HEADER_STR_INIT_CAP;
         types = (char *) malloc(types_cap);
+        SLOW5_MALLOC_CHK(types);
 
         // Assumption that SLOW5_HEADER_STR_INIT_CAP > strlen(SLOW5_ASCII_TYPE_HEADER_MIN)
         const char *str_to_cp = SLOW5_ASCII_TYPE_HEADER_MIN;
@@ -723,6 +751,7 @@ char *slow5_hdr_types_to_str(struct slow5_aux_meta *aux_meta, size_t *len) {
             if (types_len + len_to_cp + 1 >= types_cap) { // +1 for SLOW5_SEP_COL_CHAR
                 types_cap *= 2;
                 types = (char *) realloc(types, types_cap);
+                SLOW5_MALLOC_CHK(types);
             }
 
             types[types_len ++] = SLOW5_SEP_COL_CHAR;
@@ -733,6 +762,7 @@ char *slow5_hdr_types_to_str(struct slow5_aux_meta *aux_meta, size_t *len) {
         if (types_len + 2 >= types_cap) { // +2 for '\n' and '\0'
             types_cap *= 2;
             types = (char *) realloc(types, types_cap);
+            SLOW5_MALLOC_CHK(types);
         }
         types[types_len ++] = '\n';
         types[types_len] = '\0';
@@ -754,6 +784,7 @@ char *slow5_hdr_attrs_to_str(struct slow5_aux_meta *aux_meta, size_t *len) {
     if (aux_meta != NULL) {
         size_t attrs_cap = SLOW5_HEADER_STR_INIT_CAP;
         attrs = (char *) malloc(attrs_cap);
+        SLOW5_MALLOC_CHK(attrs);
 
         // Assumption that SLOW5_HEADER_STR_INIT_CAP > strlen(SLOW5_ASCII_TYPE_HEADER_MIN)
         const char *str_to_cp = SLOW5_ASCII_COLUMN_HEADER_MIN;
@@ -768,6 +799,7 @@ char *slow5_hdr_attrs_to_str(struct slow5_aux_meta *aux_meta, size_t *len) {
             if (attrs_len + len_to_cp + 1 >= attrs_cap) { // +1 for SLOW5_SEP_COL_CHAR
                 attrs_cap *= 2;
                 attrs = (char *) realloc(attrs, attrs_cap);
+                SLOW5_MALLOC_CHK(attrs);
             }
 
             attrs[attrs_len ++] = SLOW5_SEP_COL_CHAR;
@@ -778,6 +810,7 @@ char *slow5_hdr_attrs_to_str(struct slow5_aux_meta *aux_meta, size_t *len) {
         if (attrs_len + 2 >= attrs_cap) { // +2 for '\n' and '\0'
             attrs_cap *= 2;
             attrs = (char *) realloc(attrs, attrs_cap);
+            SLOW5_MALLOC_CHK(attrs);
         }
         attrs[attrs_len ++] = '\n';
         attrs[attrs_len] = '\0';
@@ -872,34 +905,32 @@ char *slow5_hdr_get(const char *attr, uint32_t read_group, const struct slow5_hd
     return value;
 }
 
-char **slow5_get_aux_names(const slow5_hdr_t *header,uint64_t *len){
+char **slow5_get_aux_names(const slow5_hdr_t *header,uint64_t *len) {
 
     u_int64_t my_len = (header->aux_meta == NULL) ? 0 : header->aux_meta->num;
 
-    if(len){
+    if (len) {
         *len = my_len;
     }
 
-    if(my_len==0){
+    if (my_len == 0) {
         return NULL;
-    }
-    else {
+    } else {
         return (header->aux_meta->attrs);
     }
 }
 
 
-enum slow5_aux_type *slow5_get_aux_types(const slow5_hdr_t *header,uint64_t *len){
+enum slow5_aux_type *slow5_get_aux_types(const slow5_hdr_t *header,uint64_t *len) {
     u_int64_t my_len = (header->aux_meta == NULL) ? 0 : header->aux_meta->num;
 
-    if(len){
+    if (len) {
         *len = my_len;
     }
 
-    if(my_len==0){
+    if (my_len == 0) {
         return NULL;
-    }
-    else {
+    } else {
         return (header->aux_meta->types);
     }
 }
@@ -1105,7 +1136,7 @@ int slow5_hdr_data_init(FILE *fp, char *buf, size_t *cap, struct slow5_hdr *head
 
             //if the value is ".", we store an empty string
             char *val_dup = strdup(val);
-            if(strcmp(val_dup,".") == 0 ){
+            if (strcmp(val_dup,".") == 0 ) {
                 val_dup[0]='\0';
             }
 
@@ -1145,11 +1176,15 @@ int slow5_hdr_data_init(FILE *fp, char *buf, size_t *cap, struct slow5_hdr *head
 
 struct slow5_aux_meta *slow5_aux_meta_init_empty(void) {
     struct slow5_aux_meta *aux_meta = (struct slow5_aux_meta *) calloc(1, sizeof *aux_meta);
+    SLOW5_MALLOC_CHK(aux_meta);
 
     aux_meta->cap = SLOW5_AUX_META_CAP_INIT;
     aux_meta->attrs = (char **) malloc(aux_meta->cap * sizeof *(aux_meta->attrs));
+    SLOW5_MALLOC_CHK(aux_meta->attrs);
     aux_meta->types = (enum slow5_aux_type *) malloc(aux_meta->cap * sizeof *(aux_meta->types));
+    SLOW5_MALLOC_CHK(aux_meta->types);
     aux_meta->sizes = (uint8_t *) malloc(aux_meta->cap * sizeof *(aux_meta->sizes));
+    SLOW5_MALLOC_CHK(aux_meta->sizes);
 
     return aux_meta;
 }
@@ -1164,6 +1199,7 @@ struct slow5_aux_meta *slow5_aux_meta_init(FILE *fp, char *buf, size_t *cap, uin
     // Parse data types and deduce the sizes
     if (buf_len != strlen(SLOW5_ASCII_TYPE_HEADER_MIN)) {
         aux_meta = (struct slow5_aux_meta *) calloc(1, sizeof *aux_meta);
+        SLOW5_MALLOC_CHK(aux_meta);
         char *shift = buf += strlen(SLOW5_ASCII_TYPE_HEADER_MIN);
 
         char *tok = slow5_strsep(&shift, SLOW5_SEP_COL);
@@ -1171,7 +1207,9 @@ struct slow5_aux_meta *slow5_aux_meta_init(FILE *fp, char *buf, size_t *cap, uin
 
         aux_meta->cap = SLOW5_AUX_META_CAP_INIT;
         aux_meta->types = (enum slow5_aux_type *) malloc(aux_meta->cap * sizeof *(aux_meta->types));
+        SLOW5_MALLOC_CHK(aux_meta->types);
         aux_meta->sizes = (uint8_t *) malloc(aux_meta->cap * sizeof *(aux_meta->sizes));
+        SLOW5_MALLOC_CHK(aux_meta->sizes);
 
         aux_meta->num = 0;
         while ((tok = slow5_strsep(&shift, SLOW5_SEP_COL)) != NULL) {
@@ -1192,7 +1230,9 @@ struct slow5_aux_meta *slow5_aux_meta_init(FILE *fp, char *buf, size_t *cap, uin
             if (aux_meta->num > aux_meta->cap) {
                 aux_meta->cap = aux_meta->cap << 1; // TODO is this ok?
                 aux_meta->types = (enum slow5_aux_type *) realloc(aux_meta->types, aux_meta->cap * sizeof *(aux_meta->types));
+                SLOW5_MALLOC_CHK(aux_meta->types);
                 aux_meta->sizes = (uint8_t *) realloc(aux_meta->sizes, aux_meta->cap * sizeof *(aux_meta->sizes));
+                SLOW5_MALLOC_CHK(aux_meta->sizes);
             }
         }
     }
@@ -1226,6 +1266,7 @@ struct slow5_aux_meta *slow5_aux_meta_init(FILE *fp, char *buf, size_t *cap, uin
 
         aux_meta->attr_to_pos = kh_init(slow5_s2ui32);
         aux_meta->attrs = (char **) malloc(aux_meta->cap * sizeof *(aux_meta->attrs));
+        SLOW5_MALLOC_CHK(aux_meta->attrs);
 
         for (uint64_t i = 0; i < aux_meta->num; ++ i) {
             if ((tok = slow5_strsep(&shift, SLOW5_SEP_COL)) == NULL) {
@@ -1282,8 +1323,11 @@ int slow5_aux_meta_add(struct slow5_aux_meta *aux_meta, const char *attr, enum s
     if (aux_meta->num == aux_meta->cap) {
         aux_meta->cap = aux_meta->cap << 1; // TODO is this ok?
         aux_meta->attrs = (char **) realloc(aux_meta->attrs, aux_meta->cap * sizeof *(aux_meta->attrs));
+        SLOW5_MALLOC_CHK(aux_meta->attrs);
         aux_meta->types = (enum slow5_aux_type *) realloc(aux_meta->types, aux_meta->cap * sizeof *(aux_meta->types));
+        SLOW5_MALLOC_CHK(aux_meta->types);
         aux_meta->sizes = (uint8_t *) realloc(aux_meta->sizes, aux_meta->cap * sizeof *(aux_meta->sizes));
+        SLOW5_MALLOC_CHK(aux_meta->sizes);
     }
 
     aux_meta->attrs[aux_meta->num] = strdup(attr);
@@ -1379,7 +1423,7 @@ void slow5_hdr_data_free(struct slow5_hdr *header) {
  */
 int slow5_get(const char *read_id, struct slow5_rec **read, struct slow5_file *s5p) {
     if (read_id == NULL || read == NULL || s5p == NULL) {
-        SLOW5_WARNING("%s","read_id, read and s5p cannot be NULL.");
+        SLOW5_ERROR("%s","read_id, read and s5p cannot be NULL.");
         return SLOW5_ERR_ARG;
     }
 
@@ -1390,7 +1434,7 @@ int slow5_get(const char *read_id, struct slow5_rec **read, struct slow5_file *s
     // index must be loaded
     if (s5p->index == NULL) {
         // index not loaded
-        SLOW5_WARNING("%s","SLOW5 index should have been loaded using slow5_idx_load() before calling slow5_get().");
+        SLOW5_ERROR("%s","SLOW5 index should have been loaded using slow5_idx_load() before calling slow5_get().");
         return SLOW5_ERR_NOIDX;
     }
 
@@ -1405,6 +1449,7 @@ int slow5_get(const char *read_id, struct slow5_rec **read, struct slow5_file *s
 
         // Malloc string to hold the read
         read_mem = (char *) malloc(read_index.size * sizeof *read_mem);
+        SLOW5_MALLOC_CHK(read_mem);
 
         // Read into the string
         // Don't read in newline for parsing
@@ -1412,7 +1457,7 @@ int slow5_get(const char *read_id, struct slow5_rec **read, struct slow5_file *s
         if (pread(s5p->meta.fd, read_mem, bytes_to_read, read_index.offset) != bytes_to_read) {
             free(read_mem);
             // reading error
-            SLOW5_WARNING("pread could not read %ld bytes as expected.",(long)bytes_to_read);
+            SLOW5_ERROR("pread could not read %ld bytes as expected.",(long)bytes_to_read);
             return SLOW5_ERR_IO;
         }
 
@@ -1429,12 +1474,13 @@ int slow5_get(const char *read_id, struct slow5_rec **read, struct slow5_file *s
                                                 &bytes_to_read_sizet);
         bytes_to_read = bytes_to_read_sizet;
         if (read_mem == NULL) {
-            SLOW5_WARNING("%s","slow5_pread_depress_multi failed.");
+            SLOW5_ERROR("%s","slow5_pread_depress_multi failed.");
             // reading error
             return SLOW5_ERR_IO;
         }
         /*
         read_mem = (char *) malloc(read_size);
+        SLOW5_MALLOC_CHK(read_mem);
         pread(s5p->meta.fd, read_mem, read_size, read_index.offset + sizeof read_size);
         printf("printing read_mem comp:\n"); // TESTING
         fwrite(read_mem, read_size, 1, stdout); // TESTING
@@ -1448,6 +1494,7 @@ int slow5_get(const char *read_id, struct slow5_rec **read, struct slow5_file *s
     if (*read == NULL) {
         // Allocate memory for read
         *read = (struct slow5_rec *) calloc(1, sizeof **read);
+        SLOW5_MALLOC_CHK(*read);
     } else {
         // Free previously allocated strings
         free((*read)->read_id);
@@ -1460,7 +1507,7 @@ int slow5_get(const char *read_id, struct slow5_rec **read, struct slow5_file *s
     }
 
     if (slow5_rec_parse(read_mem, bytes_to_read, read_id, *read, s5p->format, s5p->header->aux_meta) == -1) {
-        SLOW5_WARNING("%s","SLOW5 record parsing failed.");
+        SLOW5_ERROR("%s","SLOW5 record parsing failed.");
         ret = SLOW5_ERR_RECPARSE;
     }
     free(read_mem);
@@ -1468,41 +1515,56 @@ int slow5_get(const char *read_id, struct slow5_rec **read, struct slow5_file *s
     return ret;
 }
 
-// Return -1 on failure to parse
+/*
+ * parse read_mem with read_size bytes, intended read ID read_id, the given format and auxiliary meta data aux_meta
+ * populate the read
+ * read_mem, read cannot be NULL
+ * returns -1 on error, 0 on success
+ */
 int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struct slow5_rec *read, enum slow5_fmt format, struct slow5_aux_meta *aux_meta) {
     int ret = 0;
-    uint64_t prev_len_raw_signal = 0;
+    uint8_t i = 0;
+    const uint64_t prev_len_raw_signal = read->len_raw_signal;
 
     if (format == SLOW5_FORMAT_ASCII) {
 
-        char *tok;
-        if ((tok = slow5_strsep(&read_mem, SLOW5_SEP_COL)) == NULL) {
-            SLOW5_WARNING("%s","Error when parsing readID.");
+        char *tok = slow5_strsep(&read_mem, SLOW5_SEP_COL);
+        if (read_mem == NULL) {
+            SLOW5_ERROR("Read ID could not be parsed from [%.10s%s]. Tab separator was not found.",
+                    tok, strnlen(tok, 11) == 11 ? "..." : "");
             return -1;
         }
 
-        uint8_t i = 0;
         bool more_to_parse = false;
         int err;
         do {
             switch (i) {
                 case COL_read_id:
-                    // Ensure line matches requested id
+                    /* Ensure line matches requested id */
                     if (read_id != NULL) {
                         if (strcmp(tok, read_id) != 0) {
+                            SLOW5_ERROR("Requested read ID [%s] does not match the read ID [%s] in fetched record.", read_id, tok);
                             ret = -1;
-                            SLOW5_WARNING("Requested read ID [%s] does not match the read ID in fetched record [%s].",read_id,tok);
                             break;
                         }
                     }
                     read->read_id_len = strlen(tok);
-                    read->read_id = strdup(tok);
+                    read->read_id = strndup(tok, read->read_id_len);
+                    if (read->read_id == NULL) {
+                        if (errno == ENOMEM) {
+                            SLOW5_ERROR("%s", "Insufficient memory available to allocate read ID.")
+                        } else {
+                            SLOW5_ERROR("Duplicating read ID failed: %s", strerror(errno));
+                        }
+                        ret = -1;
+                    }
                     break;
 
                 case COL_read_group:
+                    /* TODO check slow5_ato_uint32 and the other ones below */
                     read->read_group = slow5_ato_uint32(tok, &err);
                     if (err == -1) {
-                        SLOW5_WARNING("%s","Error parsing read group.");
+                        SLOW5_ERROR("Read group could not be parsed from [%s].", tok);
                         ret = -1;
                     }
                     break;
@@ -1510,7 +1572,7 @@ int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struc
                 case COL_digitisation:
                     read->digitisation = slow5_strtod_check(tok, &err);
                     if (err == -1) {
-                        SLOW5_WARNING("%s","Error parsing digitisation.");
+                        SLOW5_ERROR("Digitisation could not be parsed from [%s].", tok);
                         ret = -1;
                     }
                     break;
@@ -1518,7 +1580,7 @@ int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struc
                 case COL_offset:
                     read->offset = slow5_strtod_check(tok, &err);
                     if (err == -1) {
-                        SLOW5_WARNING("%s","Error parsing offset.");
+                        SLOW5_ERROR("Offset could not be parsed from [%s].", tok);
                         ret = -1;
                     }
                     break;
@@ -1526,7 +1588,7 @@ int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struc
                 case COL_range:
                     read->range = slow5_strtod_check(tok, &err);
                     if (err == -1) {
-                        SLOW5_WARNING("%s","Error parsing range.");
+                        SLOW5_ERROR("Range could not be parsed from [%s].", tok);
                         ret = -1;
                     }
                     break;
@@ -1534,57 +1596,72 @@ int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struc
                 case COL_sampling_rate:
                     read->sampling_rate = slow5_strtod_check(tok, &err);
                     if (err == -1) {
-                        SLOW5_WARNING("%s","Error parsing sampling rate.");
+                        SLOW5_ERROR("Sampling rate could not be parsed from [%s].", tok);
                         ret = -1;
                     }
                     break;
 
                 case COL_len_raw_signal:
-                    if (read->len_raw_signal != 0) {
-                        prev_len_raw_signal = read->len_raw_signal;
-                    }
                     read->len_raw_signal = slow5_ato_uint64(tok, &err);
                     if (err == -1) {
-                        SLOW5_WARNING("%s","Error parsing raw signal length.");
+                        SLOW5_ERROR("Raw signal length could not be parsed from [%s].", tok);
                         ret = -1;
                     }
                     break;
 
                 case COL_raw_signal: {
-                    if (read->raw_signal == NULL) {
-                        read->raw_signal = (int16_t *) malloc(read->len_raw_signal * sizeof *(read->raw_signal));
-                    } else if (prev_len_raw_signal < read->len_raw_signal) {
-                        read->raw_signal = (int16_t *) realloc(read->raw_signal, read->len_raw_signal * sizeof *(read->raw_signal));
+                    if (read->len_raw_signal == 0) {
+                        break;
                     }
 
-                    char *signal_tok;
-                    if ((signal_tok = slow5_strsep(&tok, SLOW5_SEP_ARRAY)) == NULL) {
-                        // 0 signals
-                        SLOW5_WARNING("%s","Error locating the raw signal.");
+                    if (read->raw_signal == NULL) {
+                        read->raw_signal = (int16_t *) malloc(read->len_raw_signal * sizeof *(read->raw_signal));
+                        SLOW5_MALLOC_CHK(read->raw_signal);
+                        if (read->raw_signal == NULL) {
+                            read->len_raw_signal = 0;
+                            ret = -1;
+                            break;
+                        }
+                    } else if (prev_len_raw_signal < read->len_raw_signal) {
+                        int16_t *raw_signal_tmp = (int16_t *) realloc(read->raw_signal, read->len_raw_signal * sizeof *(read->raw_signal));
+                        SLOW5_MALLOC_CHK(raw_signal_tmp);
+                        if (raw_signal_tmp == NULL) {
+                            read->len_raw_signal = prev_len_raw_signal;
+                            ret = -1;
+                            break;
+                        }
+                        read->raw_signal = raw_signal_tmp;
+                    }
+
+                    char *signal_tok = slow5_strsep(&tok, SLOW5_SEP_ARRAY);
+                    if (tok == NULL && read->len_raw_signal > 1) {
+                        SLOW5_ERROR("Raw signals could not be parsed from [%.10s%s]. Comma separator was not found.",
+                                signal_tok, strnlen(signal_tok, 11) == 11 ? "..." : "");
                         ret = -1;
                         break;
                     }
 
                     uint64_t j = 0;
 
-                    // Parse raw signal
+                    /* Parse raw signal */
                     do {
                         (read->raw_signal)[j] = slow5_ato_int16(signal_tok, &err);
                         if (err == -1) {
-                            SLOW5_WARNING("%s","Error parsing the raw signal.");
+                            SLOW5_ERROR("Raw signal [%" PRIu64 "] could not be parsed from [%s].", j, signal_tok);
                             ret = -1;
                             break;
                         }
                         ++ j;
                     } while ((signal_tok = slow5_strsep(&tok, SLOW5_SEP_ARRAY)) != NULL);
+
                     if (ret != -1 && j != read->len_raw_signal) {
-                        SLOW5_WARNING("%s","Raw signal is potentially truncated.");
+                        SLOW5_ERROR("Raw signal length [%" PRIu64 "] does not match the number of signals parsed [%" PRIu64 "]. Raw signal is potentially truncated.", read->len_raw_signal, j);
                         ret = -1;
                     }
 
                 } break;
 
-                    // All columns parsed
+                /* All columns parsed */
                 default:
                     more_to_parse = true;
                     break;
@@ -1597,127 +1674,24 @@ int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struc
                  (tok = slow5_strsep(&read_mem, SLOW5_SEP_COL)) != NULL);
 
         if (i < SLOW5_COLS_NUM) {
-            // Not all main columns parsed
-            SLOW5_WARNING("%s","All SLOW5 main columns were not parsed.");
+            /* Not all main columns parsed */
+            SLOW5_ERROR("Only [%" PRIu8 "/%" PRIu8 "] SLOW5 main columns were parsed.", i, SLOW5_COLS_NUM);
             ret = -1;
-        } else if (!more_to_parse && aux_meta != NULL){
-            SLOW5_WARNING("%s","Header contained auxiliary feilds but the record does not.");
+        } else if (!more_to_parse && aux_meta != NULL) {
+            SLOW5_ERROR("%s", "Missing auxiliary fields in record, but present in header.");
             ret = -1;
         } else if (more_to_parse) {
-            // Main columns parsed and more to parse
+            /* Main columns parsed and more to parse */
             if (aux_meta == NULL) {
-                SLOW5_WARNING("%s","Auxiliary fields are missing in header, but present in record.");
+                SLOW5_ERROR("%s", "Missing auxiliary fields in header, but present in record.");
                 ret = -1;
             } else {
-
-                // TODO abstract to function (slow5_rec_aux_parse)
-                khash_t(slow5_s2a) *aux_map = slow5_rec_aux_init();
-
-                for (i = 0; i < aux_meta->num; ++ i) {
-                    if (tok == NULL) {
-                        SLOW5_WARNING("Auxiliary field [%s] is missing.",aux_meta->attrs[i]);
-                        slow5_rec_aux_free(aux_map);
-                        return -1;
-                    }
-
-                    uint64_t bytes = 0;
-                    uint64_t len = 1;
-                    uint8_t *data = NULL;
-                    if (SLOW5_IS_PTR(aux_meta->types[i])) {
-                        // Type is an array
-                        if (aux_meta->types[i] == SLOW5_STRING) {
-                            if(strcmp(tok,".")==0){
-                                len = 0;
-                                data = 0;
-                            }
-                            else{
-                                len = strlen(tok);
-                                data = (uint8_t *) malloc((len + 1) * aux_meta->sizes[i]);
-                                memcpy(data, tok, (len + 1) * aux_meta->sizes[i]);
-                            }
-                        } else {
-                            if(strcmp(tok,".")==0){
-                                len = 0;
-                                data = 0;
-                            }
-                            else{
-                                // Split tok by SLOW5_SEP_ARRAY
-                                char *tok_sep;
-                                uint64_t array_cap = SLOW5_AUX_ARRAY_CAP_INIT;
-                                uint64_t array_i = 0;
-                                data = (uint8_t *) malloc(array_cap * aux_meta->sizes[i]);
-
-                                while ((tok_sep = slow5_strsep(&tok, SLOW5_SEP_ARRAY)) != NULL) {
-                                    // Storing comma-separated array
-                                    // Dynamic array creation
-
-                                    // Memcpy giving the primitive type not the array type (that's why minus SLOW5_CHAR)
-                                    if (slow5_memcpy_type_from_str(data + (aux_meta->sizes[i] * array_i), tok_sep, SLOW5_TO_PRIM_TYPE(aux_meta->types[i])) == -1) {
-                                        free(data);
-                                        slow5_rec_aux_free(aux_map);
-                                        SLOW5_WARNING("Auxiliary fields [%s] parsing failed.",aux_meta->attrs[i]);
-                                        return -1;
-                                    }
-
-                                    ++ array_i;
-
-                                    if (array_i >= array_cap) {
-                                        array_cap = array_cap << 1;
-                                        data = (uint8_t *) realloc(data, array_cap * aux_meta->sizes[i]);
-                                    }
-                                }
-
-                                len = array_i;
-
-                            }
-                        }
-                        bytes = len * aux_meta->sizes[i];
-
-                    } else {
-                        data = (uint8_t *) malloc(aux_meta->sizes[i]);
-                        if(strcmp(tok,".")==0){
-                            slow5_memcpy_type_from_null_str(data, aux_meta->types[i]);
-                        }
-                        else{
-                            if (slow5_memcpy_type_from_str(data, tok, aux_meta->types[i]) == -1) {
-                                free(data);
-                                slow5_rec_aux_free(aux_map);
-                                SLOW5_WARNING("Auxiliary fields [%s] parsing failed.",aux_meta->attrs[i]);
-                                return -1;
-                            }
-                        }
-                        bytes = aux_meta->sizes[i];
-                    }
-
-                    int absent;
-                    khint_t pos = kh_put(slow5_s2a, aux_map, aux_meta->attrs[i], &absent);
-                    if (absent == -1 || absent == -2) {
-                        slow5_rec_aux_free(aux_map);
-                        SLOW5_WARNING("Auxiliary fields [%s] is duplicated.",aux_meta->attrs[i]);
-                        return -1;
-                    }
-                    struct slow5_rec_aux_data *aux_data = &kh_value(aux_map, pos);
-                    aux_data->len = len;
-                    aux_data->bytes = bytes;
-                    aux_data->data = data;
-                    aux_data->type = aux_meta->types[i];
-
-                    tok = slow5_strsep(&read_mem, SLOW5_SEP_COL);
-                }
-                // Ensure line ends
-                if (tok != NULL) {
-                    kh_destroy(slow5_s2a, aux_map);
-                    SLOW5_WARNING("%s","The parsing prematurely ended while some more data remaining");
-                    return -1;
-                } else {
-                    read->aux_map = aux_map;
-                }
+                ret = slow5_rec_aux_parse(tok, read_mem, 0, read_size, read, format, aux_meta);
             }
         }
 
     } else if (format == SLOW5_FORMAT_BINARY) {
 
-        int64_t i = 0;
         bool main_cols_parsed = false;
 
         size_t size = 0;
@@ -1734,13 +1708,21 @@ int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struc
 
                     size = read->read_id_len * sizeof *read->read_id;
                     read->read_id = strndup(read_mem + offset, size);
-                    // Ensure line matches requested id
-                    if (read_id != NULL) {
-                        if (strcmp(read->read_id, read_id) != 0) {
-                            SLOW5_WARNING("Requested read ID [%s] does not match the read ID in fetched record [%s].",read_id,read->read_id);
-                            ret = -1;
-                            break;
+                    if (read->read_id == NULL) {
+                        if (errno == ENOMEM) {
+                            SLOW5_ERROR("%s", "Insufficient memory available to allocate read ID.")
+                        } else {
+                            SLOW5_ERROR("Duplicating read ID failed: %s", strerror(errno));
                         }
+                        ret = -1;
+                        break;
+                    }
+
+                    /* Ensure line matches requested id */
+                    if (read_id != NULL && strcmp(read->read_id, read_id) != 0) {
+                        SLOW5_ERROR("Requested read ID [%s] does not match the read ID [%s] in fetched record.", read_id, read->read_id);
+                        ret = -1;
+                        break;
                     }
                     offset += size;
                     break;
@@ -1781,18 +1763,32 @@ int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struc
                     offset += size;
                     break;
 
-                case COL_raw_signal:
-                    size = read->len_raw_signal * sizeof *read->raw_signal;
-                    read->raw_signal = (int16_t *) realloc(read->raw_signal, size);
-                    if(read->raw_signal == NULL){
-                        SLOW5_ERROR("%s", "Raw signal returned was NULL");
+                case COL_raw_signal: {
+                    size = read->len_raw_signal * sizeof *(read->raw_signal);
+                    if (read->raw_signal == NULL) {
+                        read->raw_signal = (int16_t *) malloc(size);
+                        SLOW5_MALLOC_CHK(read->raw_signal);
+                        if (read->raw_signal == NULL) {
+                            read->len_raw_signal = 0;
+                            ret = -1;
+                            break;
+                        }
+                    } else if (prev_len_raw_signal < read->len_raw_signal) {
+                        int16_t *raw_signal_tmp = (int16_t *) realloc(read->raw_signal, size);
+                        SLOW5_MALLOC_CHK(raw_signal_tmp);
+                        if (raw_signal_tmp == NULL) {
+                            read->len_raw_signal = prev_len_raw_signal;
+                            ret = -1;
+                            break;
+                        }
+                        read->raw_signal = raw_signal_tmp;
                     }
+
                     memcpy(read->raw_signal, read_mem + offset, size);
                     offset += size;
-                    break;
+                 } break;
 
-                    // All columns parsed
-                default:
+                default: /* All columns parsed */
                     main_cols_parsed = true;
                     break;
             }
@@ -1800,117 +1796,250 @@ int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struc
             ++ i;
         }
 
-        if (offset > read_size){// Read too much
-            SLOW5_WARNING("Malformed record. offset %ld, read_size %ld",(long)offset, (long)read_size);
+        if (offset > read_size) { /* Read too much */
+            SLOW5_ERROR("Read more bytes than record size. At offset [%ld] but record size is [%ld].", (long) offset, (long) read_size);
             ret = -1;
-        }
-        else if(aux_meta == NULL && offset < read_size){ // More to read but no auxiliary meta
-            SLOW5_WARNING("More to read but no auxiliary meta. offset %ld, read_size %ld",(long)offset, (long)read_size);
+        } else if (aux_meta == NULL && offset < read_size) { /* More to read but no auxiliary meta */
+            SLOW5_ERROR("No auxiliary meta data but more data in record. At offset [%ld] but record size is [%ld].", (long) offset, (long) read_size);
             ret = -1;
-        }
-        else if (aux_meta != NULL && offset == read_size) { // No more to read but auxiliary meta expected
-            SLOW5_WARNING("No more to read but auxiliary meta expected. offset %ld, read_size %ld",(long)offset, (long)read_size);
+        } else if (aux_meta != NULL && offset == read_size) { /* No more to read but auxiliary meta expected */
+            SLOW5_ERROR("Missing auxiliary data in record. At offset [%ld] which equals the record size.", (long) offset);
             ret = -1;
-        }
-        else if (aux_meta != NULL) {
-            // Parse auxiliary data
-
-            khash_t(slow5_s2a) *aux_map = slow5_rec_aux_init();
-
-            for (i = 0; i < aux_meta->num; ++ i) {
-                if (offset >= read_size) {
-                    slow5_rec_aux_free(aux_map);
-                    SLOW5_WARNING("Parsing auxiliary field [%s] failed",aux_meta->attrs[i]);
-                    return -1;
-                }
-
-                uint64_t len = 1;
-                if (SLOW5_IS_PTR(aux_meta->types[i])) {
-                    // Type is an array
-                    size = sizeof len;
-                    memcpy(&len, read_mem + offset, size);
-                    offset += size;
-                }
-
-                uint8_t *data;
-                uint64_t bytes = len * aux_meta->sizes[i];
-
-                if (len==0){
-                    data = NULL;
-                }
-                else{
-                    if (aux_meta->types[i] == SLOW5_STRING) {
-                        data = (uint8_t *) malloc(bytes + 1);
-                        memcpy(data, read_mem + offset, bytes);
-                        offset += bytes;
-                        data[bytes] = '\0';
-                    } else {
-                        data = (uint8_t *) malloc(bytes);
-                        memcpy(data, read_mem + offset, bytes);
-                        offset += bytes;
-                    }
-                }
-
-                int absent;
-                khint_t pos = kh_put(slow5_s2a, aux_map, aux_meta->attrs[i], &absent);
-                if (absent == -1 || absent == -2) {
-                    slow5_rec_aux_free(aux_map);
-                    SLOW5_WARNING("Auxiliary fields [%s] is duplicated.",aux_meta->attrs[i]);
-                    return -1;
-                }
-                struct slow5_rec_aux_data *aux_data = &kh_value(aux_map, pos);
-                aux_data->len = len;
-                aux_data->bytes = bytes;
-                aux_data->data = data;
-                aux_data->type = aux_meta->types[i];
-            }
-
-            if (offset != read_size) {
-                slow5_rec_aux_free(aux_map);
-                SLOW5_WARNING("Malformed record. offset %ld, read_size %ld",(long)offset, (long)read_size);
-                return -1;
-            } else {
-                read->aux_map = aux_map;
-            }
+        } else if (aux_meta != NULL) {
+            /* Parse auxiliary data */
+            ret = slow5_rec_aux_parse(NULL, read_mem, offset, read_size, read, format, aux_meta);
         }
     }
 
     return ret;
 }
 
+/*
+ * parse auxiliary data from read_mem with read_size bytes, the given format and auxiliary meta data aux_meta
+ * setup the read's auxiliary map
+ * read_mem, read, aux_meta cannot be NULL
+ * returns -1 on error, 0 on success
+ */
+static int slow5_rec_aux_parse(char *tok, char *read_mem, uint64_t offset, size_t read_size, struct slow5_rec *read, enum slow5_fmt format, struct slow5_aux_meta *aux_meta) {
+
+    int ret = 0;
+
+    khash_t(slow5_s2a) *aux_map = slow5_rec_aux_init();
+    if (aux_map == NULL) {
+        return -1;
+    }
+
+    if (format == SLOW5_FORMAT_ASCII) {
+
+        for (int64_t i = 0; i < aux_meta->num; ++ i) {
+            if (tok == NULL) {
+                SLOW5_ERROR("Auxiliary field [%s] is missing in record.", aux_meta->attrs[i]);
+                slow5_rec_aux_free(aux_map);
+                return -1;
+            }
+
+            uint64_t bytes = 0;
+            uint64_t len = 1;
+            uint8_t *data = NULL;
+            if (SLOW5_IS_PTR(aux_meta->types[i])) {
+                /* Type is an array */
+                if (strcmp(tok, SLOW5_ASCII_MISSING) == 0) {
+                    len = 0;
+                } else if (aux_meta->types[i] == SLOW5_STRING) {
+                    len = strlen(tok);
+                    data = (uint8_t *) malloc((len + 1) * aux_meta->sizes[i]);
+                    SLOW5_MALLOC_CHK(data);
+                    if (data == NULL) {
+                        slow5_rec_aux_free(aux_map);
+                        return -1;
+                    }
+                    memcpy(data, tok, (len + 1) * aux_meta->sizes[i]);
+                } else {
+                    /* Split tok by SLOW5_SEP_ARRAY */
+                    char *tok_sep;
+                    uint64_t array_cap = SLOW5_AUX_ARRAY_CAP_INIT;
+                    uint64_t array_i = 0;
+                    data = (uint8_t *) malloc(array_cap * aux_meta->sizes[i]);
+                    SLOW5_MALLOC_CHK(data);
+                    if (data == NULL) {
+                        slow5_rec_aux_free(aux_map);
+                        return -1;
+                    }
+
+                    while ((tok_sep = slow5_strsep(&tok, SLOW5_SEP_ARRAY)) != NULL) {
+                        /*
+                         * Storing comma-separated array
+                         * Dynamic array creation
+                         */
+
+                        /* Memcpy giving the primitive type not the array type */
+                        if (slow5_memcpy_type_from_str(data + (aux_meta->sizes[i] * array_i), tok_sep, SLOW5_TO_PRIM_TYPE(aux_meta->types[i])) == -1) {
+                            SLOW5_ERROR("Array element [%" PRIu64 "] of auxiliary field [%s] could not be parsed from [%s].", array_i, aux_meta->attrs[i], tok);
+                            free(data);
+                            slow5_rec_aux_free(aux_map);
+                            return -1;
+                        }
+
+                        ++ array_i;
+
+                        if (array_i >= array_cap) {
+                            array_cap = array_cap << 1;
+                            uint8_t *data_tmp = (uint8_t *) realloc(data, array_cap * aux_meta->sizes[i]);
+                            SLOW5_MALLOC_CHK(data_tmp);
+                            if (data_tmp == NULL) {
+                                free(data);
+                                slow5_rec_aux_free(aux_map);
+                                return -1;
+                            }
+                            data = data_tmp;
+                        }
+                    }
+
+                    len = array_i;
+                }
+                bytes = len * aux_meta->sizes[i];
+
+            } else { /* primitive type */
+                data = (uint8_t *) malloc(aux_meta->sizes[i]);
+                SLOW5_MALLOC_CHK(data);
+                if (data == NULL) {
+                    slow5_rec_aux_free(aux_map);
+                    return -1;
+                }
+
+                if (strcmp(tok, SLOW5_ASCII_MISSING) == 0) {
+                    slow5_memcpy_null_type(data, aux_meta->types[i]);
+                } else if (slow5_memcpy_type_from_str(data, tok, aux_meta->types[i]) == -1) {
+                    SLOW5_ERROR("Auxiliary field [%s] could not be parsed from [%s].", aux_meta->attrs[i], tok);
+                    free(data);
+                    slow5_rec_aux_free(aux_map);
+                    return -1;
+                }
+                bytes = aux_meta->sizes[i];
+            }
+
+            int absent;
+            khint_t pos = kh_put(slow5_s2a, aux_map, aux_meta->attrs[i], &absent);
+            if (absent == -1) {
+                SLOW5_ERROR("Inserting key [%s] into the auxiliary hash table failed.", aux_meta->attrs[i]);
+                free(data);
+                slow5_rec_aux_free(aux_map);
+                return -1;
+            } else if (absent == 0) {
+                SLOW5_ERROR("Auxiliary field [%s] is duplicated.", aux_meta->attrs[i]);
+                free(data);
+                slow5_rec_aux_free(aux_map);
+                return -1;
+            }
+            struct slow5_rec_aux_data *aux_data = &kh_value(aux_map, pos);
+            aux_data->len = len;
+            aux_data->bytes = bytes;
+            aux_data->data = data;
+            aux_data->type = aux_meta->types[i];
+
+            tok = slow5_strsep(&read_mem, SLOW5_SEP_COL);
+        }
+        /* Ensure line ends */
+        if (tok != NULL) {
+            SLOW5_ERROR("%s", "More auxiliary record data exists but all header auxiliary columns were parsed.");
+            slow5_rec_aux_free(aux_map);
+            return -1;
+        }
+        read->aux_map = aux_map;
+
+    } else if (format == SLOW5_FORMAT_BINARY) {
+
+        size_t size = 0;
+
+        for (int64_t i = 0; i < aux_meta->num; ++ i) {
+            if (offset >= read_size) {
+                SLOW5_ERROR("Auxiliary field [%s] is missing in record. At offset [%ld] and record size is [%ld].", aux_meta->attrs[i], offset, read_size);
+                slow5_rec_aux_free(aux_map);
+                return -1;
+            }
+
+            uint64_t len = 1;
+            if (SLOW5_IS_PTR(aux_meta->types[i])) {
+                /* Type is an array */
+                size = sizeof len;
+                memcpy(&len, read_mem + offset, size);
+                offset += size;
+            }
+
+            uint8_t *data;
+            uint64_t bytes = len * aux_meta->sizes[i];
+
+            if (len == 0) {
+                data = NULL;
+            } else if (aux_meta->types[i] == SLOW5_STRING) {
+                data = (uint8_t *) malloc(bytes + 1);
+                SLOW5_MALLOC_CHK(data);
+                if (data == NULL) {
+                    slow5_rec_aux_free(aux_map);
+                    return -1;
+                }
+                memcpy(data, read_mem + offset, bytes);
+                offset += bytes;
+                data[bytes] = '\0';
+            } else {
+                data = (uint8_t *) malloc(bytes);
+                SLOW5_MALLOC_CHK(data);
+                if (data == NULL) {
+                    slow5_rec_aux_free(aux_map);
+                    return -1;
+                }
+                memcpy(data, read_mem + offset, bytes);
+                offset += bytes;
+            }
+
+            int absent;
+            khint_t pos = kh_put(slow5_s2a, aux_map, aux_meta->attrs[i], &absent);
+            if (absent == -1) {
+                SLOW5_ERROR("Inserting key [%s] into the auxiliary hash table failed.", aux_meta->attrs[i]);
+                slow5_rec_aux_free(aux_map);
+                return -1;
+            } else if (absent == 0) {
+                SLOW5_ERROR("Auxiliary field [%s] is duplicated.", aux_meta->attrs[i]);
+                slow5_rec_aux_free(aux_map);
+                return -1;
+            }
+            struct slow5_rec_aux_data *aux_data = &kh_value(aux_map, pos);
+            aux_data->len = len;
+            aux_data->bytes = bytes;
+            aux_data->data = data;
+            aux_data->type = aux_meta->types[i];
+        }
+
+        if (offset != read_size) {
+            SLOW5_ERROR("More auxiliary record data exists but all header auxiliary columns were parsed. At offset [%ld] but record size is [%ld].", (long) offset, (long) read_size);
+            slow5_rec_aux_free(aux_map);
+            return -1;
+        }
+        read->aux_map = aux_map;
+    }
+
+    return ret;
+}
+
+/* init a slow5 record auxiliary hash map DONE */
 static inline khash_t(slow5_s2a) *slow5_rec_aux_init(void) {
     khash_t(slow5_s2a) *aux_map = kh_init(slow5_s2a);
+    SLOW5_MALLOC_CHK(aux_map)
     return aux_map;
 }
 
+/* free a slow5 record auxiliary hash map DONE */
 void slow5_rec_aux_free(khash_t(slow5_s2a) *aux_map) {
     if (aux_map != NULL) {
         for (khint_t i = kh_begin(aux_map); i != kh_end(aux_map); ++ i) {
             if (kh_exist(aux_map, i)) {
                 kh_del(slow5_s2a, aux_map, i);
                 struct slow5_rec_aux_data *aux_data = &kh_value(aux_map, i);
+                /* TODO aux_data better not be null here because I'm not checking */
                 free(aux_data->data);
             }
         }
 
-        // Using aux_meta?
-        // Then no independence between different slow5_file pointers
-        // Hence, always close slow5 files after slow5 records?
-        // Is this a restriction on the library or ok?
-        /*
-        for (uint16_t i = 0; i < aux_meta->num; ++ i) {
-            char *attr = aux_meta->attrs[i];
-
-            khint_t pos = kh_get(slow5_s2a, aux_map, attr);
-
-            if (kh_exist(aux_map, pos)) {
-                free((void *) kh_key(aux_map, pos)); // TODO avoid void *
-                kh_del(slow5_s2a, aux_map, pos);
-                struct slow5_rec_aux_data *aux_data = &kh_value(aux_map, pos);
-                free(aux_data->data);
-            }
-        }
-        */
         kh_destroy(slow5_s2a, aux_map);
     }
 }
@@ -1920,96 +2049,114 @@ void slow5_rec_aux_free(khash_t(slow5_s2a) *aux_map) {
  *
  * Allocates memory for *read if it is NULL.
  * Otherwise, the data in *read is freed and overwritten.
- * slow5_rec_free() should be called when finished with the structure.
+ *
+ * slow5_rec_free() should be called when finished with the read, even on failure.
  *
  * Return
  * >=0  the read was successfully found and stored
- * <0   error code
+ * <0   error code described below
+ *
  * Error
- * SLOW5_ERR_EOF       EOF reached
- * SLOW5_ERR_ARG       read_id, read or s5p is NULL
- * SLOW5_ERR_IO      ither reading error when reading the slow5 file
- * SLOW5_ERR_RECPARSE    record parsing error
+ * SLOW5_ERR_ARG        read or s5p is NULL
+ * SLOW5_ERR_EOF        EOF reached
+ * SLOW5_ERR_IO         other reading error when reading the slow5 file
+ * SLOW5_ERR_MEM        memory allocation error
+ * SLOW5_ERR_PRESS      record decompression error
+ * SLOW5_ERR_RECPARSE   record parsing error
  *
  * @param   read    address of a slow5_rec pointer
  * @param   s5p     slow5 file
  * @return  error code described above
  */
 int slow5_get_next(struct slow5_rec **read, struct slow5_file *s5p) {
-    if (read == NULL || s5p == NULL) {
+    if (read == NULL) {
+        SLOW5_ERROR_EXIT("%s", "Argument 'read' cannot be NULL.");
+        slow5_errno = SLOW5_ERR_ARG;
+        return SLOW5_ERR_ARG;
+    }
+    if (s5p == NULL) {
+        SLOW5_ERROR_EXIT("%s", "Argument 's5p' cannot be NULL.");
+        slow5_errno = SLOW5_ERR_ARG;
         return SLOW5_ERR_ARG;
     }
 
+    if (*read == NULL) {
+        *read = (struct slow5_rec *) calloc(1, sizeof **read); /* allocate memory for read */
+        SLOW5_MALLOC_CHK_EXIT(*read);
+        if (*read == NULL) {
+            slow5_errno = SLOW5_ERR_MEM;
+            return SLOW5_ERR_MEM;
+        }
+    } else {
+        free((*read)->read_id); /* free read */
+        (*read)->read_id = NULL;
+        slow5_rec_aux_free((*read)->aux_map); /* free auxiliary data */
+        (*read)->aux_map = NULL;
+    }
+
     int ret = 0;
+    size_t read_len;
     char *read_mem = NULL;
 
     if (s5p->format == SLOW5_FORMAT_ASCII) {
+
         size_t cap = 0;
-        ssize_t read_len;
-        if ((read_len = getline(&read_mem, &cap, s5p->fp)) == -1) {
+        ssize_t read_len_tmp;
+        if ((read_len_tmp = getline(&read_mem, &cap, s5p->fp)) == -1) { /* getline failed */
+            int errno_save = errno;
             free(read_mem);
-            if(feof(s5p->fp)){
+            if (feof(s5p->fp)) {
+                SLOW5_ERROR_EXIT("%s", "End of file reached.")
+                slow5_errno = SLOW5_ERR_EOF;
                 return SLOW5_ERR_EOF;
             }
+            if (errno_save == EINVAL) {
+                SLOW5_ERROR_EXIT("%s", "File pointer cannot be NULL.")
+                slow5_errno = SLOW5_ERR_IO;
+                return SLOW5_ERR_IO;
+            }
+            if (errno_save == ENOMEM) {
+                SLOW5_ERROR_EXIT("%s", "Allocation of the line buffer failed.")
+                slow5_errno = SLOW5_ERR_MEM;
+                return SLOW5_ERR_MEM;
+            }
+            SLOW5_ERROR_EXIT("Failure to get the next read: %s", strerror(errno_save))
+            slow5_errno = SLOW5_ERR_IO;
             return SLOW5_ERR_IO;
         }
-        read_mem[-- read_len] = '\0'; // Remove newline for parsing
-
-        if (*read == NULL) {
-            // Allocate memory for read
-            *read = (struct slow5_rec *) calloc(1, sizeof **read);
-        } else {
-            // Free previously allocated read id
-            free((*read)->read_id);
-            (*read)->read_id = NULL;
-            if ((*read)->aux_map != NULL) {
-                // Free previously allocated auxiliary data
-                slow5_rec_aux_free((*read)->aux_map);
-                (*read)->aux_map = NULL;
-            }
-        }
-
-        if (slow5_rec_parse(read_mem, read_len, NULL, *read, s5p->format, s5p->header->aux_meta) == -1) {
-            ret = SLOW5_ERR_RECPARSE;
-        }
-
-        free(read_mem);
+        read_len = read_len_tmp;
+        read_mem[-- read_len] = '\0'; /* remove newline for parsing */
 
     } else if (s5p->format == SLOW5_FORMAT_BINARY) {
-        if (*read == NULL) {
-            // Allocate memory for read
-            *read = (struct slow5_rec *) calloc(1, sizeof **read);
-        } else {
-            // Free previously allocated read id
-            free((*read)->read_id);
-            (*read)->read_id = NULL;
-            if ((*read)->aux_map != NULL) {
-                // Free previously allocated auxiliary data
-                slow5_rec_aux_free((*read)->aux_map);
-                (*read)->aux_map = NULL;
-            }
-        }
 
         slow5_rec_size_t record_size;
         if (fread(&record_size, sizeof record_size, 1, s5p->fp) != 1) {
-           if(feof(s5p->fp)){
+            if (feof(s5p->fp)) {
+                SLOW5_ERROR_EXIT("%s", "End of file reached.")
+                slow5_errno = SLOW5_ERR_EOF;
                 return SLOW5_ERR_EOF;
             }
+            SLOW5_ERROR_EXIT("%s", "Failure to get the next read.")
+            slow5_errno = SLOW5_ERR_IO;
             return SLOW5_ERR_IO;
         }
 
-        size_t size_decomp;
-        char *rec_decomp = (char *) slow5_fread_depress(s5p->compress, record_size, s5p->fp, &size_decomp);
-        if (rec_decomp == NULL) {
-            return SLOW5_ERR_IO;
+        read_mem = (char *) slow5_fread_depress(s5p->compress, record_size, s5p->fp, &read_len);
+        if (read_mem == NULL) {
+            SLOW5_ERROR_EXIT("%s", "Read decompression failed.")
+            slow5_errno = SLOW5_ERR_PRESS;
+            return SLOW5_ERR_PRESS;
         }
-
-        if (slow5_rec_parse(rec_decomp, size_decomp, NULL, *read, s5p->format, s5p->header->aux_meta) == -1) {
-            ret = SLOW5_ERR_RECPARSE;
-        }
-
-        free(rec_decomp);
     }
+
+    /* TODO investigate errors on slow5_rec_parse */
+    if (slow5_rec_parse(read_mem, read_len, NULL, *read, s5p->format, s5p->header->aux_meta) == -1) {
+        SLOW5_ERROR_EXIT("%s", "Read could not be parsed.")
+        slow5_errno = SLOW5_ERR_RECPARSE;
+        ret = SLOW5_ERR_RECPARSE;
+    }
+
+    free(read_mem);
 
     return ret;
 }
@@ -2087,461 +2234,158 @@ static inline void slow5_rec_set_aux_map(khash_t(slow5_s2a) *aux_map, const char
     aux_data->bytes = bytes;
     aux_data->type = type;
     aux_data->data = (uint8_t *) malloc(bytes);
+    SLOW5_MALLOC_CHK(aux_data->data);
     memcpy(aux_data->data, data, bytes);
 }
 
-int8_t slow5_aux_get_int8(const struct slow5_rec *read, const char *field, int *err) {
-    int8_t val = INT8_MAX;
-    int tmp_err = -1;
-
-    if (read != NULL && field != NULL && read->aux_map != NULL) {
-        khint_t pos = kh_get(slow5_s2a, read->aux_map, field);
-        if (pos != kh_end(read->aux_map)) {
-            struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos);
-            if (aux_data.type == SLOW5_INT8_T) {
-                val = *((int8_t*) aux_data.data);
-                tmp_err = 0;
-            }
-        }
-    }
-
-    if (err != NULL) {
-        *err = tmp_err;
-    }
+#define SLOW5_AUX_GET(read, field, raw_type, null, prim_type) \
+    int tmp_err = 0; \
+    raw_type val = null; \
+    if (read == NULL) { \
+        SLOW5_ERROR_EXIT("%s", "Argument 'read' cannot be NULL.") \
+        slow5_errno = SLOW5_ERR_ARG; \
+        tmp_err = SLOW5_ERR_ARG; \
+    } else if (field == NULL) { \
+        SLOW5_ERROR_EXIT("%s", "Argument 'field' cannot be NULL.") \
+        slow5_errno = SLOW5_ERR_ARG; \
+        tmp_err = SLOW5_ERR_ARG; \
+    } else if (read->aux_map == NULL) { \
+        SLOW5_ERROR_EXIT("%s", "Missing auxiliary hash map.") \
+        slow5_errno = SLOW5_ERR_NOAUX; \
+        tmp_err = SLOW5_ERR_NOAUX; \
+    } else { \
+        khint_t pos = kh_get(slow5_s2a, read->aux_map, field); \
+        if (pos == kh_end(read->aux_map)) { \
+            SLOW5_ERROR_EXIT("Field '%s' not found.", field) \
+            slow5_errno = SLOW5_ERR_NOFLD; \
+            tmp_err = SLOW5_ERR_NOFLD; \
+        } else  { \
+            struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos); \
+            if (aux_data.type == prim_type) { \
+                val = *((raw_type*) aux_data.data); \
+            } \
+        } \
+    } \
+    if (err != NULL) { \
+        *err = tmp_err; \
+    } \
     return val;
+/*
+ * get the auxiliary entry of a primitive type field from a slow5 record
+ * err is deprecated, check slow5_errno instead
+ * SLOW5_ERR_ARG if read or field is NULL
+ * SLOW5_ERR_NOAUX if no auxiliary hash map for the record
+ * SLOW5_ERR_NOFLD if the field was not found
+ * DONE
+ */
+int8_t slow5_aux_get_int8(const struct slow5_rec *read, const char *field, int *err) {
+    SLOW5_AUX_GET(read, field, int8_t, SLOW5_INT8_T_NULL, SLOW5_INT8_T)
 }
 int16_t slow5_aux_get_int16(const struct slow5_rec *read, const char *field, int *err) {
-    int16_t val = INT16_MAX;
-    int tmp_err = -1;
-
-    if (read != NULL && field != NULL && read->aux_map != NULL) {
-        khint_t pos = kh_get(slow5_s2a, read->aux_map, field);
-        if (pos != kh_end(read->aux_map)) {
-            struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos);
-            if (aux_data.type == SLOW5_INT16_T) {
-                val = *((int16_t*) aux_data.data);
-                tmp_err = 0;
-            }
-        }
-    }
-
-    if (err != NULL) {
-        *err = tmp_err;
-    }
-    return val;
+    SLOW5_AUX_GET(read, field, int16_t, SLOW5_INT16_T_NULL, SLOW5_INT16_T)
 }
 int32_t slow5_aux_get_int32(const struct slow5_rec *read, const char *field, int *err) {
-    int32_t val = INT32_MAX;
-    int tmp_err = -1;
-
-    if (read != NULL && field != NULL && read->aux_map != NULL) {
-        khint_t pos = kh_get(slow5_s2a, read->aux_map, field);
-        if (pos != kh_end(read->aux_map)) {
-            struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos);
-            if (aux_data.type == SLOW5_INT32_T) {
-                val = *((int32_t*) aux_data.data);
-                tmp_err = 0;
-            }
-        }
-    }
-
-    if (err != NULL) {
-        *err = tmp_err;
-    }
-    return val;
+    SLOW5_AUX_GET(read, field, int32_t, SLOW5_INT32_T_NULL, SLOW5_INT32_T)
 }
 int64_t slow5_aux_get_int64(const struct slow5_rec *read, const char *field, int *err) {
-    int64_t val = INT64_MAX;
-    int tmp_err = -1;
-
-    if (read != NULL && field != NULL && read->aux_map != NULL) {
-        khint_t pos = kh_get(slow5_s2a, read->aux_map, field);
-        if (pos != kh_end(read->aux_map)) {
-            struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos);
-            if (aux_data.type == SLOW5_INT64_T) {
-                val = *((int64_t*) aux_data.data);
-                tmp_err = 0;
-            }
-        }
-    }
-
-    if (err != NULL) {
-        *err = tmp_err;
-    }
-    return val;
+    SLOW5_AUX_GET(read, field, int64_t, SLOW5_INT64_T_NULL, SLOW5_INT64_T)
 }
 uint8_t slow5_aux_get_uint8(const struct slow5_rec *read, const char *field, int *err) {
-    uint8_t val = UINT8_MAX;
-    int tmp_err = -1;
-
-    if (read != NULL && field != NULL && read->aux_map != NULL) {
-        khint_t pos = kh_get(slow5_s2a, read->aux_map, field);
-        if (pos != kh_end(read->aux_map)) {
-            struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos);
-            if (aux_data.type == SLOW5_UINT8_T) {
-                val = *((uint8_t*) aux_data.data);
-                tmp_err = 0;
-            }
-        }
-    }
-
-    if (err != NULL) {
-        *err = tmp_err;
-    }
-    return val;
+    SLOW5_AUX_GET(read, field, uint8_t, SLOW5_UINT8_T_NULL, SLOW5_UINT8_T)
 }
 uint16_t slow5_aux_get_uint16(const struct slow5_rec *read, const char *field, int *err) {
-    uint16_t val = UINT16_MAX;
-    int tmp_err = -1;
-
-    if (read != NULL && field != NULL && read->aux_map != NULL) {
-        khint_t pos = kh_get(slow5_s2a, read->aux_map, field);
-        if (pos != kh_end(read->aux_map)) {
-            struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos);
-            if (aux_data.type == SLOW5_UINT16_T) {
-                val = *((uint16_t*) aux_data.data);
-                tmp_err = 0;
-            }
-        }
-    }
-
-    if (err != NULL) {
-        *err = tmp_err;
-    }
-    return val;
+    SLOW5_AUX_GET(read, field, uint16_t, SLOW5_UINT16_T_NULL, SLOW5_UINT16_T)
 }
 uint32_t slow5_aux_get_uint32(const struct slow5_rec *read, const char *field, int *err) {
-    uint32_t val = UINT32_MAX;
-    int tmp_err = -1;
-
-    if (read != NULL && field != NULL && read->aux_map != NULL) {
-        khint_t pos = kh_get(slow5_s2a, read->aux_map, field);
-        if (pos != kh_end(read->aux_map)) {
-            struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos);
-            if (aux_data.type == SLOW5_UINT32_T) {
-                val = *((uint32_t*) aux_data.data);
-                tmp_err = 0;
-            }
-        }
-    }
-
-    if (err != NULL) {
-        *err = tmp_err;
-    }
-    return val;
+    SLOW5_AUX_GET(read, field, uint32_t, SLOW5_UINT32_T_NULL, SLOW5_UINT32_T)
 }
 uint64_t slow5_aux_get_uint64(const struct slow5_rec *read, const char *field, int *err) {
-    uint64_t val = UINT64_MAX;
-    int tmp_err = -1;
-
-    if (read != NULL && field != NULL && read->aux_map != NULL) {
-        khint_t pos = kh_get(slow5_s2a, read->aux_map, field);
-        if (pos != kh_end(read->aux_map)) {
-            struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos);
-            if (aux_data.type == SLOW5_UINT64_T) {
-                val = *((uint64_t*) aux_data.data);
-                tmp_err = 0;
-            }
-        }
-    }
-
-    if (err != NULL) {
-        *err = tmp_err;
-    }
-    return val;
+    SLOW5_AUX_GET(read, field, uint64_t, SLOW5_UINT64_T_NULL, SLOW5_UINT64_T)
 }
 float slow5_aux_get_float(const struct slow5_rec *read, const char *field, int *err) {
-    float val = FLT_MAX;
-    int tmp_err = -1;
-
-    if (read != NULL && field != NULL && read->aux_map != NULL) {
-        khint_t pos = kh_get(slow5_s2a, read->aux_map, field);
-        if (pos != kh_end(read->aux_map)) {
-            struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos);
-            if (aux_data.type == SLOW5_FLOAT) {
-                val = *((float*) aux_data.data);
-                tmp_err = 0;
-            }
-        }
-    }
-
-    if (err != NULL) {
-        *err = tmp_err;
-    }
-    return val;
+    SLOW5_AUX_GET(read, field, float, SLOW5_FLOAT_NULL, SLOW5_FLOAT)
 }
 double slow5_aux_get_double(const struct slow5_rec *read, const char *field, int *err) {
-    double val = DBL_MAX;
-    int tmp_err = -1;
-
-    if (read != NULL && field != NULL && read->aux_map != NULL) {
-        khint_t pos = kh_get(slow5_s2a, read->aux_map, field);
-        if (pos != kh_end(read->aux_map)) {
-            struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos);
-            if (aux_data.type == SLOW5_DOUBLE) {
-                val = *((double*) aux_data.data);
-                tmp_err = 0;
-            }
-        }
-    }
-
-    if (err != NULL) {
-        *err = tmp_err;
-    }
-    return val;
+    SLOW5_AUX_GET(read, field, double, SLOW5_DOUBLE_NULL, SLOW5_DOUBLE)
 }
 char slow5_aux_get_char(const struct slow5_rec *read, const char *field, int *err) {
-    char val = CHAR_MAX;
-    int tmp_err = -1;
-
-    if (read != NULL && field != NULL && read->aux_map != NULL) {
-        khint_t pos = kh_get(slow5_s2a, read->aux_map, field);
-        if (pos != kh_end(read->aux_map)) {
-            struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos);
-            if (aux_data.type == SLOW5_CHAR) {
-                val = *((char*) aux_data.data);
-                tmp_err = 0;
-            }
-        }
-    }
-
-    if (err != NULL) {
-        *err = tmp_err;
-    }
-    return val;
+    SLOW5_AUX_GET(read, field, char, SLOW5_CHAR_NULL, SLOW5_CHAR)
 }
-int8_t *slow5_aux_get_int8_array(const struct slow5_rec *read, const char *field, uint64_t *len, int *err) {
-    int8_t *val = NULL;
-    int tmp_err = -1;
-
-    if (read != NULL && field != NULL && read->aux_map != NULL) {
-        khint_t pos = kh_get(slow5_s2a, read->aux_map, field);
-        if (pos != kh_end(read->aux_map)) {
-            struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos);
-            if (aux_data.type == SLOW5_INT8_T_ARRAY) {
-                val = (int8_t*) aux_data.data;
-                *len = aux_data.len;
-                tmp_err = 0;
-            }
-        }
-    }
-
-    if (err != NULL) {
-        *err = tmp_err;
-    }
+#define SLOW5_AUX_GET_ARRAY(read, field, len, raw_type, ptr_type) \
+    int tmp_err = 0; \
+    raw_type val = NULL; \
+    if (read == NULL) { \
+        SLOW5_ERROR_EXIT("%s", "Argument 'read' cannot be NULL.") \
+        slow5_errno = SLOW5_ERR_ARG; \
+        tmp_err = SLOW5_ERR_ARG; \
+    } else if (field == NULL) { \
+        SLOW5_ERROR_EXIT("%s", "Argument 'field' cannot be NULL.") \
+        slow5_errno = SLOW5_ERR_ARG; \
+        tmp_err = SLOW5_ERR_ARG; \
+    } else if (read->aux_map == NULL) { \
+        SLOW5_ERROR_EXIT("%s", "Missing auxiliary hash map.") \
+        slow5_errno = SLOW5_ERR_NOAUX; \
+        tmp_err = slow5_errno; \
+    } else { \
+        khint_t pos = kh_get(slow5_s2a, read->aux_map, field); \
+        if (pos == kh_end(read->aux_map)) { \
+            SLOW5_ERROR_EXIT("Field '%s' not found.", field) \
+            slow5_errno = SLOW5_ERR_NOFLD; \
+            tmp_err = slow5_errno; \
+        } else { \
+            struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos); \
+            if (aux_data.type == ptr_type) { \
+                val = (raw_type) aux_data.data; \
+                if (len != NULL) { \
+                    *len = aux_data.len; \
+                } \
+            } \
+        } \
+    } \
+    if (err != NULL) { \
+        *err = tmp_err; \
+    } \
     return val;
+/*
+ * get the auxiliary entry of an array type field from a slow5 record
+ * err is deprecated, check slow5_errno instead
+ * SLOW5_ERR_ARG if read or field is NULL
+ * SLOW5_ERR_NOAUX if no auxiliary hash map for the record
+ * SLOW5_ERR_NOFLD if the field was not found
+ * DONE
+ */
+int8_t *slow5_aux_get_int8_array(const struct slow5_rec *read, const char *field, uint64_t *len, int *err) {
+    SLOW5_AUX_GET_ARRAY(read, field, len, int8_t*, SLOW5_INT8_T_ARRAY)
 }
 int16_t *slow5_aux_get_int16_array(const struct slow5_rec *read, const char *field, uint64_t *len, int *err) {
-    int16_t *val = NULL;
-    int tmp_err = -1;
-
-    if (read != NULL && field != NULL && read->aux_map != NULL) {
-        khint_t pos = kh_get(slow5_s2a, read->aux_map, field);
-        if (pos != kh_end(read->aux_map)) {
-            struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos);
-            if (aux_data.type == SLOW5_INT16_T_ARRAY) {
-                val = (int16_t *) aux_data.data;
-                *len = aux_data.len;
-                tmp_err = 0;
-            }
-        }
-    }
-
-    if (err != NULL) {
-        *err = tmp_err;
-    }
-    return val;
+    SLOW5_AUX_GET_ARRAY(read, field, len, int16_t*, SLOW5_INT16_T_ARRAY)
 }
 int32_t *slow5_aux_get_int32_array(const struct slow5_rec *read, const char *field, uint64_t *len, int *err) {
-    int32_t *val = NULL;
-    int tmp_err = -1;
-
-    if (read != NULL && field != NULL && read->aux_map != NULL) {
-        khint_t pos = kh_get(slow5_s2a, read->aux_map, field);
-        if (pos != kh_end(read->aux_map)) {
-            struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos);
-            if (aux_data.type == SLOW5_INT32_T_ARRAY) {
-                val = (int32_t *) aux_data.data;
-                *len = aux_data.len;
-                tmp_err = 0;
-            }
-        }
-    }
-
-    if (err != NULL) {
-        *err = tmp_err;
-    }
-    return val;
+    SLOW5_AUX_GET_ARRAY(read, field, len, int32_t*, SLOW5_INT32_T_ARRAY)
 }
 int64_t *slow5_aux_get_int64_array(const struct slow5_rec *read, const char *field, uint64_t *len, int *err) {
-    int64_t *val = NULL;
-    int tmp_err = -1;
-
-    if (read != NULL && field != NULL && read->aux_map != NULL) {
-        khint_t pos = kh_get(slow5_s2a, read->aux_map, field);
-        if (pos != kh_end(read->aux_map)) {
-            struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos);
-            if (aux_data.type == SLOW5_INT64_T_ARRAY) {
-                val = (int64_t *) aux_data.data;
-                *len = aux_data.len;
-                tmp_err = 0;
-            }
-        }
-    }
-
-    if (err != NULL) {
-        *err = tmp_err;
-    }
-    return val;
+    SLOW5_AUX_GET_ARRAY(read, field, len, int64_t*, SLOW5_INT64_T_ARRAY)
 }
 uint8_t *slow5_aux_get_uint8_array(const struct slow5_rec *read, const char *field, uint64_t *len, int *err) {
-    uint8_t *val = NULL;
-    int tmp_err = -1;
-
-    if (read != NULL && field != NULL && read->aux_map != NULL) {
-        khint_t pos = kh_get(slow5_s2a, read->aux_map, field);
-        if (pos != kh_end(read->aux_map)) {
-            struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos);
-            if (aux_data.type == SLOW5_UINT8_T_ARRAY) {
-                val = (uint8_t *) aux_data.data;
-                *len = aux_data.len;
-                tmp_err = 0;
-            }
-        }
-    }
-
-    if (err != NULL) {
-        *err = tmp_err;
-    }
-    return val;
+    SLOW5_AUX_GET_ARRAY(read, field, len, uint8_t*, SLOW5_UINT8_T_ARRAY)
 }
 uint16_t *slow5_aux_get_uint16_array(const struct slow5_rec *read, const char *field, uint64_t *len, int *err) {
-    uint16_t *val = NULL;
-    int tmp_err = -1;
-
-    if (read != NULL && field != NULL && read->aux_map != NULL) {
-        khint_t pos = kh_get(slow5_s2a, read->aux_map, field);
-        if (pos != kh_end(read->aux_map)) {
-            struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos);
-            if (aux_data.type == SLOW5_UINT16_T_ARRAY) {
-                val = (uint16_t *) aux_data.data;
-                *len = aux_data.len;
-                tmp_err = 0;
-            }
-        }
-    }
-
-    if (err != NULL) {
-        *err = tmp_err;
-    }
-    return val;
+    SLOW5_AUX_GET_ARRAY(read, field, len, uint16_t*, SLOW5_UINT16_T_ARRAY)
 }
 uint32_t *slow5_aux_get_uint32_array(const struct slow5_rec *read, const char *field, uint64_t *len, int *err) {
-    uint32_t *val = NULL;
-    int tmp_err = -1;
-
-    if (read != NULL && field != NULL && read->aux_map != NULL) {
-        khint_t pos = kh_get(slow5_s2a, read->aux_map, field);
-        if (pos != kh_end(read->aux_map)) {
-            struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos);
-            if (aux_data.type == SLOW5_UINT32_T_ARRAY) {
-                val = (uint32_t *) aux_data.data;
-                *len = aux_data.len;
-                tmp_err = 0;
-            }
-        }
-    }
-
-    if (err != NULL) {
-        *err = tmp_err;
-    }
-    return val;
+    SLOW5_AUX_GET_ARRAY(read, field, len, uint32_t*, SLOW5_UINT32_T_ARRAY)
 }
 uint64_t *slow5_aux_get_uint64_array(const struct slow5_rec *read, const char *field, uint64_t *len, int *err) {
-    uint64_t *val = NULL;
-    int tmp_err = -1;
-
-    if (read != NULL && field != NULL && read->aux_map != NULL) {
-        khint_t pos = kh_get(slow5_s2a, read->aux_map, field);
-        if (pos != kh_end(read->aux_map)) {
-            struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos);
-            if (aux_data.type == SLOW5_UINT64_T_ARRAY) {
-                val = (uint64_t *) aux_data.data;
-                *len = aux_data.len;
-                tmp_err = 0;
-            }
-        }
-    }
-
-    if (err != NULL) {
-        *err = tmp_err;
-    }
-    return val;
+    SLOW5_AUX_GET_ARRAY(read, field, len, uint64_t*, SLOW5_UINT64_T_ARRAY)
 }
 float *slow5_aux_get_float_array(const struct slow5_rec *read, const char *field, uint64_t *len, int *err) {
-    float *val = NULL;
-    int tmp_err = -1;
-
-    if (read != NULL && field != NULL && read->aux_map != NULL) {
-        khint_t pos = kh_get(slow5_s2a, read->aux_map, field);
-        if (pos != kh_end(read->aux_map)) {
-            struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos);
-            if (aux_data.type == SLOW5_FLOAT_ARRAY) {
-                val = (float *) aux_data.data;
-                *len = aux_data.len;
-                tmp_err = 0;
-            }
-        }
-    }
-
-    if (err != NULL) {
-        *err = tmp_err;
-    }
-    return val;
+    SLOW5_AUX_GET_ARRAY(read, field, len, float*, SLOW5_FLOAT_ARRAY)
 }
 double *slow5_aux_get_double_array(const struct slow5_rec *read, const char *field, uint64_t *len, int *err) {
-    double *val = NULL;
-    int tmp_err = -1;
-
-    if (read != NULL && field != NULL && read->aux_map != NULL) {
-        khint_t pos = kh_get(slow5_s2a, read->aux_map, field);
-        if (pos != kh_end(read->aux_map)) {
-            struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos);
-            if (aux_data.type == SLOW5_DOUBLE_ARRAY) {
-                val = (double *) aux_data.data;
-                *len = aux_data.len;
-                tmp_err = 0;
-            }
-        }
-    }
-
-    if (err != NULL) {
-        *err = tmp_err;
-    }
-    return val;
+    SLOW5_AUX_GET_ARRAY(read, field, len, double*, SLOW5_DOUBLE_ARRAY)
 }
 char *slow5_aux_get_string(const struct slow5_rec *read, const char *field, uint64_t *len, int *err) {
-    char *val = NULL;
-    int tmp_err = -1;
-
-    if (read != NULL && field != NULL && read->aux_map != NULL) {
-        khint_t pos = kh_get(slow5_s2a, read->aux_map, field);
-        if (pos != kh_end(read->aux_map)) {
-            struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos);
-            if (aux_data.type == SLOW5_STRING) {
-                val = (char *) aux_data.data;
-                if (len != NULL) {
-                    *len = aux_data.len;
-                }
-                tmp_err = 0;
-            }
-        }
-    }
-
-    if (err != NULL) {
-        *err = tmp_err;
-    }
-    return val;
+    SLOW5_AUX_GET_ARRAY(read, field, len, char*, SLOW5_STRING)
 }
 
 /**
@@ -2707,14 +2551,14 @@ void *slow5_rec_to_mem(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, 
         }
 
         int curr_len_tmp = slow5_asprintf(&mem,
-                                         SLOW5_COLS(SLOW5_GENERATE_FORMAT_STRING_SEP, SLOW5_GENERATE_NULL),
-                                         read_id,
-                                         read->read_group,
-                                         digitisation_str,
-                                         offset_str,
-                                         range_str,
-                                         sampling_rate_str,
-                                         read->len_raw_signal);
+                SLOW5_COLS(SLOW5_GENERATE_FORMAT_STRING_SEP, SLOW5_GENERATE_NULL),
+                read_id,
+                read->read_group,
+                digitisation_str,
+                offset_str,
+                range_str,
+                sampling_rate_str,
+                read->len_raw_signal);
         free(digitisation_str);
         free(offset_str);
         free(range_str);
@@ -2731,19 +2575,20 @@ void *slow5_rec_to_mem(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, 
         // <max length> = <current length> + '\n' + '\0'
         const size_t max_len = read->len_raw_signal != 0 ? curr_len + (INT16_MAX_LENGTH + 1) * read->len_raw_signal + 1 : curr_len + 1 + 1;
         mem = (char *) realloc(mem, max_len * sizeof *mem);
+        SLOW5_MALLOC_CHK(mem);
 
         char sig_buf[SLOW5_SIGNAL_BUF_FIXED_CAP];
 
         uint64_t i;
         for (i = 1; i < read->len_raw_signal; ++ i) {
-            int sig_len = sprintf(sig_buf, SLOW5_FORMAT_STRING_RAW_SIGNAL SLOW5_SEP_ARRAY, read->raw_signal[i - 1]);
+            int sig_len = sprintf(sig_buf, SLOW5_FORMAT_STRING_RAW_SIGNAL SLOW5_SEP_ARRAY, read->raw_signal[i-1]);
 
             memcpy(mem + curr_len, sig_buf, sig_len);
             curr_len += sig_len;
         }
         if (read->len_raw_signal > 0) {
             // Trailing signal
-            int len_to_cp = sprintf(sig_buf, SLOW5_FORMAT_STRING_RAW_SIGNAL, read->raw_signal[i - 1]);
+            int len_to_cp = sprintf(sig_buf, SLOW5_FORMAT_STRING_RAW_SIGNAL, read->raw_signal[i-1]);
             memcpy(mem + curr_len, sig_buf, len_to_cp);
             curr_len += len_to_cp;
         }
@@ -2757,27 +2602,32 @@ void *slow5_rec_to_mem(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, 
                 if (curr_len + 1 >= cap) { // +1 for '\t'
                     cap *= 2;
                     mem = (char *) realloc(mem, cap);
+                    SLOW5_MALLOC_CHK(mem);
                 }
                 mem[curr_len ++] = '\t';
 
+                size_t type_len;
+                char *type_str;
+
                 khint_t pos = kh_get(slow5_s2a, read->aux_map, aux_meta->attrs[i]);
                 if (pos != kh_end(read->aux_map)) {
-                    size_t type_len;
                     struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos);
-                    char *type_str = slow5_data_to_str(aux_data.data, aux_data.type, aux_data.len, &type_len);
-
-                    // Realloc if necessary
-                    if (curr_len + type_len >= cap) {
-                        cap *= 2;
-                        mem = (char *) realloc(mem, cap);
-                    }
-
-                    memcpy(mem + curr_len, type_str, type_len);
-                    curr_len += type_len;
-
-                    free(type_str);
+                    type_str = slow5_data_to_str(aux_data.data, aux_data.type, aux_data.len, &type_len);
+                } else {
+                    type_str = get_missing_str(&type_len);
                 }
 
+                // Realloc if necessary
+                if (curr_len + type_len >= cap) {
+                    cap *= 2;
+                    mem = (char *) realloc(mem, cap);
+                    SLOW5_MALLOC_CHK(mem);
+                }
+
+                memcpy(mem + curr_len, type_str, type_len);
+                curr_len += type_len;
+
+                free(type_str);
             }
         }
 
@@ -2786,6 +2636,7 @@ void *slow5_rec_to_mem(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, 
         if (curr_len + 2 >= cap) { // +2 for '\n' and '\0'
             cap *= 2;
             mem = (char *) realloc(mem, cap);
+            SLOW5_MALLOC_CHK(mem);
         }
         strcpy(mem + curr_len, "\n"); // Copies null byte as well
         curr_len += 1;
@@ -2808,6 +2659,7 @@ void *slow5_rec_to_mem(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, 
                      sizeof read->len_raw_signal +
                      read->len_raw_signal * sizeof read->raw_signal;
         mem = (char *) malloc(cap * sizeof *mem);
+        SLOW5_MALLOC_CHK(mem);
 
         memcpy(mem + curr_len, &read->read_id_len, sizeof read->read_id_len);
         curr_len += sizeof read->read_id_len;
@@ -2831,32 +2683,39 @@ void *slow5_rec_to_mem(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, 
         // Auxiliary fields
         if (read->aux_map != NULL && aux_meta != NULL) { // TODO error if one is NULL but not another
             for (uint16_t i = 0; i < aux_meta->num; ++ i) {
+                struct slow5_rec_aux_data aux_data = { 0 };
+
                 khint_t pos = kh_get(slow5_s2a, read->aux_map, aux_meta->attrs[i]);
                 if (pos != kh_end(read->aux_map)) {
-                    struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos);
-
-                    if (SLOW5_IS_PTR(aux_meta->types[i])) {
-                        // Realloc if necessary
-                        if (curr_len + sizeof aux_data.len + aux_data.bytes >= cap) {
-                            cap *= 2;
-                            mem = (char *) realloc(mem, cap);
-                        }
-
-                        memcpy(mem + curr_len, &aux_data.len, sizeof aux_data.len);
-                        curr_len += sizeof aux_data.len;
-
-                    } else {
-                        // Realloc if necessary
-                        if (curr_len + aux_data.bytes >= cap) {
-                            cap *= 2;
-                            mem = (char *) realloc(mem, cap);
-                        }
-                    }
-                    if(aux_data.len != 0 ){
-                        memcpy(mem + curr_len, aux_data.data, aux_data.bytes);
-                    }
-                    curr_len += aux_data.bytes;
+                    aux_data = kh_value(read->aux_map, pos);
+                } else if (!SLOW5_IS_PTR(aux_meta->types[i])) {
+                    aux_data.len = 1;
+                    aux_data.bytes = SLOW5_AUX_TYPE_META[aux_meta->types[i]].size;
+                    aux_data.data = (uint8_t *) malloc(aux_data.bytes);
+                    slow5_memcpy_null_type(aux_data.data, aux_meta->types[i]);
                 }
+
+                if (SLOW5_IS_PTR(aux_meta->types[i])) {
+                    // Realloc if necessary
+                    if (curr_len + sizeof aux_data.len + aux_data.bytes >= cap) {
+                        cap *= 2;
+                        mem = (char *) realloc(mem, cap);
+                        SLOW5_MALLOC_CHK(mem);
+                    }
+
+                    memcpy(mem + curr_len, &aux_data.len, sizeof aux_data.len);
+                    curr_len += sizeof aux_data.len;
+
+                } else if (curr_len + aux_data.bytes >= cap) { // Realloc if necessary
+                    cap *= 2;
+                    mem = (char *) realloc(mem, cap);
+                    SLOW5_MALLOC_CHK(mem);
+                }
+
+                if (aux_data.len != 0) {
+                    memcpy(mem + curr_len, aux_data.data, aux_data.bytes);
+                }
+                curr_len += aux_data.bytes;
             }
         }
 
@@ -2870,6 +2729,7 @@ void *slow5_rec_to_mem(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, 
 
         if (comp_mem != NULL) {
             uint8_t *comp_mem_full = (uint8_t *) malloc(sizeof record_size + record_size);
+            SLOW5_MALLOC_CHK(comp_mem_full);
             // Copy size of compressed record
             memcpy(comp_mem_full, &record_size, sizeof record_size);
             // Copy compressed record
@@ -2896,6 +2756,11 @@ void *slow5_rec_to_mem(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, 
     return (void *) mem;
 }
 
+/*
+ * free a slow5 record
+ * if slow5_rec_free(read) has already been called undefined behaviour occurs
+ * DONE
+ */
 void slow5_rec_free(struct slow5_rec *read) {
     if (read != NULL) {
         free(read->read_id);
@@ -2942,15 +2807,14 @@ int slow5_idx_create(struct slow5_file *s5p) {
  */
 int slow5_idx_load(struct slow5_file *s5p) {
     s5p->index = slow5_idx_init(s5p);
-    if (s5p->index){
+    if (s5p->index) {
         return 0;
-    }
-    else{
+    } else {
         return -1;
     }
 }
 
-void slow5_idx_unload(struct slow5_file *s5p){
+void slow5_idx_unload(struct slow5_file *s5p) {
     slow5_idx_free(s5p->index);
     s5p->index = NULL;
     return;
@@ -2960,30 +2824,34 @@ void slow5_idx_unload(struct slow5_file *s5p){
  * Print the binary end of file to a file pointer.
  *
  * On success, the number of bytes written is returned.
- * On error, -1 is returned.
+ * On error, slow5_errno is set to SLOW5_ERR_IO and returned. Errno should be checked for details.
  *
  * @param   fp      output file pointer
- * @return  number of bytes written, -1 on error
+ * @return  number of bytes written, SLOW5_ERR_IO on error
  */
 ssize_t slow5_eof_fwrite(FILE *fp) {
     const char eof[] = SLOW5_BINARY_EOF;
 
     size_t n;
     if ((n = fwrite(eof, sizeof *eof, sizeof eof, fp)) != sizeof eof) {
-        return -1;
+        SLOW5_ERROR("%s", "Could not write binary SLOW5 end of file.")
+        slow5_errno = SLOW5_ERR_IO;
+        return SLOW5_ERR_IO;
     } else {
         return n;
     }
 }
 
 
-// slow5 extension parsing
-
+/*
+ * get the slow5 format from the string name
+ * returns SLOW5_FORMAT_UNKNOWN if name is NULL or has no match
+ */
 enum slow5_fmt slow5_name_get_fmt(const char *name) {
     enum slow5_fmt format = SLOW5_FORMAT_UNKNOWN;
 
     if (name != NULL) {
-        for (size_t i = 0; i < sizeof SLOW5_FORMAT_META / sizeof SLOW5_FORMAT_META[0]; ++ i) {
+        for (size_t i = 0; i < SLOW5_LENGTH(SLOW5_FORMAT_META); ++ i) {
             const struct slow5_fmt_meta meta = SLOW5_FORMAT_META[i];
             if (strcmp(meta.name, name) == 0) {
                 format = meta.format;
@@ -2995,6 +2863,10 @@ enum slow5_fmt slow5_name_get_fmt(const char *name) {
     return format;
 }
 
+/*
+ * get the slow5 format by parsing the file path extension
+ * returns SLOW5_FORMAT_UNKNOWN if path is NULL or not found
+ */
 enum slow5_fmt slow5_path_get_fmt(const char *path) {
     enum slow5_fmt format = SLOW5_FORMAT_UNKNOWN;
 
@@ -3012,11 +2884,14 @@ enum slow5_fmt slow5_path_get_fmt(const char *path) {
     return format;
 }
 
-// Get the slow5 format name from the format
+/*
+ * get the unmalloced string representation of the slow5 format
+ * do not try to modify the returned string
+ */
 const char *slow5_fmt_get_name(enum slow5_fmt format) {
     const char *str = NULL;
 
-    for (size_t i = 0; i < sizeof SLOW5_FORMAT_META / sizeof SLOW5_FORMAT_META[0]; ++ i) {
+    for (size_t i = 0; i < SLOW5_LENGTH(SLOW5_FORMAT_META); ++ i) {
         const struct slow5_fmt_meta meta = SLOW5_FORMAT_META[i];
         if (meta.format == format) {
             str = meta.name;
@@ -3027,9 +2902,14 @@ const char *slow5_fmt_get_name(enum slow5_fmt format) {
     return str;
 }
 
+/*
+ * get the index file path from the slow5 file path
+ * path cannot be NULL
+ */
 char *slow5_get_idx_path(const char *path) {
     size_t new_len = strlen(path) + strlen(SLOW5_INDEX_EXTENSION);
     char *str = (char *) malloc((new_len + 1) * sizeof *str); // +1 for '\0'
+    SLOW5_MALLOC_CHK(str);
     memcpy(str, path, strlen(path));
     strcpy(str + strlen(path), SLOW5_INDEX_EXTENSION);
 
@@ -3075,254 +2955,242 @@ int slow5_convert(struct slow5_file *from, FILE *to_fp, enum slow5_fmt to_format
     return 0;
 }
 
-#define STR_TO_AUX_TYPE(str, len, raw_type, prim_do, array_do) \
+#define STR_TO_AUX_TYPE(str, err, type, len, raw_type, prim_type, ptr_type) \
     (SLOW5_IS_TYPE_TRUNC(str, raw_type)) { \
         if (len == sizeof (# raw_type) - 1) { \
-            prim_do; \
+            type = prim_type; \
+            *err = 0; \
         } else if (len == sizeof (# raw_type) && str[len - 1] == '*') { \
-            array_do; \
+            type = ptr_type; \
+            *err = 0; \
         } else { \
             *err = -1; \
-            return type; \
         } \
     }
-
+/*
+ * get slow5 type from english string representation
+ * str, err cannot be NULL
+ * *err set to 0 on success, -1 on failure
+ * TODO could return an error type -1
+ */
 enum slow5_aux_type slow5_str_to_aux_type(const char *str, int *err) {
     enum slow5_aux_type type = SLOW5_INT8_T;
 
     size_t len = strlen(str);
 
-    if STR_TO_AUX_TYPE(str, len, int8_t, type = SLOW5_INT8_T, type = SLOW5_INT8_T_ARRAY)
-    else if STR_TO_AUX_TYPE(str, len, int16_t, type = SLOW5_INT16_T, type = SLOW5_INT16_T_ARRAY)
-    else if STR_TO_AUX_TYPE(str, len, int32_t, type = SLOW5_INT32_T, type = SLOW5_INT32_T_ARRAY)
-    else if STR_TO_AUX_TYPE(str, len, int64_t, type = SLOW5_INT64_T, type = SLOW5_INT64_T_ARRAY)
-    else if STR_TO_AUX_TYPE(str, len, uint8_t, type = SLOW5_UINT8_T, type = SLOW5_UINT8_T_ARRAY)
-    else if STR_TO_AUX_TYPE(str, len, uint16_t, type = SLOW5_UINT16_T, type = SLOW5_UINT16_T_ARRAY)
-    else if STR_TO_AUX_TYPE(str, len, uint32_t, type = SLOW5_UINT32_T, type = SLOW5_UINT32_T_ARRAY)
-    else if STR_TO_AUX_TYPE(str, len, uint64_t, type = SLOW5_UINT64_T, type = SLOW5_UINT64_T_ARRAY)
-    else if STR_TO_AUX_TYPE(str, len, float, type = SLOW5_FLOAT, type = SLOW5_FLOAT_ARRAY)
-    else if STR_TO_AUX_TYPE(str, len, double, type = SLOW5_DOUBLE, type = SLOW5_DOUBLE_ARRAY)
-    else if STR_TO_AUX_TYPE(str, len, char, type = SLOW5_CHAR, type = SLOW5_STRING)
+    if STR_TO_AUX_TYPE(str, err, type, len,         int8_t,     SLOW5_INT8_T,   SLOW5_INT8_T_ARRAY)
+    else if STR_TO_AUX_TYPE(str, err, type, len,    int16_t,    SLOW5_INT16_T,  SLOW5_INT16_T_ARRAY)
+    else if STR_TO_AUX_TYPE(str, err, type, len,    int32_t,    SLOW5_INT32_T,  SLOW5_INT32_T_ARRAY)
+    else if STR_TO_AUX_TYPE(str, err, type, len,    int64_t,    SLOW5_INT64_T,  SLOW5_INT64_T_ARRAY)
+    else if STR_TO_AUX_TYPE(str, err, type, len,    uint8_t,    SLOW5_UINT8_T,  SLOW5_UINT8_T_ARRAY)
+    else if STR_TO_AUX_TYPE(str, err, type, len,    uint16_t,   SLOW5_UINT16_T, SLOW5_UINT16_T_ARRAY)
+    else if STR_TO_AUX_TYPE(str, err, type, len,    uint32_t,   SLOW5_UINT32_T, SLOW5_UINT32_T_ARRAY)
+    else if STR_TO_AUX_TYPE(str, err, type, len,    uint64_t,   SLOW5_UINT64_T, SLOW5_UINT64_T_ARRAY)
+    else if STR_TO_AUX_TYPE(str, err, type, len,    float,      SLOW5_FLOAT,    SLOW5_FLOAT_ARRAY)
+    else if STR_TO_AUX_TYPE(str, err, type, len,    double,     SLOW5_DOUBLE,   SLOW5_DOUBLE_ARRAY)
+    else if STR_TO_AUX_TYPE(str, err, type, len,    char,       SLOW5_CHAR,     SLOW5_STRING)
     else {
         *err = -1;
-        return type;
     }
 
-    *err = 0;
     return type;
 }
 
+#define MEMCPY_TYPE_FROM_STR(data, value, type, err, raw_type, slow5_type, conv) \
+    (type == slow5_type) { \
+        raw_type value_conv = conv(value, &err); \
+        if (err != -1) { \
+            memcpy(data, &value_conv, sizeof value_conv); \
+        } \
+    }
+/*
+ * memcpy to data the type equivalent of the string value
+ * data, value cannot be NULL
+ * type shouldn't be a pointer
+ * undefined behaviour if data doesn't have enough space for its type
+ * returns 0 on success, -1 on error
+ */
 int slow5_memcpy_type_from_str(uint8_t *data, const char *value, enum slow5_aux_type type) {
     int err = -1;
 
-    // TODO fix this is disgusting :(
-    if (type == SLOW5_INT8_T) {
-        int8_t value_conv = slow5_ato_int8(value, &err);
-        if (err != -1) {
-            memcpy(data, &value_conv, sizeof value_conv);
-        }
-    } else if (type == SLOW5_UINT8_T) {
-        uint8_t value_conv = slow5_ato_uint8(value, &err);
-        if (err != -1) {
-            memcpy(data, &value_conv, sizeof value_conv);
-        }
-    } else if (type == SLOW5_INT16_T) {
-        int16_t value_conv = slow5_ato_int16(value, &err);
-        if (err != -1) {
-            memcpy(data, &value_conv, sizeof value_conv);
-        }
-    } else if (type == SLOW5_UINT16_T) {
-        uint16_t value_conv = slow5_ato_uint16(value, &err);
-        if (err != -1) {
-            memcpy(data, &value_conv, sizeof value_conv);
-        }
-    } else if (type == SLOW5_INT32_T) {
-        int32_t value_conv = slow5_ato_int32(value, &err);
-        if (err != -1) {
-            memcpy(data, &value_conv, sizeof value_conv);
-        }
-    } else if (type == SLOW5_UINT32_T) {
-        uint32_t value_conv = slow5_ato_uint32(value, &err);
-        if (err != -1) {
-            memcpy(data, &value_conv, sizeof value_conv);
-        }
-    } else if (type == SLOW5_INT64_T) {
-        int64_t value_conv = slow5_ato_int64(value, &err);
-        if (err != -1) {
-            memcpy(data, &value_conv, sizeof value_conv);
-        }
-    } else if (type == SLOW5_UINT64_T) {
-        uint64_t value_conv = slow5_ato_uint64(value, &err);
-        if (err != -1) {
-            memcpy(data, &value_conv, sizeof value_conv);
-        }
-    } else if (type == SLOW5_FLOAT) {
-        float value_conv = slow5_strtof_check(value, &err);
-        if (err != -1) {
-            memcpy(data, &value_conv, sizeof value_conv);
-        }
-    } else if (type == SLOW5_DOUBLE) {
-        double value_conv = slow5_strtod_check(value, &err);
-        if (err != -1) {
-            memcpy(data, &value_conv, sizeof value_conv);
-        }
-    } else if (type == SLOW5_CHAR) {
+    if (strcmp(value, SLOW5_ASCII_MISSING) == 0) {
+        slow5_memcpy_null_type(data, type);
+        err = 0;
+    } else if MEMCPY_TYPE_FROM_STR(data, value, type, err,  int8_t,     SLOW5_INT8_T,   slow5_ato_int8)
+    else if MEMCPY_TYPE_FROM_STR(data, value, type, err,    uint8_t,    SLOW5_UINT8_T,  slow5_ato_uint8)
+    else if MEMCPY_TYPE_FROM_STR(data, value, type, err,    int16_t,    SLOW5_INT16_T,  slow5_ato_int16)
+    else if MEMCPY_TYPE_FROM_STR(data, value, type, err,    uint16_t,   SLOW5_UINT16_T, slow5_ato_uint16)
+    else if MEMCPY_TYPE_FROM_STR(data, value, type, err,    int32_t,    SLOW5_INT32_T,  slow5_ato_int32)
+    else if MEMCPY_TYPE_FROM_STR(data, value, type, err,    uint32_t,   SLOW5_UINT32_T, slow5_ato_uint32)
+    else if MEMCPY_TYPE_FROM_STR(data, value, type, err,    int64_t,    SLOW5_INT64_T,  slow5_ato_int64)
+    else if MEMCPY_TYPE_FROM_STR(data, value, type, err,    uint64_t,   SLOW5_UINT64_T, slow5_ato_uint64)
+    else if MEMCPY_TYPE_FROM_STR(data, value, type, err,    float,      SLOW5_FLOAT,    slow5_strtof_check)
+    else if MEMCPY_TYPE_FROM_STR(data, value, type, err,    double,     SLOW5_DOUBLE,   slow5_strtod_check)
+    else if (type == SLOW5_CHAR &&
+            strnlen(value, 2) != 1) {
+        /*
+         * TODO check this, particularly is empty string valid?
+         * I don't think so because '\0' is the missing value character
+         */
+        err = 0;
         char value_conv = value[0];
-        if (err != -1) {
-            memcpy(data, &value_conv, sizeof value_conv);
-        }
+        memcpy(data, &value_conv, sizeof value_conv);
     }
 
     return err;
 }
 
-//if a .
-void slow5_memcpy_type_from_null_str(uint8_t *data, enum slow5_aux_type type) {
-
-    // TODO fix this is disgusting :(
-    if (type == SLOW5_INT8_T) {
-        int8_t value_conv = SLOW5_INT8_T_NULL;
-        memcpy(data, &value_conv, sizeof value_conv);
-    } else if (type == SLOW5_UINT8_T) {
-        uint8_t value_conv = SLOW5_UINT8_T_NULL;
-        memcpy(data, &value_conv, sizeof value_conv);
-    } else if (type == SLOW5_INT16_T) {
-        int16_t value_conv = SLOW5_INT16_T_NULL;
-        memcpy(data, &value_conv, sizeof value_conv);
-    } else if (type == SLOW5_UINT16_T) {
-        uint16_t value_conv = SLOW5_UINT16_T_NULL;
-        memcpy(data, &value_conv, sizeof value_conv);
-    } else if (type == SLOW5_INT32_T) {
-        int32_t value_conv = SLOW5_INT32_T_NULL;
-        memcpy(data, &value_conv, sizeof value_conv);
-    } else if (type == SLOW5_UINT32_T) {
-        uint32_t value_conv = SLOW5_UINT32_T_NULL;
-        memcpy(data, &value_conv, sizeof value_conv);
-    } else if (type == SLOW5_INT64_T) {
-        int64_t value_conv = SLOW5_INT64_T_NULL;
-        memcpy(data, &value_conv, sizeof value_conv);
-    } else if (type == SLOW5_UINT64_T) {
-        uint64_t value_conv = SLOW5_UINT64_T_NULL;
-        memcpy(data, &value_conv, sizeof value_conv);
-    } else if (type == SLOW5_FLOAT) {
-        float value_conv = SLOW5_FLOAT_NULL;
-        memcpy(data, &value_conv, sizeof value_conv);
-    } else if (type == SLOW5_DOUBLE) {
-        double value_conv = SLOW5_DOUBLE_NULL;
-        memcpy(data, &value_conv, sizeof value_conv);
-    } else if (type == SLOW5_CHAR) {
-        char value_conv = SLOW5_CHAR_NULL;
-        memcpy(data, &value_conv, sizeof value_conv);
+#define MEMCPY_NULL_TYPE(data, type, raw_type, slow5_type, null_val) \
+    (type == slow5_type) { \
+        raw_type null = null_val; \
+        memcpy(data, &null, sizeof null); \
     }
+/*
+ * write to data the null representative of the type
+ * data cannot be NULL
+ * type should only be primitive
+ * undefined behaviour if data doesn't have enough space for its type
+ */
+void slow5_memcpy_null_type(uint8_t *data, enum slow5_aux_type type) {
 
-    return;
+    if MEMCPY_NULL_TYPE(data, type,         int8_t,     SLOW5_INT8_T,   SLOW5_INT8_T_NULL)
+    else if MEMCPY_NULL_TYPE(data, type,    uint8_t,    SLOW5_UINT8_T,  SLOW5_UINT8_T_NULL)
+    else if MEMCPY_NULL_TYPE(data, type,    int16_t,    SLOW5_INT16_T,  SLOW5_INT16_T_NULL)
+    else if MEMCPY_NULL_TYPE(data, type,    uint16_t,   SLOW5_UINT16_T, SLOW5_UINT16_T_NULL)
+    else if MEMCPY_NULL_TYPE(data, type,    int32_t,    SLOW5_INT32_T,  SLOW5_INT32_T_NULL)
+    else if MEMCPY_NULL_TYPE(data, type,    uint32_t,   SLOW5_UINT32_T, SLOW5_UINT32_T_NULL)
+    else if MEMCPY_NULL_TYPE(data, type,    int64_t,    SLOW5_INT64_T,  SLOW5_INT64_T_NULL)
+    else if MEMCPY_NULL_TYPE(data, type,    uint64_t,   SLOW5_UINT64_T, SLOW5_UINT64_T_NULL)
+    else if MEMCPY_NULL_TYPE(data, type,    float,      SLOW5_FLOAT,    SLOW5_FLOAT_NULL)
+    else if MEMCPY_NULL_TYPE(data, type,    double,     SLOW5_DOUBLE,   SLOW5_DOUBLE_NULL)
+    else if MEMCPY_NULL_TYPE(data, type,    char,       SLOW5_CHAR,     SLOW5_CHAR_NULL)
 }
 
 
+/*
+ * get malloced string representing missing data
+ * len cannot be NULL
+ * on malloc error sets *len to -1 and returns NULL
+ */
+static char *get_missing_str(size_t *len) {
+    char *str = malloc(2 * sizeof *str);
+    SLOW5_MALLOC_CHK(str);
+    if (str == NULL) {
+        *len = -1;
+        return str;
+    }
 
-char *slow5_data_to_str(uint8_t *data, enum slow5_aux_type type, uint64_t len, size_t *str_len) {
+    str[0] = SLOW5_ASCII_MISSING_CHAR;
+    str[1] = '\0';
+    *len = 1;
+
+    return str;
+}
+
+/*
+ * convert data to string representation
+ * ptr_len is the number of elements of data
+ * data, str_len cannot be NULL
+ * undefined behaviour if type doesn't match or ptr_len is too long for data given the type is a pointer
+ * sets str_len to -1 on error and returns NULL
+ */
+char *slow5_data_to_str(uint8_t *data, enum slow5_aux_type type, uint64_t ptr_len, size_t *str_len) {
     char *str = NULL;
 
     if (type == SLOW5_INT8_T) {
-        if(*(int8_t *) data == SLOW5_INT8_T_NULL){
-            *str_len = slow5_asprintf(&str, ".");
-            fprintf(stderr,"|%s|\n",str);
-        }
-        else {
+        if (*(int8_t *) data == SLOW5_INT8_T_NULL) {
+            str = get_missing_str(str_len);
+            // sets *str_len to -1 and str to NULL on malloc error
+        } else {
             *str_len = slow5_asprintf(&str, "%" PRId8, *(int8_t *) data);
+            // sets *str_len to negative and doesn't change str on error
         }
     } else if (type == SLOW5_UINT8_T) {
-        if(*(uint8_t *) data == SLOW5_UINT8_T_NULL){
-            *str_len = slow5_asprintf(&str, ".");
-        }
-        else {
+        if (*(uint8_t *) data == SLOW5_UINT8_T_NULL) {
+            str = get_missing_str(str_len);
+        } else {
             *str_len = slow5_asprintf(&str, "%" PRIu8, *(uint8_t *) data);
         }
     } else if (type == SLOW5_INT16_T) {
-        if(*(int16_t *) data == SLOW5_INT16_T_NULL){
-            *str_len = slow5_asprintf(&str, ".");
-        }
-        else {
+        if (*(int16_t *) data == SLOW5_INT16_T_NULL) {
+            str = get_missing_str(str_len);
+        } else {
             *str_len = slow5_asprintf(&str, "%" PRId16, *(int16_t *) data);
         }
     } else if (type == SLOW5_UINT16_T) {
-        if(*(uint16_t *) data == SLOW5_UINT16_T_NULL){
-            *str_len = slow5_asprintf(&str, ".");
-        }
-        else {
+        if (*(uint16_t *) data == SLOW5_UINT16_T_NULL) {
+            str = get_missing_str(str_len);
+        } else {
             *str_len = slow5_asprintf(&str, "%" PRIu16, *(uint16_t *) data);
         }
     } else if (type == SLOW5_INT32_T) {
-        if(*(int32_t *) data == SLOW5_INT32_T_NULL){
-            *str_len = slow5_asprintf(&str, ".");
-        }
-        else {
+        if (*(int32_t *) data == SLOW5_INT32_T_NULL) {
+            str = get_missing_str(str_len);
+        } else {
             *str_len = slow5_asprintf(&str, "%" PRId32, *(int32_t *) data);
         }
     } else if (type == SLOW5_UINT32_T) {
-        if(*(uint32_t *) data == SLOW5_UINT32_T_NULL){
-            *str_len = slow5_asprintf(&str, ".");
-        }
-        else {
+        if (*(uint32_t *) data == SLOW5_UINT32_T_NULL) {
+            str = get_missing_str(str_len);
+        } else {
             *str_len = slow5_asprintf(&str, "%" PRIu32, *(uint32_t *) data);
         }
     } else if (type == SLOW5_INT64_T) {
-        if(*(int64_t *) data == SLOW5_INT64_T_NULL){
-            *str_len = slow5_asprintf(&str, ".");
-        }
-        else {
+        if (*(int64_t *) data == SLOW5_INT64_T_NULL) {
+            str = get_missing_str(str_len);
+        } else {
             *str_len = slow5_asprintf(&str, "%" PRId64, *(int64_t *) data);
         }
     } else if (type == SLOW5_UINT64_T) {
-        if(*(uint64_t *) data == SLOW5_UINT64_T_NULL){
-            *str_len = slow5_asprintf(&str, ".");
-        }
-        else {
+        if (*(uint64_t *) data == SLOW5_UINT64_T_NULL) {
+            str = get_missing_str(str_len);
+        } else {
             *str_len = slow5_asprintf(&str, "%" PRIu64, *(uint64_t *) data);
         }
     } else if (type == SLOW5_FLOAT) {
-        if(isnan(*(float *) data)){
-            *str_len = slow5_asprintf(&str, ".");
-        }
-        else {
+        if (isnan(*(float *) data)) {
+            str = get_missing_str(str_len);
+        } else {
             str = slow5_float_to_str(*(float *) data, str_len);
         }
     } else if (type == SLOW5_DOUBLE) {
-        if(isnan(*(double *) data)){
-            *str_len = slow5_asprintf(&str, ".");
-        }
-        else {
+        if (isnan(*(double *) data)) {
+            str = get_missing_str(str_len);
+        } else {
             str = slow5_double_to_str(*(double *) data, str_len);
         }
     } else if (type == SLOW5_CHAR) {
-        if(*(char *) data == SLOW5_CHAR_NULL){
-            *str_len = slow5_asprintf(&str, ".");
-        }
-        else {
-            *str_len = sizeof (char);
+        if (*(char *) data == SLOW5_CHAR_NULL) {
+            str = get_missing_str(str_len);
+        } else {
             str = (char *) malloc(sizeof (char));
-            str[0] = *(char *) data;
+            SLOW5_MALLOC_CHK(str);
+
+            if (str == NULL) {
+                *str_len = -1;
+            } else {
+                *str_len = sizeof (char);
+                str[0] = *(char *) data;
+            }
         }
     } else if (type == SLOW5_STRING) {
-        if(len==0){
-            *str_len = slow5_asprintf(&str, ".");
-        }
-        else{
+        if (ptr_len == 0) {
+            str = get_missing_str(str_len);
+        } else {
             str = strdup((char *) data);
             *str_len = strlen(str);
         }
     } else if (SLOW5_IS_PTR(type)) {
-
-        if(len==0){
-            *str_len = slow5_asprintf(&str, ".");
-        }
-        else{
+        if (ptr_len == 0) {
+            str = get_missing_str(str_len);
+        } else {
             size_t str_cap = SLOW5_AUX_ARRAY_STR_CAP_INIT;
             str = (char *) malloc(str_cap * sizeof *str);
+            SLOW5_MALLOC_CHK(str);
 
             size_t str_cur = 0;
             uint64_t i;
-            for (i = 0; i < len - 1; ++ i) {
+            for (i = 0; i < ptr_len - 1; ++ i) {
                 size_t str_len_sep;
                 char *str_sep = slow5_data_to_str(data + i * SLOW5_AUX_TYPE_META[type].size, SLOW5_TO_PRIM_TYPE(type), 1, &str_len_sep);
 
@@ -3330,6 +3198,7 @@ char *slow5_data_to_str(uint8_t *data, enum slow5_aux_type type, uint64_t len, s
                     // Realloc
                     str_cap = str_cap << 1;
                     str = (char *) realloc(str, str_cap * sizeof *str);
+                    SLOW5_MALLOC_CHK(str);
                 }
 
                 memcpy(str + str_cur, str_sep, str_len_sep);
@@ -3345,6 +3214,7 @@ char *slow5_data_to_str(uint8_t *data, enum slow5_aux_type type, uint64_t len, s
                 // Realloc
                 str_cap = str_cap << 1;
                 str = (char *) realloc(str, str_cap * sizeof *str);
+                SLOW5_MALLOC_CHK(str);
             }
 
             memcpy(str + str_cur, str_sep, str_len_sep);
@@ -3355,13 +3225,19 @@ char *slow5_data_to_str(uint8_t *data, enum slow5_aux_type type, uint64_t len, s
         }
     }
 
+    //if (str == NULL)
+
     return str;
 }
 
-void slow5_set_log_level(enum slow5_log_level_opt log_level){
+/* set the logging level */
+void slow5_set_log_level(enum slow5_log_level_opt log_level) {
     slow5_log_level = log_level;
 }
-void slow5_set_exit_condition(enum slow5_exit_condition_opt exit_condition){
+
+/* TODO really want to shorten this name */
+/* set the condition of exit (on error, warning, neither) */
+void slow5_set_exit_condition(enum slow5_exit_condition_opt exit_condition) {
     slow5_exit_condition = exit_condition;
 }
 

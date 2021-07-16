@@ -40,7 +40,6 @@ SOFTWARE.
 // TODO structure pack to min size
 // TODO fix and add function descriptions
 // TODO remove unnessary header inclusions
-// TODO move klib to src/
 
 #ifndef SLOW5_H
 #define SLOW5_H
@@ -48,6 +47,7 @@ SOFTWARE.
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <math.h>
 #include "klib/khash.h"
 #include "klib/kvec.h"
 #include "slow5_press.h"
@@ -135,7 +135,7 @@ enum slow5_aux_type {
 #define SLOW5_IS_PTR(type)        (type >= SLOW5_INT8_T_ARRAY)
 #define SLOW5_TO_PRIM_TYPE(type)  ((enum slow5_aux_type) (type - SLOW5_INT8_T_ARRAY))
 
-//NULL (missing value) representation
+/* NULL (missing value) representation */
 #define SLOW5_INT8_T_NULL     INT8_MAX
 #define SLOW5_INT16_T_NULL    INT16_MAX
 #define SLOW5_INT32_T_NULL    INT32_MAX
@@ -448,9 +448,12 @@ void slow5_rec_free(slow5_rec_t *read);
  * Get an auxiliary field in a SLOW5 record as an 8-bit signed integer.
  *
  * @param   read    address of a slow5_rec_t pointer
- * @param   field    auxiliary field name
- * @param   err     error code (non zero error code if failed)
- * @return  field data value
+ * @param   field   auxiliary field name
+ * @param   err     error code, 0 on success, <0 on failure and slow5_errno is set
+ *                  SLOW5_ERR_ARG   if read or field is NULL
+ *                  SLOW5_ERR_NOAUX if no auxiliary hash map for the record
+ *                  SLOW5_ERR_NOFLD if the field was not found
+ * @return  field data value or SLOW5_INT8_T_NULL on failure
  */
 int8_t slow5_aux_get_int8(const slow5_rec_t *read, const char *field, int *err);
 int16_t slow5_aux_get_int16(const slow5_rec_t *read, const char *field, int *err);
@@ -468,8 +471,12 @@ char slow5_aux_get_char(const slow5_rec_t *read, const char *field, int *err);
  * Get an auxiliary field in a SLOW5 record as an 8-bit signed integer array.
  *
  * @param   read    address of a slow5_rec_t pointer
- * @param   field    auxiliary field name
- * @param   err     error code
+ * @param   field   auxiliary field name
+ * @param   len     number of data values in the returned array
+ * @param   err     error code, 0 on success, <0 on failure and slow5_errno is set
+ *                  SLOW5_ERR_ARG   if read or field is NULL
+ *                  SLOW5_ERR_NOAUX if no auxiliary hash map for the record
+ *                  SLOW5_ERR_NOFLD if the field was not found
  * @return  pointer to the array of data values
  */
 int8_t *slow5_aux_get_int8_array(const slow5_rec_t *read, const char *field, uint64_t *len, int *err);

@@ -14,6 +14,7 @@ extern "C" {
 
 //#define MIN(A,B) ( ( (A) < (B) ) ? (A) : (B) )
 //#define MAX(A,B) ( ( (A) > (B) ) ? (A) : (B) )
+#define SLOW5_LENGTH(X) (sizeof X / sizeof X[0])
 
 // Types to sizes
 

@@ -39,21 +39,21 @@ SOFTWARE.
 extern "C" {
 #endif
 
-//slow5lib version
+// slow5lib version
 #define SLOW5_LIB_VERSION "0.1.0-dirty"
 
 // SLOW5 format specs
 #define SLOW5_HEADER_PREFIX             "#"
 #define SLOW5_HEADER_DATA_PREFIX        "@"
 #define SLOW5_HEADER_DATA_PREFIX_CHAR   '@'
-#define SLOW5_COLUMN_HEADER_PREFIX            "#"
-#define SLOW5_SEP_COL                         "\t"
-#define SLOW5_SEP_COL_CHAR                    '\t'
-#define SLOW5_SEP_ARRAY                       ","
-#define SLOW5_SEP_ARRAY_CHAR                  ','
-#define SLOW5_HEADER_FILE_VERSION             "slow5_version"
-#define SLOW5_HEADER_NUM_GROUPS               "num_read_groups"
-#define SLOW5_HEADER_NUM_GROUPS_INIT          (1)
+#define SLOW5_COLUMN_HEADER_PREFIX      "#"
+#define SLOW5_SEP_COL                   "\t"
+#define SLOW5_SEP_COL_CHAR              '\t'
+#define SLOW5_SEP_ARRAY                 ","
+#define SLOW5_SEP_ARRAY_CHAR            ','
+#define SLOW5_HEADER_FILE_VERSION       "slow5_version"
+#define SLOW5_HEADER_NUM_GROUPS         "num_read_groups"
+#define SLOW5_HEADER_NUM_GROUPS_INIT    (1)
 
 // Order, format string and type of main SLOW5 columns
 // NOTE if this is changed, also edit:
@@ -103,6 +103,8 @@ extern "C" {
 #define SLOW5_ASCII_SLOW5_HEADER_FORMAT       SLOW5_ASCII_ENTRY_VERSION_FORMAT SLOW5_ASCII_ENTRY_NUM_GROUPS_FORMAT
 #define SLOW5_ASCII_TYPE_HEADER_MIN           SLOW5_COLUMN_HEADER_PREFIX SLOW5_COLS(SLOW5_GENERATE_TYPE_STRING_SEP, SLOW5_GENERATE_TYPE_STRING)
 #define SLOW5_ASCII_COLUMN_HEADER_MIN         SLOW5_COLUMN_HEADER_PREFIX SLOW5_COLS(SLOW5_GENERATE_NAME_STRING_SEP, SLOW5_GENERATE_NAME_STRING)
+#define SLOW5_ASCII_MISSING                   "."
+#define SLOW5_ASCII_MISSING_CHAR              '.'
 
 // Binary SLOW5 specs
 #define SLOW5_BINARY_NAME                     "blow5"
@@ -112,19 +114,20 @@ extern "C" {
 #define SLOW5_BINARY_EOF                      { '5', 'W', 'O', 'L', 'B' }
 #define SLOW5_BINARY_HEADER_SIZE_OFFSET       (64L)
 
-// SLOW5 Index specs
-//#define SLOW5_INDEX_HEADER_PREFIX   "#"
-#define SLOW5_INDEX_HEADER          SLOW5_INDEX_HEADER_PREFIX "read_id" SLOW5_SEP_COL "offset" SLOW5_SEP_COL "length\n"
-
-
-//error codes
-#define SLOW5_ERR_EOF           -1      //EOF reached
-#define SLOW5_ERR_ARG           -2      //bad argument (NULL)
-#define SLOW5_ERR_TRUNC         -3      //file truncated
-#define SLOW5_ERR_RECPARSE      -4      // record parsing error
-#define SLOW5_ERR_IO            -5      //other file I/O error
-#define SLOW5_ERR_NOIDX         -6      //index not loaded
-#define SLOW5_ERR_NOTFOUND      -7      //read id not found
+// error codes
+#define SLOW5_ERR_EOF           (-1)    // EOF reached
+#define SLOW5_ERR_ARG           (-2)    // bad argument
+#define SLOW5_ERR_TRUNC         (-3)    // file truncated
+#define SLOW5_ERR_RECPARSE      (-4)    // record parsing error
+#define SLOW5_ERR_IO            (-5)    // other file I/O error (check errno for details)
+#define SLOW5_ERR_NOIDX         (-6)    // index not loaded
+#define SLOW5_ERR_NOTFOUND      (-7)    // read id not found
+#define SLOW5_ERR_BIGEND        (-8)    // big endian machine
+#define SLOW5_ERR_EXTUNK        (-9)    // file extension unknown
+#define SLOW5_ERR_MEM           (-10)   // memory (re)allocation error
+#define SLOW5_ERR_NOAUX         (-11)   // no auxiliary map
+#define SLOW5_ERR_NOFLD         (-12)   // field not found
+#define SLOW5_ERR_PRESS         (-13)   // (de)compression failed
 
 
 #ifdef __cplusplus
