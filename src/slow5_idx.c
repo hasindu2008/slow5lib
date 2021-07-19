@@ -11,7 +11,6 @@
 
 extern enum slow5_log_level_opt  slow5_log_level;
 extern enum slow5_exit_condition_opt  slow5_exit_condition;
-extern __thread int slow5_errno;
 
 #define BUF_INIT_CAP (20*1024*1024)
 #define SLOW5_INDEX_BUF_INIT_CAP (64) // 2^6 TODO is this too little?
@@ -316,18 +315,19 @@ void slow5_idx_insert(struct slow5_idx *index, char *read_id, uint64_t offset, u
     read_index->size = size;
 }
 
-// -1 if read_id not in the hash map
-// 0 otherwise
+/*
+ * index, read_id, read_index cannot be NULL
+ * returns -1 if read_id not in the index hash map, 0 otherwise
+ */
 int slow5_idx_get(struct slow5_idx *index, const char *read_id, struct slow5_rec_idx *read_index) {
     int ret = 0;
 
     khint_t pos = kh_get(slow5_s2i, index->hash, read_id);
     if (pos == kh_end(index->hash)) {
+        SLOW5_ERROR("Read ID [%s] was not found.", read_id)
         ret = -1;
-    } else {
-        if (read_index != NULL) {
-            *read_index = kh_value(index->hash, pos);
-        }
+    } else if (read_index) {
+        *read_index = kh_value(index->hash, pos);
     }
 
     return ret;
@@ -344,7 +344,7 @@ void slow5_idx_free(struct slow5_idx *index) {
 
     if (index->fp != NULL) {
         if (fclose(index->fp) == EOF) {
-            SLOW5_ERROR("%s: %s", "Failure when closing index file", strerror(errno));
+            SLOW5_ERROR("Failure when closing index file: %s", strerror(errno));
             slow5_errno = SLOW5_ERR_IO;
         }
     }

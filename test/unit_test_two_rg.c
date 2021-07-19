@@ -69,28 +69,28 @@ int slow5_to_blow5_uncomp(void) {
     return EXIT_SUCCESS;
 }
 
-int slow5_to_blow5_gzip(void) {
+int slow5_to_blow5_zlib(void) {
     struct slow5_file *from = slow5_open("test/data/exp/two_rg/exp_default.slow5", "r");
     ASSERT(from != NULL);
 
     FILE *to = fopen("test/data/out/two_rg/out_default_gzip.blow5", "w");
     ASSERT(to != NULL);
 
-    ASSERT(slow5_hdr_fwrite(to, from->header, SLOW5_FORMAT_BINARY, SLOW5_COMPRESS_GZIP) != -1);
+    ASSERT(slow5_hdr_fwrite(to, from->header, SLOW5_FORMAT_BINARY, SLOW5_COMPRESS_ZLIB) != -1);
 
     struct slow5_rec *read = NULL;
     int ret;
-    struct slow5_press *gzip = slow5_press_init(SLOW5_COMPRESS_GZIP);
-    ASSERT(gzip != NULL);
+    struct slow5_press *zlib = slow5_press_init(SLOW5_COMPRESS_ZLIB);
+    ASSERT(zlib != NULL);
     while ((ret = slow5_get_next(&read, from)) == 0) {
-        ASSERT(slow5_rec_fwrite(to, read, from->header->aux_meta, SLOW5_FORMAT_BINARY, gzip) != -1);
+        ASSERT(slow5_rec_fwrite(to, read, from->header->aux_meta, SLOW5_FORMAT_BINARY, zlib) != -1);
     }
     slow5_rec_free(read);
     ASSERT(ret == SLOW5_ERR_EOF);
 
     ASSERT(slow5_eof_fwrite(to) != -1);
 
-    slow5_press_free(gzip);
+    slow5_press_free(zlib);
     ASSERT(slow5_close(from) == 0);
     ASSERT(fclose(to) == 0);
 
@@ -128,7 +128,7 @@ int main(void) {
         CMD(slow5_get_valid)
 
         CMD(slow5_to_blow5_uncomp)
-        CMD(slow5_to_blow5_gzip)
+        CMD(slow5_to_blow5_zlib)
 
         CMD(slow5_add_rg_data_valid)
     };
