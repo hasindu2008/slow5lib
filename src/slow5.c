@@ -2070,7 +2070,7 @@ void slow5_rec_aux_free(khash_t(slow5_s2a) *aux_map) {
  * SLOW5_ERR_IO         other reading error when reading the slow5 file
  * SLOW5_ERR_MEM        memory allocation error
  * SLOW5_ERR_PRESS      record decompression error
- * SLOW5_ERR_PARSE   record parsing error
+ * SLOW5_ERR_PARSE      record parsing error
  *
  * @param   read    address of a slow5_rec pointer
  * @param   s5p     slow5 file
