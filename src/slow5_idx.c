@@ -316,7 +316,7 @@ void slow5_idx_insert(struct slow5_idx *index, char *read_id, uint64_t offset, u
 }
 
 /*
- * index, read_id, read_index cannot be NULL
+ * index, read_id cannot be NULL
  * returns -1 if read_id not in the index hash map, 0 otherwise
  */
 int slow5_idx_get(struct slow5_idx *index, const char *read_id, struct slow5_rec_idx *read_index) {

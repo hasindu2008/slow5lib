@@ -1400,6 +1400,82 @@ void slow5_hdr_data_free(struct slow5_hdr *header) {
 
 
 // slow5 record
+
+/*
+ * get slow5 record with read_id as it is stored in s5p with length n
+ * returns NULL on error, sets *n=0 if possible, and sets slow5_errno
+ * slow5_errno errors:
+ * SLOW5_ERR_ARG
+ * SLOW5_ERR_NOIDX
+ * SLOW5_ERR_NORID
+ * SLOW5_ERR_FMTUNK
+ * SLOW5_ERR_MEM
+ * SLOW5_ERR_IO
+ */
+void *slow5_get_mem(char *read_id, size_t *n, struct slow5_file *s5p) {
+    if (!read_id || !s5p) {
+        slow5_errno = SLOW5_ERR_ARG;
+        goto err;
+    }
+
+    if (!s5p->index) {
+        /* index not loaded */
+        slow5_errno = SLOW5_ERR_NOIDX;
+        goto err;
+    }
+
+    /* get index record */
+    struct slow5_rec_idx read_index;
+    if (slow5_idx_get(s5p->index, read_id, &read_index) == -1) {
+        /* read_id not found in index */
+        slow5_errno = SLOW5_ERR_NORID;
+        goto err;
+    }
+
+    size_t bytes;
+    off_t offset;
+    if (s5p->format == SLOW5_FORMAT_BINARY) {
+        bytes = read_index.size - sizeof (slow5_rec_size_t);
+        offset = read_index.offset + sizeof (slow5_rec_size_t);
+    } else if (s5p->format == SLOW5_FORMAT_ASCII) {
+        bytes = read_index.size;
+        offset = read_index.offset;
+    } else {
+        slow5_errno = SLOW5_ERR_FMTUNK;
+        goto err;
+    }
+
+    uint8_t *mem = (uint8_t *) malloc(bytes);
+    SLOW5_MALLOC_CHK_EXIT(mem);
+    if (!mem) {
+        slow5_errno = SLOW5_ERR_MEM;
+        goto err;
+    }
+
+    if (s5p->format == SLOW5_FORMAT_ASCII) {
+        bytes -= 1;
+        /* null terminate */
+        mem[bytes] = '\0';
+    }
+
+    if (pread(s5p->meta.fd, mem, bytes, offset) != bytes) {
+        free(mem);
+        slow5_errno = SLOW5_ERR_IO;
+        goto err;
+    }
+
+    if (n) {
+        *n = bytes;
+    }
+    return mem;
+
+    err:
+        if (n) {
+            *n = 0;
+        }
+        return NULL;
+}
+
 /**
  * Get a read entry from a slow5 file corresponding to a read_id.
  *
