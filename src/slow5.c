@@ -74,10 +74,14 @@ static inline void slow5_rec_set_aux_map(khash_t(slow5_s2a) *aux_map, const char
 static char *get_missing_str(size_t *len);
 
 
-enum slow5_log_level_opt  slow5_log_level = SLOW5_LOG_INFO;
-enum slow5_exit_condition_opt  slow5_exit_condition = SLOW5_EXIT_OFF;
+enum slow5_log_level_opt slow5_log_level = SLOW5_LOG_INFO;
+enum slow5_exit_condition_opt slow5_exit_condition = SLOW5_EXIT_OFF;
 
-__thread int slow5_errno = 0;
+__thread int slow5_errno_intern = 0;
+
+inline int *slow5_errno_location(void) {
+    return &slow5_errno_intern;
+}
 
 /* Definitions */
 
@@ -85,11 +89,11 @@ __thread int slow5_errno = 0;
 
 
 /*
-* core function for opening a SLOW5 file
-* determines if SLOW5 ASCII or binary based on the file extension
-* parses and populates the header
-* initialises decompression buffers
-*/
+ * core function for opening a SLOW5 file
+ * determines if SLOW5 ASCII or binary based on the file extension
+ * parses and populates the header
+ * initialises decompression buffers
+ */
 struct slow5_file *slow5_init(FILE *fp, const char *pathname, enum slow5_fmt format) {
     // Pathname cannot be NULL at this point
     if (fp == NULL) {
@@ -245,7 +249,7 @@ struct slow5_file *slow5_open_with(const char *pathname, const char *mode, enum 
 
     FILE *fp = fopen(pathname, mode);
     if (fp == NULL) {
-        SLOW5_ERROR("Error opening file %s: %s.", pathname, strerror(errno));
+        SLOW5_ERROR("Error opening file %s: %s", pathname, strerror(errno));
         slow5_errno = SLOW5_ERR_IO;
         return NULL;
     }
@@ -536,7 +540,7 @@ const char **slow5_get_hdr_keys(const slow5_hdr_t *header,uint64_t *len) {
  * @return  malloced memory storing the slow5 header representation,
  *          to use free() on afterwards
  */
-// TODO don't allow comp of SLOW5_COMPRESS_GZIP for SLOW5_FORMAT_ASCII
+// TODO don't allow comp of SLOW5_COMPRESS_ZLIB for SLOW5_FORMAT_ASCII
 
 //  flattened header returned as a void * (incase of BLOW5 magic number is also included)
 
@@ -1396,6 +1400,138 @@ void slow5_hdr_data_free(struct slow5_hdr *header) {
 
 
 // slow5 record
+
+/*
+ * get slow5 record with read_id as it is stored in the file s5p with length *n
+ * on error returns NULL, sets *n=0 if possible, and sets slow5_errno
+ * slow5_errno errors:
+ * SLOW5_ERR_ARG
+ * SLOW5_ERR_NOIDX
+ * SLOW5_ERR_NOTFOUND
+ * SLOW5_ERR_FMTUNK
+ * SLOW5_ERR_MEM
+ * SLOW5_ERR_IO
+ */
+void *slow5_get_mem(const char *read_id, size_t *n, const struct slow5_file *s5p) {
+    if (!read_id || !s5p) {
+        slow5_errno = SLOW5_ERR_ARG;
+        goto err;
+    }
+
+    if (!s5p->index) {
+        /* index not loaded */
+        slow5_errno = SLOW5_ERR_NOIDX;
+        goto err;
+    }
+
+    /* get index record */
+    struct slow5_rec_idx read_index;
+    if (slow5_idx_get(s5p->index, read_id, &read_index) == -1) {
+        /* read_id not found in index */
+        slow5_errno = SLOW5_ERR_NOTFOUND;
+        goto err;
+    }
+
+    size_t bytes;
+    off_t offset;
+    if (s5p->format == SLOW5_FORMAT_BINARY) {
+        bytes = read_index.size - sizeof (slow5_rec_size_t);
+        offset = read_index.offset + sizeof (slow5_rec_size_t);
+    } else if (s5p->format == SLOW5_FORMAT_ASCII) {
+        bytes = read_index.size;
+        offset = read_index.offset;
+    } else {
+        slow5_errno = SLOW5_ERR_FMTUNK;
+        goto err;
+    }
+
+    uint8_t *mem = (uint8_t *) malloc(bytes);
+    SLOW5_MALLOC_CHK_EXIT(mem);
+    if (!mem) {
+        slow5_errno = SLOW5_ERR_MEM;
+        goto err;
+    }
+
+    if (s5p->format == SLOW5_FORMAT_ASCII) {
+        bytes -= 1;
+        /* null terminate */
+        mem[bytes] = '\0';
+    }
+
+    if (pread(s5p->meta.fd, mem, bytes, offset) != bytes) {
+        free(mem);
+        slow5_errno = SLOW5_ERR_IO;
+        goto err;
+    }
+
+    if (n) {
+        *n = bytes;
+    }
+    return mem;
+
+    err:
+        if (n) {
+            *n = 0;
+        }
+        return NULL;
+}
+
+/*
+ * get slow5 record with read_id from file s5p and parse it into *read
+ * if *read is NULL, allocate memory for it
+ * otherwise reuse the memory
+ * *read should be freed by the user even on error
+ * on error sets and returns slow5_errno
+ */
+int slow5_get(const char *read_id, struct slow5_rec **read, struct slow5_file *s5p) {
+
+    if (!read) {
+        return slow5_errno = SLOW5_ERR_ARG;
+    }
+
+    size_t bytes;
+    char *mem;
+    if (!(mem = slow5_get_mem(read_id, &bytes, s5p))) {
+        return slow5_errno;
+    }
+
+    if (s5p->compress && s5p->compress->method != SLOW5_COMPRESS_NONE) {
+        size_t new_bytes;
+        char *new_mem;
+        if (!(new_mem = slow5_ptr_depress_solo(s5p->compress->method, mem, bytes, &new_bytes))) {
+            free(mem);
+            return slow5_errno = SLOW5_ERR_PRESS;
+        }
+        free(mem);
+        bytes = new_bytes;
+        mem = new_mem;
+    }
+
+    if (!*read) {
+        /* allocate memory for read */
+        *read = (struct slow5_rec *) calloc(1, sizeof **read);
+        SLOW5_MALLOC_CHK(*read);
+        if (!*read) {
+            free(mem);
+            return slow5_errno = SLOW5_ERR_MEM;
+        }
+    } else {
+        /* free previously allocated memory except for raw_signal */
+        free((*read)->read_id);
+        (*read)->read_id = NULL;
+        slow5_rec_aux_free((*read)->aux_map);
+        (*read)->aux_map = NULL;
+    }
+
+    if (slow5_rec_parse(mem, bytes, read_id, *read, s5p->format, s5p->header->aux_meta) == -1) {
+        free(mem);
+        return slow5_errno = SLOW5_ERR_RECPARSE;
+    }
+
+    free(mem);
+    return 0;
+}
+
 /**
  * Get a read entry from a slow5 file corresponding to a read_id.
  *
@@ -1410,93 +1546,89 @@ void slow5_hdr_data_free(struct slow5_hdr *header) {
  *  <0   error code
  *
  * Errors:
- * SLOW5_ERR_NOTFOUND   read_id was not found in the index
  * SLOW5_ERR_ARG        read_id, read or s5p is NULL
+ * SLOW5_ERR_NOTFOUND      read_id was not found in the index
  * SLOW5_ERR_IO         other error when reading the slow5 file
- * SLOW5_ERR_RECPARSE   parsing error
+ * SLOW5_ERR_RECPARSE      parsing error
  * SLOW5_ERR_NOIDX      the index has not been loaded
+ * SLOW5_ERR_MEM        memory allocation error
  *
  * @param   read_id the read identifier
  * @param   read    address of a slow5_rec pointer
  * @param   s5p     slow5 file
  * @return  error code described above
  */
-int slow5_get(const char *read_id, struct slow5_rec **read, struct slow5_file *s5p) {
+int slow5_get_old(const char *read_id, struct slow5_rec **read, struct slow5_file *s5p) {
     if (read_id == NULL) {
         SLOW5_ERROR_EXIT("%s", "Argument 'read_id' cannot be NULL.");
-        slow5_errno = SLOW5_ERR_ARG;
-        return SLOW5_ERR_ARG;
+        return slow5_errno = SLOW5_ERR_ARG;
     } else if (read == NULL) {
         SLOW5_ERROR_EXIT("%s", "Argument 'read' cannot be NULL.");
-        slow5_errno = SLOW5_ERR_ARG;
-        return SLOW5_ERR_ARG;
+        return slow5_errno = SLOW5_ERR_ARG;
     } else if (s5p == NULL) {
         SLOW5_ERROR_EXIT("%s", "Argument 's5p' cannot be NULL.");
-        slow5_errno = SLOW5_ERR_ARG;
-        return SLOW5_ERR_ARG;
+        return slow5_errno = SLOW5_ERR_ARG;
     }
 
     int ret = 0;
     char *read_mem = NULL;
-    ssize_t bytes_to_read = -1;
+    size_t bytes_to_read = 0;
 
     /* index must be loaded */
     if (s5p->index == NULL) { /* index not loaded */
         SLOW5_ERROR_EXIT("%s", "No SLOW5 index has been loaded. Call slow5_idx_load() before slow5_get().");
-        return SLOW5_ERR_NOIDX;
+        return slow5_errno = SLOW5_ERR_NOIDX;
     }
 
-    // Get index record
+    /* Get index record */
     struct slow5_rec_idx read_index;
     if (slow5_idx_get(s5p->index, read_id, &read_index) == -1) {
-        // read_id not found in index
-        return SLOW5_ERR_NOTFOUND;
+        /* read_id not found in index */
+        SLOW5_ERROR_EXIT("Could not retrieve index record for read ID [%s].", read_id);
+        return slow5_errno = SLOW5_ERR_NOTFOUND;
     }
 
     if (s5p->format == SLOW5_FORMAT_ASCII) {
 
-        // Malloc string to hold the read
+        /* Malloc string to hold the read */
         read_mem = (char *) malloc(read_index.size * sizeof *read_mem);
-        SLOW5_MALLOC_CHK(read_mem);
-
-        // Read into the string
-        // Don't read in newline for parsing
-        ssize_t bytes_to_read = (read_index.size - 1) * sizeof *read_mem;
-        if (pread(s5p->meta.fd, read_mem, bytes_to_read, read_index.offset) != bytes_to_read) {
-            free(read_mem);
-            // reading error
-            SLOW5_ERROR_EXIT("pread could not read %zd bytes as expected.", bytes_to_read);
-            return SLOW5_ERR_IO;
+        SLOW5_MALLOC_CHK_EXIT(read_mem);
+        if (read_mem == NULL) {
+            return slow5_errno = SLOW5_ERR_MEM;
         }
 
-        // Null terminate
+        /* Read into the string
+         * Don't read in newline for parsing */
+        bytes_to_read = (read_index.size - 1) * sizeof *read_mem;
+        ssize_t pread_ret;
+        if ((pread_ret = pread(s5p->meta.fd, read_mem, bytes_to_read, read_index.offset))
+                    != bytes_to_read) { /* reading error */
+            if (pread_ret == -1) {
+                SLOW5_ERROR("pread failed to read [%zu] bytes: %s", bytes_to_read, strerror(errno));
+            } else if (pread_ret == 0) {
+                SLOW5_ERROR("End of file reached. pread failed to read [%zu] bytes.", bytes_to_read);
+            } else {
+                SLOW5_ERROR("pread read less bytes [%zd] than expected [%zu].", pread_ret, bytes_to_read);
+            }
+            free(read_mem);
+            return slow5_errno = SLOW5_ERR_IO;
+        }
+
+        /* Null terminate */
         read_mem[read_index.size - 1] = '\0';
 
     } else if (s5p->format == SLOW5_FORMAT_BINARY) {
 
-        // Read into the string and miss the preceding size
-        size_t bytes_to_read_sizet;
-        read_mem = (char *) slow5_pread_depress_multi(s5p->compress->method, s5p->meta.fd,
+        /* Read into the string and miss the preceding size */
+        read_mem = (char *) slow5_pread_depress_solo(s5p->compress->method, s5p->meta.fd,
                                                 read_index.size - sizeof (slow5_rec_size_t),
                                                 read_index.offset + sizeof (slow5_rec_size_t),
-                                                &bytes_to_read_sizet);
-        bytes_to_read = bytes_to_read_sizet;
+                                                &bytes_to_read);
         if (read_mem == NULL) {
-            SLOW5_ERROR_EXIT("%s","slow5_pread_depress_multi failed.");
-            // reading error
-            return SLOW5_ERR_IO;
+            /* reading error */
+            SLOW5_ERROR_EXIT("%s", "pread followed by decompression failed.");
+            return slow5_errno = SLOW5_ERR_IO;
         }
-        /*
-        read_mem = (char *) malloc(read_size);
-        SLOW5_MALLOC_CHK(read_mem);
-        pread(s5p->meta.fd, read_mem, read_size, read_index.offset + sizeof read_size);
-        printf("printing read_mem comp:\n"); // TESTING
-        fwrite(read_mem, read_size, 1, stdout); // TESTING
-        size_t decomp_size = 0;
-        void *read_decomp = slow5_ptr_depress(s5p->compress, read_mem, read_size, &decomp_size);
-        printf("\nprinting read_mem decomp:\n"); // TESTING
-        fwrite(read_decomp, read_size, 1, stdout); // TESTING
-        */
     }
 
     if (*read == NULL) {
@@ -1515,8 +1647,8 @@ int slow5_get(const char *read_id, struct slow5_rec **read, struct slow5_file *s
     }
 
     if (slow5_rec_parse(read_mem, bytes_to_read, read_id, *read, s5p->format, s5p->header->aux_meta) == -1) {
-        SLOW5_ERROR_EXIT("%s","SLOW5 record parsing failed.");
-        ret = SLOW5_ERR_RECPARSE;
+        SLOW5_ERROR_EXIT("%s", "SLOW5 record parsing failed.");
+        ret = slow5_errno = SLOW5_ERR_RECPARSE;
     }
     free(read_mem);
 
@@ -2038,7 +2170,7 @@ static inline khash_t(slow5_s2a) *slow5_rec_aux_init(void) {
 
 /* free a slow5 record auxiliary hash map DONE */
 void slow5_rec_aux_free(khash_t(slow5_s2a) *aux_map) {
-    if (aux_map != NULL) {
+    if (aux_map) {
         for (khint_t i = kh_begin(aux_map); i != kh_end(aux_map); ++ i) {
             if (kh_exist(aux_map, i)) {
                 kh_del(slow5_s2a, aux_map, i);
@@ -2070,7 +2202,7 @@ void slow5_rec_aux_free(khash_t(slow5_s2a) *aux_map) {
  * SLOW5_ERR_IO         other reading error when reading the slow5 file
  * SLOW5_ERR_MEM        memory allocation error
  * SLOW5_ERR_PRESS      record decompression error
- * SLOW5_ERR_RECPARSE   record parsing error
+ * SLOW5_ERR_RECPARSE      record parsing error
  *
  * @param   read    address of a slow5_rec pointer
  * @param   s5p     slow5 file
@@ -2079,21 +2211,18 @@ void slow5_rec_aux_free(khash_t(slow5_s2a) *aux_map) {
 int slow5_get_next(struct slow5_rec **read, struct slow5_file *s5p) {
     if (read == NULL) {
         SLOW5_ERROR_EXIT("%s", "Argument 'read' cannot be NULL.");
-        slow5_errno = SLOW5_ERR_ARG;
-        return SLOW5_ERR_ARG;
+        return slow5_errno = SLOW5_ERR_ARG;
     }
     if (s5p == NULL) {
         SLOW5_ERROR_EXIT("%s", "Argument 's5p' cannot be NULL.");
-        slow5_errno = SLOW5_ERR_ARG;
-        return SLOW5_ERR_ARG;
+        return slow5_errno = SLOW5_ERR_ARG;
     }
 
     if (*read == NULL) {
         *read = (struct slow5_rec *) calloc(1, sizeof **read); /* allocate memory for read */
         SLOW5_MALLOC_CHK_EXIT(*read);
         if (*read == NULL) {
-            slow5_errno = SLOW5_ERR_MEM;
-            return SLOW5_ERR_MEM;
+            return slow5_errno = SLOW5_ERR_MEM;
         }
     } else {
         free((*read)->read_id); /* free read */
@@ -2115,22 +2244,18 @@ int slow5_get_next(struct slow5_rec **read, struct slow5_file *s5p) {
             free(read_mem);
             if (feof(s5p->fp)) {
                 /*SLOW5_ERROR_EXIT("%s", "End of file reached.")*/
-                slow5_errno = SLOW5_ERR_EOF;
-                return SLOW5_ERR_EOF;
+                return slow5_errno = SLOW5_ERR_EOF;
             }
             if (errno_save == EINVAL) {
                 SLOW5_ERROR_EXIT("%s", "File pointer cannot be NULL.")
-                slow5_errno = SLOW5_ERR_IO;
-                return SLOW5_ERR_IO;
+                return slow5_errno = SLOW5_ERR_IO;
             }
             if (errno_save == ENOMEM) {
                 SLOW5_ERROR_EXIT("%s", "Allocation of the line buffer failed.")
-                slow5_errno = SLOW5_ERR_MEM;
-                return SLOW5_ERR_MEM;
+                return slow5_errno = SLOW5_ERR_MEM;
             }
             SLOW5_ERROR_EXIT("Failure to get the next read: %s", strerror(errno_save))
-            slow5_errno = SLOW5_ERR_IO;
-            return SLOW5_ERR_IO;
+            return slow5_errno = SLOW5_ERR_IO;
         }
         read_len = read_len_tmp;
         read_mem[-- read_len] = '\0'; /* remove newline for parsing */
@@ -2141,27 +2266,23 @@ int slow5_get_next(struct slow5_rec **read, struct slow5_file *s5p) {
         if (fread(&record_size, sizeof record_size, 1, s5p->fp) != 1) {
             if (feof(s5p->fp)) {
                 /*SLOW5_ERROR_EXIT("%s", "End of file reached.")*/
-                slow5_errno = SLOW5_ERR_EOF;
-                return SLOW5_ERR_EOF;
+                return slow5_errno = SLOW5_ERR_EOF;
             }
             SLOW5_ERROR_EXIT("%s", "Failure to get the next read.")
-            slow5_errno = SLOW5_ERR_IO;
-            return SLOW5_ERR_IO;
+            return slow5_errno = SLOW5_ERR_IO;
         }
 
         read_mem = (char *) slow5_fread_depress(s5p->compress, record_size, s5p->fp, &read_len);
         if (read_mem == NULL) {
             SLOW5_ERROR_EXIT("%s", "Read decompression failed.")
-            slow5_errno = SLOW5_ERR_PRESS;
-            return SLOW5_ERR_PRESS;
+            return slow5_errno = SLOW5_ERR_PRESS;
         }
     }
 
     /* TODO investigate errors on slow5_rec_parse */
     if (slow5_rec_parse(read_mem, read_len, NULL, *read, s5p->format, s5p->header->aux_meta) == -1) {
         SLOW5_ERROR_EXIT("%s", "Read could not be parsed.")
-        slow5_errno = SLOW5_ERR_RECPARSE;
-        ret = SLOW5_ERR_RECPARSE;
+        ret = slow5_errno = SLOW5_ERR_RECPARSE;
     }
 
     free(read_mem);
@@ -2254,22 +2375,18 @@ static inline void slow5_rec_set_aux_map(khash_t(slow5_s2a) *aux_map, const char
     raw_type val = null; \
     if (read == NULL) { \
         SLOW5_ERROR_EXIT("%s", "Argument 'read' cannot be NULL.") \
-        slow5_errno = SLOW5_ERR_ARG; \
-        tmp_err = SLOW5_ERR_ARG; \
+        tmp_err = slow5_errno = SLOW5_ERR_ARG; \
     } else if (field == NULL) { \
         SLOW5_ERROR_EXIT("%s", "Argument 'field' cannot be NULL.") \
-        slow5_errno = SLOW5_ERR_ARG; \
-        tmp_err = SLOW5_ERR_ARG; \
+        tmp_err = slow5_errno = SLOW5_ERR_ARG; \
     } else if (read->aux_map == NULL) { \
         SLOW5_ERROR_EXIT("%s", "Missing auxiliary hash map.") \
-        slow5_errno = SLOW5_ERR_NOAUX; \
-        tmp_err = SLOW5_ERR_NOAUX; \
+        tmp_err = slow5_errno = SLOW5_ERR_NOAUX; \
     } else { \
         khint_t pos = kh_get(slow5_s2a, read->aux_map, field); \
         if (pos == kh_end(read->aux_map)) { \
             SLOW5_ERROR_EXIT("Field '%s' not found.", field) \
-            slow5_errno = SLOW5_ERR_NOFLD; \
-            tmp_err = SLOW5_ERR_NOFLD; \
+            tmp_err = slow5_errno = SLOW5_ERR_NOFLD; \
         } else  { \
             struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos); \
             if (aux_data.type == prim_type) { \
@@ -2327,22 +2444,18 @@ char slow5_aux_get_char(const struct slow5_rec *read, const char *field, int *er
     raw_type val = NULL; \
     if (read == NULL) { \
         SLOW5_ERROR_EXIT("%s", "Argument 'read' cannot be NULL.") \
-        slow5_errno = SLOW5_ERR_ARG; \
-        tmp_err = SLOW5_ERR_ARG; \
+        tmp_err = slow5_errno = SLOW5_ERR_ARG; \
     } else if (field == NULL) { \
         SLOW5_ERROR_EXIT("%s", "Argument 'field' cannot be NULL.") \
-        slow5_errno = SLOW5_ERR_ARG; \
-        tmp_err = SLOW5_ERR_ARG; \
+        tmp_err = slow5_errno = SLOW5_ERR_ARG; \
     } else if (read->aux_map == NULL) { \
         SLOW5_ERROR_EXIT("%s", "Missing auxiliary hash map.") \
-        slow5_errno = SLOW5_ERR_NOAUX; \
-        tmp_err = slow5_errno; \
+        tmp_err = slow5_errno = SLOW5_ERR_NOAUX; \
     } else { \
         khint_t pos = kh_get(slow5_s2a, read->aux_map, field); \
         if (pos == kh_end(read->aux_map)) { \
             SLOW5_ERROR_EXIT("Field '%s' not found.", field) \
-            slow5_errno = SLOW5_ERR_NOFLD; \
-            tmp_err = slow5_errno; \
+            tmp_err = slow5_errno = SLOW5_ERR_NOFLD; \
         } else { \
             struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos); \
             if (aux_data.type == ptr_type) { \
@@ -2846,8 +2959,7 @@ ssize_t slow5_eof_fwrite(FILE *fp) {
     size_t n;
     if ((n = fwrite(eof, sizeof *eof, sizeof eof, fp)) != sizeof eof) {
         SLOW5_ERROR("%s", "Could not write binary SLOW5 end of file.")
-        slow5_errno = SLOW5_ERR_IO;
-        return SLOW5_ERR_IO;
+        return slow5_errno = SLOW5_ERR_IO;
     } else {
         return n;
     }
@@ -3277,7 +3389,7 @@ slow5_close(slow5);
  * slow5_write(f_in, f_out);
  */
 /*
-struct SLOW5WriteConf *conf = slow5_wconf_init(SLOW5_FORMAT_BINARY, SLOW5_COMPRESS_GZIP);
+struct SLOW5WriteConf *conf = slow5_wconf_init(SLOW5_FORMAT_BINARY, SLOW5_COMPRESS_ZLIB);
 slow5_write(slow5, conf, f_out);
 
 slow5_wconf_destroy(&conf);

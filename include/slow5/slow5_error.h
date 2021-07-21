@@ -42,7 +42,7 @@ SOFTWARE.
 
 #ifdef __cplusplus
 extern "C" {
-#endif
+#endif /* _cplusplus */
 
 
 /* Debug and verbosity */
@@ -67,6 +67,10 @@ enum slow5_exit_condition_opt {
     // exit the programme if a warning occurs. this is a bit silly, but incase someone wants
     SLOW5_EXIT_ON_WARN
 };
+
+/* slow5 errno */
+int *slow5_errno_location(void);
+#define slow5_errno (*slow5_errno_location())
 
 #define SLOW5_DEBUG_PREFIX "[DEBUG] %s: "
 #define SLOW5_VERBOSE_PREFIX "[INFO] %s: "
@@ -150,6 +154,6 @@ enum slow5_exit_condition_opt {
 
 #ifdef __cplusplus
 }
-#endif
+#endif /* _cplusplus */
 
-#endif
+#endif /* slow5_error.h */

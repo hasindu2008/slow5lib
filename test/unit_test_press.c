@@ -8,8 +8,8 @@ int press_init_valid(void) {
     ASSERT(comp->stream == NULL);
     slow5_press_free(comp);
 
-    comp = slow5_press_init(SLOW5_COMPRESS_GZIP);
-    ASSERT(comp->method == SLOW5_COMPRESS_GZIP);
+    comp = slow5_press_init(SLOW5_COMPRESS_ZLIB);
+    ASSERT(comp->method == SLOW5_COMPRESS_ZLIB);
     ASSERT(comp->stream != NULL);
     slow5_press_free(comp);
 
@@ -27,19 +27,19 @@ int press_buf_valid(void) {
 
     slow5_press_free(comp);
 
-    comp = slow5_press_init(SLOW5_COMPRESS_GZIP);
-    size_t size_gzip = 0;
+    comp = slow5_press_init(SLOW5_COMPRESS_ZLIB);
+    size_t size_zlib = 0;
     slow5_compress_footer_next(comp);
-    void *str_gzip = slow5_str_compress(comp, str, &size_gzip);
-    char *str_copy = slow5_ptr_depress(comp, str_gzip, size_gzip, &size);
+    void *str_zlib = slow5_str_compress(comp, str, &size_zlib);
+    char *str_copy = slow5_ptr_depress(comp, str_zlib, size_zlib, &size);
     ASSERT(strcmp(str_copy, str) == 0);
     ASSERT(size == strlen(str_copy) + 1);
     ASSERT(size == strlen(str_same) + 1);
     ASSERT(size == strlen(str) + 1);
-    ASSERT(size < size_gzip);
-    fwrite(str_gzip, size_gzip, 1, stdout); // TESTING
+    ASSERT(size < size_zlib);
+    fwrite(str_zlib, size_zlib, 1, stdout); // TESTING
 
-    free(str_gzip);
+    free(str_zlib);
     free(str_same);
     free(str_copy);
     slow5_press_free(comp);
@@ -58,19 +58,19 @@ int press_buf_valid2(void) {
 
     slow5_press_free(comp);
 
-    comp = slow5_press_init(SLOW5_COMPRESS_GZIP);
-    size_t size_gzip = 0;
+    comp = slow5_press_init(SLOW5_COMPRESS_ZLIB);
+    size_t size_zlib = 0;
     slow5_compress_footer_next(comp);
-    void *str_gzip = slow5_str_compress(comp, str, &size_gzip);
-    char *str_copy = slow5_ptr_depress(comp, str_gzip, size_gzip, &size);
+    void *str_zlib = slow5_str_compress(comp, str, &size_zlib);
+    char *str_copy = slow5_ptr_depress(comp, str_zlib, size_zlib, &size);
     ASSERT(strcmp(str_copy, str) == 0);
     ASSERT(size == strlen(str_copy) + 1);
     ASSERT(size == strlen(str_same) + 1);
     ASSERT(size == strlen(str) + 1);
-    ASSERT(size > size_gzip);
-    fwrite(str_gzip, size_gzip, 1, stdout); // TESTING
+    ASSERT(size > size_zlib);
+    fwrite(str_zlib, size_zlib, 1, stdout); // TESTING
 
-    free(str_gzip);
+    free(str_zlib);
     free(str_same);
     free(str_copy);
     slow5_press_free(comp);
@@ -79,7 +79,7 @@ int press_buf_valid2(void) {
 }
 
 int press_print_valid(void) {
-    struct slow5_press *comp = slow5_press_init(SLOW5_COMPRESS_GZIP);
+    struct slow5_press *comp = slow5_press_init(SLOW5_COMPRESS_ZLIB);
 
     const char *str = "hello";
     slow5_compress_footer_next(comp);
@@ -91,7 +91,7 @@ int press_print_valid(void) {
 }
 
 int press_printf_valid(void) {
-    struct slow5_press *comp = slow5_press_init(SLOW5_COMPRESS_GZIP);
+    struct slow5_press *comp = slow5_press_init(SLOW5_COMPRESS_ZLIB);
 
     const char *str = "lol";
     slow5_compress_footer_next(comp);

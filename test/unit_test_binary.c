@@ -270,13 +270,13 @@ int slow5_get_invalid(void) {
     return EXIT_SUCCESS;
 }
 
-int slow5_open_gzip(void) {
+int slow5_open_zlib(void) {
     struct slow5_file *s5p = slow5_open("test/data/exp/one_fast5/exp_1_default_gzip.blow5", "r");
     ASSERT(s5p != NULL);
 
     ASSERT(s5p->format == SLOW5_FORMAT_BINARY);
     ASSERT(s5p->compress != NULL);
-    ASSERT(s5p->compress->method == SLOW5_COMPRESS_GZIP);
+    ASSERT(s5p->compress->method == SLOW5_COMPRESS_ZLIB);
     ASSERT(s5p->header != NULL);
     ASSERT(s5p->header->version.major == 0);
     ASSERT(s5p->header->version.minor == 1);
@@ -288,7 +288,7 @@ int slow5_open_gzip(void) {
     return EXIT_SUCCESS;
 }
 
-int slow5_rec_to_mem_gzip(void) {
+int slow5_rec_to_mem_zlib(void) {
     struct slow5_file *s5p = slow5_open("test/data/exp/one_fast5/exp_1_default_gzip.blow5", "r");
     ASSERT(s5p != NULL);
     ASSERT(slow5_idx_load(s5p) == 0);
@@ -332,8 +332,8 @@ int main(void) {
         CMD(slow5_get_valid)
         CMD(slow5_get_invalid)
 
-        CMD(slow5_open_gzip)
-        CMD(slow5_rec_to_mem_gzip)
+        CMD(slow5_open_zlib)
+        CMD(slow5_rec_to_mem_zlib)
     };
 
     return RUN_TESTS(tests);

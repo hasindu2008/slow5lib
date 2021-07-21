@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <limits.h>
 #include <float.h>
-#include <math.h> // TODO need this?
+#include <math.h> /* TODO need this? */
 #include "unit_test.h"
 #include <slow5/slow5.h>
 #include "slow5_extra.h"
@@ -121,6 +121,7 @@ int slow5_get_null(void) {
     struct slow5_rec *read = NULL;
     ASSERT(slow5_get(NULL, &read, s5p) == SLOW5_ERR_ARG);
     ASSERT(slow5_get("a649a4ae-c43d-492a-b6a1-a5b8b8076be4", NULL, s5p) == SLOW5_ERR_ARG);
+    ASSERT(slow5_errno == SLOW5_ERR_ARG);
     ASSERT(slow5_get("a649a4ae-c43d-492a-b6a1-a5b8b8076be4", &read, NULL) == SLOW5_ERR_ARG);
     ASSERT(slow5_get(NULL, NULL, s5p) == SLOW5_ERR_ARG);
     ASSERT(slow5_get(NULL, &read, NULL) == SLOW5_ERR_ARG);
