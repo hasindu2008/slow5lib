@@ -1407,7 +1407,7 @@ void slow5_hdr_data_free(struct slow5_hdr *header) {
  * slow5_errno errors:
  * SLOW5_ERR_ARG
  * SLOW5_ERR_NOIDX
- * SLOW5_ERR_NORID
+ * SLOW5_ERR_NOTFOUND
  * SLOW5_ERR_FMTUNK
  * SLOW5_ERR_MEM
  * SLOW5_ERR_IO
@@ -1428,7 +1428,7 @@ void *slow5_get_mem(const char *read_id, size_t *n, const struct slow5_file *s5p
     struct slow5_rec_idx read_index;
     if (slow5_idx_get(s5p->index, read_id, &read_index) == -1) {
         /* read_id not found in index */
-        slow5_errno = SLOW5_ERR_NORID;
+        slow5_errno = SLOW5_ERR_NOTFOUND;
         goto err;
     }
 
@@ -1525,7 +1525,7 @@ int slow5_get(const char *read_id, struct slow5_rec **read, struct slow5_file *s
 
     if (slow5_rec_parse(mem, bytes, read_id, *read, s5p->format, s5p->header->aux_meta) == -1) {
         free(mem);
-        return slow5_errno = SLOW5_ERR_PARSE;
+        return slow5_errno = SLOW5_ERR_RECPARSE;
     }
 
     free(mem);
@@ -1547,9 +1547,9 @@ int slow5_get(const char *read_id, struct slow5_rec **read, struct slow5_file *s
  *
  * Errors:
  * SLOW5_ERR_ARG        read_id, read or s5p is NULL
- * SLOW5_ERR_NORID      read_id was not found in the index
+ * SLOW5_ERR_NOTFOUND      read_id was not found in the index
  * SLOW5_ERR_IO         other error when reading the slow5 file
- * SLOW5_ERR_PARSE      parsing error
+ * SLOW5_ERR_RECPARSE      parsing error
  * SLOW5_ERR_NOIDX      the index has not been loaded
  * SLOW5_ERR_MEM        memory allocation error
  *
@@ -1585,7 +1585,7 @@ int slow5_get_old(const char *read_id, struct slow5_rec **read, struct slow5_fil
     if (slow5_idx_get(s5p->index, read_id, &read_index) == -1) {
         /* read_id not found in index */
         SLOW5_ERROR_EXIT("Could not retrieve index record for read ID [%s].", read_id);
-        return slow5_errno = SLOW5_ERR_NORID;
+        return slow5_errno = SLOW5_ERR_NOTFOUND;
     }
 
     if (s5p->format == SLOW5_FORMAT_ASCII) {
@@ -1648,7 +1648,7 @@ int slow5_get_old(const char *read_id, struct slow5_rec **read, struct slow5_fil
 
     if (slow5_rec_parse(read_mem, bytes_to_read, read_id, *read, s5p->format, s5p->header->aux_meta) == -1) {
         SLOW5_ERROR_EXIT("%s", "SLOW5 record parsing failed.");
-        ret = slow5_errno = SLOW5_ERR_PARSE;
+        ret = slow5_errno = SLOW5_ERR_RECPARSE;
     }
     free(read_mem);
 
@@ -2202,7 +2202,7 @@ void slow5_rec_aux_free(khash_t(slow5_s2a) *aux_map) {
  * SLOW5_ERR_IO         other reading error when reading the slow5 file
  * SLOW5_ERR_MEM        memory allocation error
  * SLOW5_ERR_PRESS      record decompression error
- * SLOW5_ERR_PARSE      record parsing error
+ * SLOW5_ERR_RECPARSE      record parsing error
  *
  * @param   read    address of a slow5_rec pointer
  * @param   s5p     slow5 file
@@ -2282,7 +2282,7 @@ int slow5_get_next(struct slow5_rec **read, struct slow5_file *s5p) {
     /* TODO investigate errors on slow5_rec_parse */
     if (slow5_rec_parse(read_mem, read_len, NULL, *read, s5p->format, s5p->header->aux_meta) == -1) {
         SLOW5_ERROR_EXIT("%s", "Read could not be parsed.")
-        ret = slow5_errno = SLOW5_ERR_PARSE;
+        ret = slow5_errno = SLOW5_ERR_RECPARSE;
     }
 
     free(read_mem);

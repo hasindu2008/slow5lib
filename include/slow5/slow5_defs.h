@@ -118,10 +118,10 @@ extern "C" {
 #define SLOW5_ERR_EOF           (-1)    // EOF reached
 #define SLOW5_ERR_ARG           (-2)    // bad argument
 #define SLOW5_ERR_TRUNC         (-3)    // file truncated
-#define SLOW5_ERR_PARSE         (-4)    // record parsing error
+#define SLOW5_ERR_RECPARSE      (-4)    // record parsing error
 #define SLOW5_ERR_IO            (-5)    // other file I/O error (check errno for details)
 #define SLOW5_ERR_NOIDX         (-6)    // index not loaded
-#define SLOW5_ERR_NORID         (-7)    // read id not found
+#define SLOW5_ERR_NOTFOUND      (-7)    // read id not found
 #define SLOW5_ERR_BIGEND        (-8)    // big endian machine
 #define SLOW5_ERR_EXTUNK        (-9)    // file extension unknown
 #define SLOW5_ERR_MEM           (-10)   // memory (re)allocation error
