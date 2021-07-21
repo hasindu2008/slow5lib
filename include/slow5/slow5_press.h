@@ -54,8 +54,8 @@ extern "C" {
 
 /* zlib macros */
 #define SLOW5_ZLIB_MEM_DEFAULT (8)
-#define SLOW5_ZLIB_COMPRESS_CHUNK (16384) /* compression buffer size -- 16KB (2^14) */
-#define SLOW5_ZLIB_DEPRESS_CHUNK (262144) /* decompression buffer size -- 256KB (2^18) */ /* TODO benchmark */
+#define SLOW5_ZLIB_COMPRESS_CHUNK (131072) /* compression buffer size -- 128KB (2^17) */
+#define SLOW5_ZLIB_DEPRESS_CHUNK (262144) /* decompression buffer size -- 256KB (2^18) */
 
 /* (de)compression methods */
 enum slow5_press_method {
