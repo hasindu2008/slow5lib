@@ -1402,8 +1402,8 @@ void slow5_hdr_data_free(struct slow5_hdr *header) {
 // slow5 record
 
 /*
- * get slow5 record with read_id as it is stored in s5p with length n
- * returns NULL on error, sets *n=0 if possible, and sets slow5_errno
+ * get slow5 record with read_id as it is stored in the file s5p with length *n
+ * on error returns NULL, sets *n=0 if possible, and sets slow5_errno
  * slow5_errno errors:
  * SLOW5_ERR_ARG
  * SLOW5_ERR_NOIDX
@@ -1412,7 +1412,7 @@ void slow5_hdr_data_free(struct slow5_hdr *header) {
  * SLOW5_ERR_MEM
  * SLOW5_ERR_IO
  */
-void *slow5_get_mem(char *read_id, size_t *n, struct slow5_file *s5p) {
+void *slow5_get_mem(const char *read_id, size_t *n, const struct slow5_file *s5p) {
     if (!read_id || !s5p) {
         slow5_errno = SLOW5_ERR_ARG;
         goto err;
@@ -1476,6 +1476,61 @@ void *slow5_get_mem(char *read_id, size_t *n, struct slow5_file *s5p) {
         return NULL;
 }
 
+/*
+ * get slow5 record with read_id from file s5p and parse it into *read
+ * if *read is NULL, allocate memory for it
+ * otherwise reuse the memory
+ * *read should be freed by the user even on error
+ * on error sets and returns slow5_errno
+ */
+int slow5_get(const char *read_id, struct slow5_rec **read, struct slow5_file *s5p) {
+
+    if (!read) {
+        return slow5_errno = SLOW5_ERR_ARG;
+    }
+
+    size_t bytes;
+    char *mem;
+    if (!(mem = slow5_get_mem(read_id, &bytes, s5p))) {
+        return slow5_errno;
+    }
+
+    if (s5p->compress && s5p->compress->method != SLOW5_COMPRESS_NONE) {
+        size_t new_bytes;
+        char *new_mem;
+        if (!(new_mem = slow5_ptr_depress_solo(s5p->compress->method, mem, bytes, &new_bytes))) {
+            free(mem);
+            return slow5_errno = SLOW5_ERR_PRESS;
+        }
+        bytes = new_bytes;
+        mem = new_mem;
+    }
+
+    if (!*read) {
+        /* allocate memory for read */
+        *read = (struct slow5_rec *) calloc(1, sizeof **read);
+        SLOW5_MALLOC_CHK(*read);
+        if (!*read) {
+            free(mem);
+            return slow5_errno = SLOW5_ERR_MEM;
+        }
+    } else {
+        /* free previously allocated memory except for raw_signal */
+        free((*read)->read_id);
+        (*read)->read_id = NULL;
+        slow5_rec_aux_free((*read)->aux_map);
+        (*read)->aux_map = NULL;
+    }
+
+    if (slow5_rec_parse(mem, bytes, read_id, *read, s5p->format, s5p->header->aux_meta) == -1) {
+        free(mem);
+        return slow5_errno = SLOW5_ERR_PARSE;
+    }
+
+    free(mem);
+    return 0;
+}
+
 /**
  * Get a read entry from a slow5 file corresponding to a read_id.
  *
@@ -1502,7 +1557,7 @@ void *slow5_get_mem(char *read_id, size_t *n, struct slow5_file *s5p) {
  * @param   s5p     slow5 file
  * @return  error code described above
  */
-int slow5_get(const char *read_id, struct slow5_rec **read, struct slow5_file *s5p) {
+int slow5_get_old(const char *read_id, struct slow5_rec **read, struct slow5_file *s5p) {
     if (read_id == NULL) {
         SLOW5_ERROR_EXIT("%s", "Argument 'read_id' cannot be NULL.");
         return slow5_errno = SLOW5_ERR_ARG;
@@ -2114,7 +2169,7 @@ static inline khash_t(slow5_s2a) *slow5_rec_aux_init(void) {
 
 /* free a slow5 record auxiliary hash map DONE */
 void slow5_rec_aux_free(khash_t(slow5_s2a) *aux_map) {
-    if (aux_map != NULL) {
+    if (aux_map) {
         for (khint_t i = kh_begin(aux_map); i != kh_end(aux_map); ++ i) {
             if (kh_exist(aux_map, i)) {
                 kh_del(slow5_s2a, aux_map, i);
