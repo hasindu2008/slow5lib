@@ -1502,6 +1502,7 @@ int slow5_get(const char *read_id, struct slow5_rec **read, struct slow5_file *s
             free(mem);
             return slow5_errno = SLOW5_ERR_PRESS;
         }
+        free(mem);
         bytes = new_bytes;
         mem = new_mem;
     }
