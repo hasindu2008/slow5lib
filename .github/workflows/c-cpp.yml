@@ -68,7 +68,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: install packages
-      run: brew install autoconf automake llvm
+      run: brew install autoconf automake
     - name: build
       run: make -j8
     - name: test
