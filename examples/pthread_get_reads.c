@@ -32,11 +32,7 @@ void get_record(pthread_arg* pthreadArg){
     slow5_rec_t *rec = NULL;
     int ret=0;
     for(int32_t i=pthreadArg->starti; i<pthreadArg->endi; i++) {
-        ret = slow5_idx_load(pthreadArg->sp);
-        if (ret < 0) {
-            fprintf(stderr, "Error in loading index\n");
-            exit(EXIT_FAILURE);
-        }
+
         ret = slow5_get(pthreadArg->read_ids[i], &rec, pthreadArg->sp);
         if (ret < 0) {
             fprintf(stderr, "Error in when fetching the read\n");
@@ -99,8 +95,16 @@ int main(){
     char * read_ids[40] = {"r1", "r2", "r3", "r4", "r5"};
 
     slow5_file_t *sp = slow5_open(FILE_PATH,"r");
+
     if(sp==NULL){
         fprintf(stderr,"Error in opening file\n");
+        exit(EXIT_FAILURE);
+    }
+
+    int ret;
+    ret = slow5_idx_load(sp);
+    if (ret < 0) {
+        fprintf(stderr, "Error in loading index\n");
         exit(EXIT_FAILURE);
     }
 
