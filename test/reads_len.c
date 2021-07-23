@@ -13,13 +13,16 @@ int main(int argc, char **argv) {
         slow5_rec_t *read = NULL;
         while (slow5_get_next(&read, file) != SLOW5_ERR_EOF) {
             size_t n;
-            if (slow5_rec_to_mem(read, file->header->aux_meta, file->format, file->compress, &n)) {
+            void *mem;
+            if ((mem = slow5_rec_to_mem(read, file->header->aux_meta, file->format, file->compress, &n))) {
                 printf("%zu\n", n);
+                free(mem);
             } else {
                 printf("error\n");
             }
         }
         slow5_rec_free(read);
+        slow5_close(file);
     }
 
     return 0;
