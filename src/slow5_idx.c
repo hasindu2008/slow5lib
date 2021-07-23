@@ -17,7 +17,7 @@ extern enum slow5_exit_condition_opt  slow5_exit_condition;
 
 static inline struct slow5_idx *slow5_idx_init_empty(void);
 static int slow5_idx_build(struct slow5_idx *index, struct slow5_file *s5p);
-static void slow5_idx_read(struct slow5_idx *index);
+static int slow5_idx_read(struct slow5_idx *index);
 
 static inline struct slow5_idx *slow5_idx_init_empty(void) {
 
@@ -49,12 +49,17 @@ struct slow5_idx *slow5_idx_init(struct slow5_file *s5p) {
             return NULL;
         }
         index->fp = fopen(index->pathname, "w");
-        slow5_idx_write(index);
+        if (slow5_idx_write(index) != 0) {
+            slow5_idx_free(index);
+            return NULL;
+        }
         fclose(index->fp);
         index->fp = NULL;
     } else {
         index->fp = index_fp;
-        slow5_idx_read(index);
+        if (slow5_idx_read(index) != 0) {
+            // TODO error
+        }
     }
 
     return index;
@@ -77,7 +82,10 @@ int slow5_idx_to(struct slow5_file *s5p, const char *pathname) {
     }
 
     index->fp = fopen(pathname, "w");
-    slow5_idx_write(index);
+    if (slow5_idx_write(index) != 0) {
+        slow5_idx_free(index);
+        return -1;
+    }
 
     slow5_idx_free(index);
     return 0;
@@ -103,10 +111,12 @@ static int slow5_idx_build(struct slow5_idx *index, struct slow5_file *s5p) {
         offset = ftello(s5p->fp);
         while ((buf_len = getline(&buf, &cap, s5p->fp)) != -1) { // TODO this return is closer int64_t not unsigned
             bufp = buf;
-            char *read_id = strdup(slow5_strsep(&bufp, SLOW5_SEP_COL)); // TODO quicker to not split the whole line just the first delim
+            char *read_id = strdup(slow5_strsep(&bufp, SLOW5_SEP_COL));
             size = buf_len;
 
-            slow5_idx_insert(index, read_id, offset, size);
+            if (slow5_idx_insert(index, read_id, offset, size) == -1) {
+                // TODO handle error
+            }
             offset += buf_len;
         }
 
@@ -163,7 +173,9 @@ static int slow5_idx_build(struct slow5_idx *index, struct slow5_file *s5p) {
             read_id[read_id_len] = '\0';
 
             // Insert index record
-            slow5_idx_insert(index, read_id, offset, size);
+            if (slow5_idx_insert(index, read_id, offset, size) == -1) {
+                // TODO handle error
+            }
 
             free(read_decomp);
 
@@ -186,15 +198,23 @@ static int slow5_idx_build(struct slow5_idx *index, struct slow5_file *s5p) {
     return 0;
 }
 
-void slow5_idx_write(struct slow5_idx *index) {
+/*
+ * write an index to its file
+ * returns 0 on success, <0 on error
+ */
+int slow5_idx_write(struct slow5_idx *index) {
 
     const char magic[] = SLOW5_INDEX_MAGIC_NUMBER;
-    SLOW5_ASSERT(fwrite(magic, sizeof *magic, sizeof magic, index->fp) == sizeof magic);
+    if (fwrite(magic, sizeof *magic, sizeof magic, index->fp) != sizeof magic) {
+        return SLOW5_ERR_IO;
+    }
 
     struct slow5_version version = SLOW5_INDEX_VERSION;
-    SLOW5_ASSERT(fwrite(&version.major, sizeof version.major, 1, index->fp) == 1);
-    SLOW5_ASSERT(fwrite(&version.minor, sizeof version.minor, 1, index->fp) == 1);
-    SLOW5_ASSERT(fwrite(&version.patch, sizeof version.patch, 1, index->fp) == 1);
+    if (fwrite(&version.major, sizeof version.major, 1, index->fp) != 1 ||
+            fwrite(&version.minor, sizeof version.minor, 1, index->fp) != 1 ||
+            fwrite(&version.patch, sizeof version.patch, 1, index->fp) != 1) {
+        return SLOW5_ERR_IO;
+    }
 
     uint8_t padding = SLOW5_INDEX_HEADER_SIZE_OFFSET -
             sizeof magic * sizeof *magic -
@@ -203,99 +223,130 @@ void slow5_idx_write(struct slow5_idx *index) {
             sizeof version.patch;
     uint8_t *zeroes = (uint8_t *) calloc(padding, sizeof *zeroes);
     SLOW5_MALLOC_CHK(zeroes);
-    SLOW5_ASSERT(fwrite(zeroes, sizeof *zeroes, padding, index->fp) == padding);
+    if (fwrite(zeroes, sizeof *zeroes, padding, index->fp) != padding) {
+        return SLOW5_ERR_IO;
+    }
     free(zeroes);
 
     for (uint64_t i = 0; i < index->num_ids; ++ i) {
 
         khint_t pos = kh_get(slow5_s2i, index->hash, index->ids[i]);
-        SLOW5_ASSERT(pos != kh_end(index->hash));
+        if (pos == kh_end(index->hash)) {
+            return SLOW5_ERR_NOTFOUND;
+        }
 
         struct slow5_rec_idx read_index = kh_value(index->hash, pos);
 
         slow5_rid_len_t read_id_len = strlen(index->ids[i]);
-        SLOW5_ASSERT(fwrite(&read_id_len, sizeof read_id_len, 1, index->fp) == 1);
-        SLOW5_ASSERT(fwrite(index->ids[i], sizeof *index->ids[i], read_id_len, index->fp) == read_id_len);
-        SLOW5_ASSERT(fwrite(&read_index.offset, sizeof read_index.offset, 1, index->fp) == 1);
-        SLOW5_ASSERT(fwrite(&read_index.size, sizeof read_index.size, 1, index->fp) == 1);
+        if (fwrite(&read_id_len, sizeof read_id_len, 1, index->fp) != 1 ||
+                fwrite(index->ids[i], sizeof *index->ids[i], read_id_len, index->fp) != read_id_len ||
+                fwrite(&read_index.offset, sizeof read_index.offset, 1, index->fp) != 1 ||
+                fwrite(&read_index.size, sizeof read_index.size, 1, index->fp) != 1) {
+            return SLOW5_ERR_IO;
+        }
     }
 
     const char eof[] = SLOW5_INDEX_EOF;
-    SLOW5_ASSERT(fwrite(eof, sizeof *eof, sizeof eof, index->fp) == sizeof eof);
+    if (fwrite(eof, sizeof *eof, sizeof eof, index->fp) != sizeof eof) {
+        return SLOW5_ERR_IO;
+    }
+
+    return 0;
 }
 
 static inline int slow5_idx_is_version_compatible(struct slow5_version file_version){
 
     struct slow5_version supported_max_version = SLOW5_INDEX_VERSION;
 
-    if(file_version.major > supported_max_version.major){
+    if (file_version.major > supported_max_version.major ||
+            file_version.minor > supported_max_version.minor ||
+            file_version.patch > supported_max_version.patch) {
         return 0;
-    }
-    else if (file_version.minor > supported_max_version.minor){
-        return 0;
-    }
-    else if (file_version.patch > supported_max_version.patch){
-        return 0;
-    }
-    else{
+    } else {
         return 1;
     }
 }
 
-static void slow5_idx_read(struct slow5_idx *index) {
+static int slow5_idx_read(struct slow5_idx *index) {
 
     const char magic[] = SLOW5_INDEX_MAGIC_NUMBER;
     char buf_magic[sizeof magic]; // TODO is this a vla?
-    SLOW5_ASSERT(fread(buf_magic, sizeof *magic, sizeof magic, index->fp) == sizeof magic);
-    SLOW5_ASSERT(memcmp(magic, buf_magic, sizeof *magic * sizeof magic) == 0);
+    if (fread(buf_magic, sizeof *magic, sizeof magic, index->fp) != sizeof magic) {
+        return SLOW5_ERR_IO;
+    }
+    if (memcmp(magic, buf_magic, sizeof *magic * sizeof magic) != 0) {
+        return SLOW5_ERR_MAGIC;
+    }
 
-    SLOW5_ASSERT(fread(&index->version.major, sizeof index->version.major, 1, index->fp) == 1);
-    SLOW5_ASSERT(fread(&index->version.minor, sizeof index->version.minor, 1, index->fp) == 1);
-    SLOW5_ASSERT(fread(&index->version.patch, sizeof index->version.patch, 1, index->fp) == 1);
+    if (fread(&index->version.major, sizeof index->version.major, 1, index->fp) != 1 ||
+        fread(&index->version.minor, sizeof index->version.minor, 1, index->fp) != 1 ||
+        fread(&index->version.patch, sizeof index->version.patch, 1, index->fp) != 1) {
+        return SLOW5_ERR_IO;
+    }
 
-    if(slow5_idx_is_version_compatible(index->version)==0){
+    if (slow5_idx_is_version_compatible(index->version) == 0){
         struct slow5_version supported_max_version = SLOW5_INDEX_VERSION;
         SLOW5_ERROR("file version (%d.%d.%d) in your slow5 index file is higher than the maximally compatible version (%d.%d.%d) by this slow5lib. Please re-index or use a newer version of slow5lib",
                 index->version.major, index->version.minor, index->version.patch,
                      supported_max_version.major,  supported_max_version.minor,  supported_max_version.patch);
-        SLOW5_ASSERT(0);
+        return SLOW5_ERR_VERSION;
     }
 
-    SLOW5_ASSERT(fseek(index->fp, SLOW5_INDEX_HEADER_SIZE_OFFSET, SEEK_SET) != -1);
+    if (fseek(index->fp, SLOW5_INDEX_HEADER_SIZE_OFFSET, SEEK_SET) == -1) {
+        return SLOW5_ERR_IO;
+    }
 
     const char eof[] = SLOW5_INDEX_EOF;
     char buf_eof[sizeof eof]; // TODO is this a vla?
 
-    SLOW5_ASSERT(fread(buf_eof, sizeof *eof, sizeof eof, index->fp) == sizeof eof);
+    if (fread(buf_eof, sizeof *eof, sizeof eof, index->fp) != sizeof eof) {
+        return SLOW5_ERR_IO;
+    }
     while (memcmp(eof, buf_eof, sizeof *eof * sizeof eof) != 0) {
-        SLOW5_ASSERT(fseek(index->fp, - sizeof *eof * sizeof eof, SEEK_CUR) == 0); // Seek back
+        if (fseek(index->fp, - sizeof *eof * sizeof eof, SEEK_CUR) != 0) { // Seek back
+            return SLOW5_ERR_IO;
+        }
 
         slow5_rid_len_t read_id_len;
-        SLOW5_ASSERT(fread(&read_id_len, sizeof read_id_len, 1, index->fp) == 1);
+        if (fread(&read_id_len, sizeof read_id_len, 1, index->fp) != 1) {
+            return SLOW5_ERR_IO;
+        }
         char *read_id = (char *) malloc((read_id_len + 1) * sizeof *read_id); // +1 for '\0'
         SLOW5_MALLOC_CHK(read_id);
 
-        SLOW5_ASSERT(fread(read_id, sizeof *read_id, read_id_len, index->fp) == read_id_len);
+        if (fread(read_id, sizeof *read_id, read_id_len, index->fp) != read_id_len) {
+            return SLOW5_ERR_IO;
+        }
         read_id[read_id_len] = '\0'; // Add null byte
 
         uint64_t offset;
         uint64_t size;
 
-        SLOW5_ASSERT(fread(&offset, sizeof offset, 1, index->fp) == 1);
-        SLOW5_ASSERT(fread(&size, sizeof size, 1, index->fp) == 1);
+        if (fread(&offset, sizeof offset, 1, index->fp) != 1 ||
+                fread(&size, sizeof size, 1, index->fp) != 1) {
+            return SLOW5_ERR_IO;
+        }
 
-        slow5_idx_insert(index, read_id, offset, size);
+        if (slow5_idx_insert(index, read_id, offset, size) == -1) {
+            // TODO handle error
+        }
 
-        SLOW5_ASSERT(fread(buf_eof, sizeof *eof, sizeof eof, index->fp) == sizeof eof);
+        if (fread(buf_eof, sizeof *eof, sizeof eof, index->fp) != sizeof eof) {
+            return SLOW5_ERR_IO;
+        }
     }
+
+    return 0;
 }
 
-void slow5_idx_insert(struct slow5_idx *index, char *read_id, uint64_t offset, uint64_t size) {
+int slow5_idx_insert(struct slow5_idx *index, char *read_id, uint64_t offset, uint64_t size) {
 
     int absent;
     khint_t k = kh_put(slow5_s2i, index->hash, read_id, &absent);
-    SLOW5_ASSERT(absent != -1);
-    SLOW5_ASSERT(absent != 0); // TODO error if read_id duplicated?
+    if (absent == -1 || absent == 0) {
+        // TODO error if read_id duplicated?
+        return -1;
+    }
 
     struct slow5_rec_idx *read_index = &kh_value(index->hash, k);
 
@@ -313,6 +364,8 @@ void slow5_idx_insert(struct slow5_idx *index, char *read_id, uint64_t offset, u
 
     read_index->offset = offset;
     read_index->size = size;
+
+    return 0;
 }
 
 /*
