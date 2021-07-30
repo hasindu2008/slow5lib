@@ -263,11 +263,11 @@ int slow5_get_aux_array(void) {
     ASSERT(err == 0);
     ASSERT(array != NULL);
     ASSERT(len == 5);
-    printf("\n");
+    ASSERT(printf("\n") > 0);
     for (uint64_t i = 0; i < len; ++ i) {
-        printf("%" PRId16 ",", array[i]);
+        ASSERT(printf("%" PRId16 ",", array[i]) > 0);
     }
-    printf("\n");
+    ASSERT(printf("\n") > 0);
 
     slow5_rec_free(read);
 
@@ -292,9 +292,9 @@ int blow5_get_aux_array(void) {
     ASSERT(array != NULL);
     ASSERT(len == 5);
     for (uint64_t i = 0; i < len; ++ i) {
-        printf("%" PRId16 ",", array[i]);
+        ASSERT(printf("%" PRId16 ",", array[i]) > 0);
     }
-    printf("\n");
+    ASSERT(printf("\n") > 0);
 
     slow5_rec_free(read);
 
@@ -319,11 +319,44 @@ int blow5_gzip_get_aux_array(void) {
     ASSERT(array != NULL);
     ASSERT(len == 5);
     for (uint64_t i = 0; i < len; ++ i) {
-        printf("%" PRId16 ",", array[i]);
+        ASSERT(printf("%" PRId16 ",", array[i]) > 0);
     }
-    printf("\n");
+    ASSERT(printf("\n") > 0);
 
     slow5_rec_free(read);
+
+    ASSERT(slow5_close(s5p) == 0);
+
+    return EXIT_SUCCESS;
+}
+
+int slow5_get_hdr_keys_valid(void) {
+    struct slow5_file *s5p = slow5_open("test/data/exp/aux_array/exp_lossless.slow5", "r");
+    ASSERT(s5p != NULL);
+
+    uint64_t len = 0;
+    const char **list = slow5_get_hdr_keys(s5p->header, &len);
+
+    for (uint64_t i = 0; i < len; ++ i) {
+        ASSERT(printf("%s\n", list[i]) > 0);
+    }
+    free(list);
+
+    ASSERT(slow5_close(s5p) == 0);
+
+    return EXIT_SUCCESS;
+}
+
+int slow5_get_aux_names_valid(void) {
+    struct slow5_file *s5p = slow5_open("test/data/exp/aux_array/exp_lossless.slow5", "r");
+    ASSERT(s5p != NULL);
+
+    uint64_t len = 0;
+    char **list = slow5_get_aux_names(s5p->header, &len);
+    for (uint64_t i = 0; i < len; ++ i) {
+        ASSERT(printf("%s\t", list[i]) > 0);
+    }
+    ASSERT(printf("\n") > 0);
 
     ASSERT(slow5_close(s5p) == 0);
 
@@ -352,6 +385,9 @@ int main(void) {
         CMD(slow5_get_aux_array)
         CMD(blow5_get_aux_array)
         CMD(blow5_gzip_get_aux_array)
+
+        CMD(slow5_get_hdr_keys_valid)
+        CMD(slow5_get_aux_names_valid)
     };
 
     return RUN_TESTS(tests);

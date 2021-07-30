@@ -503,8 +503,8 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
 //currently used in pyslow5
 //len is the number of elements in the return char** list
 //returns null if there are no data header attributes
-const char **slow5_get_hdr_keys(const slow5_hdr_t *header,uint64_t *len) {
-    if (len!=NULL) {
+const char **slow5_get_hdr_keys(const slow5_hdr_t *header, uint64_t *len) {
+    if (len) {
         *len = header->data.num_attrs;
     }
     if (header->data.num_attrs == 0) {
@@ -909,9 +909,9 @@ char *slow5_hdr_get(const char *attr, uint32_t read_group, const struct slow5_hd
     return value;
 }
 
-char **slow5_get_aux_names(const slow5_hdr_t *header,uint64_t *len) {
+char **slow5_get_aux_names(const slow5_hdr_t *header, uint64_t *len) {
 
-    u_int64_t my_len = (header->aux_meta == NULL) ? 0 : header->aux_meta->num;
+    uint64_t my_len = header->aux_meta ? header->aux_meta->num : 0;
 
     if (len) {
         *len = my_len;
@@ -925,8 +925,8 @@ char **slow5_get_aux_names(const slow5_hdr_t *header,uint64_t *len) {
 }
 
 
-enum slow5_aux_type *slow5_get_aux_types(const slow5_hdr_t *header,uint64_t *len) {
-    u_int64_t my_len = (header->aux_meta == NULL) ? 0 : header->aux_meta->num;
+enum slow5_aux_type *slow5_get_aux_types(const slow5_hdr_t *header, uint64_t *len) {
+    uint64_t my_len = (header->aux_meta == NULL) ? 0 : header->aux_meta->num;
 
     if (len) {
         *len = my_len;
