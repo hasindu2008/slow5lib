@@ -210,17 +210,11 @@ int slow5_record_parsing_check(void) {
     ASSERT(slow5_get("bc5615d7-dc94-4315-9cf1-5112555c19d5", &read, s5p) == SLOW5_ERR_RECPARSE);
     ASSERT(slow5_close(s5p) == 0);
 
-    s5p = slow5_open("test/data/test/parsing_error_check/auxiliary_datatype_missing.slow5", "r");
-    ASSERT(s5p != NULL);
-    ASSERT(slow5_idx_load(s5p) == 0); //skip this
-    ASSERT(slow5_get("bc5615d7-dc94-4315-9cf1-5112555c19d5", &read, s5p) == SLOW5_ERR_RECPARSE);
-    ASSERT(slow5_close(s5p) == 0);
+    s5p = slow5_open("data/test/parsing_error_check/auxiliary_datatype_missing.slow5", "r");
+    ASSERT(!s5p);
 
     s5p = slow5_open("test/data/test/parsing_error_check/auxiliary_name_missing.slow5", "r");
-    ASSERT(s5p != NULL);
-    ASSERT(slow5_idx_load(s5p) == 0); //skip this
-    ASSERT(slow5_get("bc5615d7-dc94-4315-9cf1-5112555c19d5", &read, s5p) == SLOW5_ERR_RECPARSE);
-    ASSERT(slow5_close(s5p) == 0);
+    ASSERT(!s5p);
 
     s5p = slow5_open("test/data/test/parsing_error_check/main_attribute_data_missing.slow5", "r");
     ASSERT(s5p != NULL);
@@ -229,18 +223,12 @@ int slow5_record_parsing_check(void) {
     ASSERT(slow5_close(s5p) == 0);
 
 //    todo: return -5 with appropriate warning instead of dumping the core.
-//    s5p = slow5_open("test/data/test/parsing_error_check/main_attribute_datatype_missing.slow5", "r");
-//    ASSERT(s5p != NULL);
-//    ASSERT(slow5_idx_load(s5p) == 0); //skip this
-//    ASSERT(slow5_get("bc5615d7-dc94-4315-9cf1-5112555c19d5", &read, s5p) == -5);
-//    ASSERT(slow5_close(s5p) == 0);
+    s5p = slow5_open("test/data/test/parsing_error_check/main_attribute_datatype_missing.slow5", "r");
+    ASSERT(!s5p);
 
 //  todo: correct the warning 'Auxiliary fields are missing in header, but present in record' as Main columns are missing.
     s5p = slow5_open("test/data/test/parsing_error_check/main_attribute_name_missing.slow5", "r");
-    ASSERT(s5p != NULL);
-    ASSERT(slow5_idx_load(s5p) == 0); //skip this
-    ASSERT(slow5_get("bc5615d7-dc94-4315-9cf1-5112555c19d5", &read, s5p) == SLOW5_ERR_RECPARSE);
-    ASSERT(slow5_close(s5p) == 0);
+    ASSERT(!s5p);
 
 //    todo: return -5 instead of -3 by correctly detecting that read_id has a '#'
     s5p = slow5_open("test/data/test/parsing_error_check/read_id_starts_with_hash.slow5", "r");
@@ -250,17 +238,11 @@ int slow5_record_parsing_check(void) {
     ASSERT(slow5_close(s5p) == 0);
 
 //    todo: return -5 with appropriate warning instead of dumping the core.
-//    s5p = slow5_open("test/data/test/parsing_error_check/more_than_one_tab_datatype_header.slow5", "r");
-//    ASSERT(s5p != NULL);
-//    ASSERT(slow5_idx_load(s5p) == 0); //skip this
-//    ASSERT(slow5_get("bc5615d7-dc94-4315-9cf1-5112555c19d5", &read, s5p) == -5);
-//    ASSERT(slow5_close(s5p) == 0);
+    s5p = slow5_open("test/data/test/parsing_error_check/more_than_one_tab_datatype_header.slow5", "r");
+    ASSERT(!s5p);
 
     s5p = slow5_open("test/data/test/parsing_error_check/more_than_one_tab_attribute_name_header.slow5", "r");
-    ASSERT(s5p != NULL);
-    ASSERT(slow5_idx_load(s5p) == 0); //skip this
-    ASSERT(slow5_get("bc5615d7-dc94-4315-9cf1-5112555c19d5", &read, s5p) == SLOW5_ERR_RECPARSE);
-    ASSERT(slow5_close(s5p) == 0);
+    ASSERT(!s5p);
 
     s5p = slow5_open("test/data/test/parsing_error_check/more_than_one_tab_datarecord.slow5", "r");
     ASSERT(s5p != NULL);

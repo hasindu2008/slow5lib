@@ -28,7 +28,7 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
 void slow5_hdr_free(struct slow5_hdr *header);
 
 // slow5 header data
-int slow5_hdr_data_init(FILE *fp, char *buf, size_t *cap, struct slow5_hdr *header, uint32_t *hdr_len);
+int slow5_hdr_data_init(FILE *fp, char **buf, size_t *cap, struct slow5_hdr *header, uint32_t *hdr_len);
 khash_t(slow5_s2s) *slow5_hdr_get_data(uint32_t read_group, const struct slow5_hdr *header);
 int64_t slow5_hdr_add_rg_data(struct slow5_hdr *header, khash_t(slow5_s2s) *new_data);
 char *slow5_hdr_types_to_str(struct slow5_aux_meta *aux_meta, size_t *len);
@@ -36,7 +36,7 @@ char *slow5_hdr_attrs_to_str(struct slow5_aux_meta *aux_meta, size_t *len);
 void slow5_hdr_data_free(struct slow5_hdr *header);
 
 struct slow5_aux_meta *slow5_aux_meta_init_empty(void);
-struct slow5_aux_meta *slow5_aux_meta_init(FILE *fp, char *buf, size_t *cap, uint32_t *hdr_len);
+struct slow5_aux_meta *slow5_aux_meta_init(FILE *fp, char **buf, size_t *cap, uint32_t *hdr_len, int *err);
 int slow5_aux_meta_add(struct slow5_aux_meta *aux_meta, const char *attr, enum slow5_aux_type type);
 void slow5_aux_meta_free(struct slow5_aux_meta *aux_meta);
 
