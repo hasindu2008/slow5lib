@@ -21,6 +21,7 @@ Any change to a function prototype here means slow5tools must be fixed
 // slow5 file
 struct slow5_file *slow5_init(FILE *fp, const char *pathname, enum slow5_fmt format);
 struct slow5_file *slow5_init_empty(FILE *fp, const char *pathname, enum slow5_fmt format);
+int slow5_is_eof(FILE *fp, const char *eof, size_t n);
 
 // slow5 header
 struct slow5_hdr *slow5_hdr_init_empty(void);

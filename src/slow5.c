@@ -311,7 +311,7 @@ int slow5_close(struct slow5_file *s5p) {
         // TODO slow5_index_close
         if (s5p->index && s5p->index->fp && s5p->index->dirty) { // if the index has been changed, write it back
             if (fseek(s5p->index->fp, 0L, SEEK_SET) != 0) {
-                SLOW5_ERROR("Failed to fseek to start of index file '%s': %s.", s5p->index->pathname, strerror(errno));
+                SLOW5_ERROR("Failed to fseek() to start of index file '%s': %s.", s5p->index->pathname, strerror(errno));
                 slow5_errno = SLOW5_ERR_IO;
                 ret = EOF;
             } else {
@@ -368,9 +368,8 @@ static inline int slow5_is_version_compatible(struct slow5_version file_version)
  * SLOW5_ERR_ARG        fp or method is NULL
  * SLOW5_ERR_MEM        memory allocation failed
  * SLOW5_ERR_HDRPARSE   header parsing error
- * SLOW5_ERR_TRUNC      size of header in blow5 file differs to actual size
+ * SLOW5_ERR_TRUNC      eof reached prematurely
  * SLOW5_ERR_IO
- * SLOW5_ERR_EOF
  * SLOW5_ERR_MAGIC
  * SLOW5_ERR_VERSION
  * slow5_hdr_data_init errors
@@ -560,7 +559,7 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
             SLOW5_ERROR("Malformed blow5 header. Failed to read the number of read groups.%s", feof(fp) ? " EOF reached." : "");
             goto err_fread;
         } else if (fseek(fp, SLOW5_BINARY_HDR_SIZE_OFFSET, SEEK_SET) == -1) {
-            SLOW5_ERROR("Failed to fseek to offset %ld: %s.", SLOW5_BINARY_HDR_SIZE_OFFSET, strerror(errno));
+            SLOW5_ERROR("Failed to fseek() to offset %ld: %s.", SLOW5_BINARY_HDR_SIZE_OFFSET, strerror(errno));
             free(header);
             slow5_errno = SLOW5_ERR_IO;
             return NULL;
@@ -606,7 +605,7 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
                     header_size, header_act_size);
             free(buf);
             slow5_hdr_free(header);
-            slow5_errno = SLOW5_ERR_TRUNC;
+            slow5_errno = SLOW5_ERR_HDRPARSE;
             return NULL;
         }
     }
@@ -621,7 +620,7 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
 
     err_fread:
         free(header);
-        slow5_errno = SLOW5_ERR_EOF ? feof(fp) : SLOW5_ERR_IO;
+        slow5_errno = SLOW5_ERR_TRUNC ? feof(fp) : SLOW5_ERR_IO;
         return NULL;
 }
 
@@ -1787,7 +1786,7 @@ int slow5_get(const char *read_id, struct slow5_rec **read, struct slow5_file *s
     size_t bytes;
     char *mem;
     if (!(mem = slow5_get_mem(read_id, &bytes, s5p))) {
-        SLOW5_ERROR_EXIT("Failed to get raw memory of read with ID '%s'.", read_id);
+        SLOW5_EXIT_IF_ON_ERR();
         return slow5_errno;
     }
 
@@ -2387,18 +2386,19 @@ void slow5_rec_aux_free(khash_t(slow5_s2a) *aux_map) {
 int slow5_get_next(struct slow5_rec **read, struct slow5_file *s5p) {
     if (!read || !s5p) {
         if (!read) {
-            SLOW5_ERROR_EXIT("Argument '%s' cannot be NULL.", SLOW5_TO_STR(read));
+            SLOW5_ERROR("Argument '%s' cannot be NULL.", SLOW5_TO_STR(read));
         }
         if (!s5p) {
-            SLOW5_ERROR_EXIT("Argument '%s' cannot be NULL.", SLOW5_TO_STR(s5p));
+            SLOW5_ERROR("Argument '%s' cannot be NULL.", SLOW5_TO_STR(s5p));
         }
+        SLOW5_EXIT_IF_ON_ERR();
         return slow5_errno = SLOW5_ERR_ARG;
     }
 
     if (*read == NULL) {
         *read = (struct slow5_rec *) calloc(1, sizeof **read); /* allocate memory for read */
-        SLOW5_MALLOC_CHK_EXIT(*read);
-        if (*read == NULL) {
+        if (!*read) {
+            SLOW5_MALLOC_ERROR_EXIT();
             return slow5_errno = SLOW5_ERR_MEM;
         }
     } else {
@@ -2439,14 +2439,24 @@ int slow5_get_next(struct slow5_rec **read, struct slow5_file *s5p) {
 
     } else if (s5p->format == SLOW5_FORMAT_BINARY) {
 
+        const char eof[] = SLOW5_BINARY_EOF;
+        int is_eof = slow5_is_eof(s5p->fp, eof, sizeof eof);
+        if (is_eof == -1) {
+            SLOW5_EXIT_IF_ON_ERR();
+            return slow5_errno;
+        } else if (is_eof == 1) {
+            return slow5_errno = SLOW5_ERR_EOF;
+        }
+
         slow5_rec_size_t record_size;
         if (fread(&record_size, sizeof record_size, 1, s5p->fp) != 1) {
+            SLOW5_ERROR_EXIT("Malformed slow5 record. Failed to read the record size.%s", feof(s5p->fp) ? " Missing blow5 end of file marker." : "");
             if (feof(s5p->fp)) {
-                /*SLOW5_ERROR_EXIT("%s", "End of file reached.")*/
-                return slow5_errno = SLOW5_ERR_EOF;
+                slow5_errno = SLOW5_ERR_TRUNC;
+            } else {
+                slow5_errno = SLOW5_ERR_IO;
             }
-            SLOW5_ERROR_EXIT("%s", "Failure to get the next read.")
-            return slow5_errno = SLOW5_ERR_IO;
+            return slow5_errno;
         }
 
         read_mem = (char *) slow5_fread_depress(s5p->compress, record_size, s5p->fp, &read_len);
@@ -3538,6 +3548,46 @@ void slow5_set_log_level(enum slow5_log_level_opt log_level) {
 /* set the condition of exit (on error, warning, neither) */
 void slow5_set_exit_condition(enum slow5_exit_condition_opt exit_condition) {
     slow5_exit_condition = exit_condition;
+}
+
+/*
+ * is slow5 file at end?
+ * return 0 if not at end and file pointer left unchanged
+ * return 1 if at end
+ * return -1 on error
+ **/
+int slow5_is_eof(FILE *fp, const char *eof, size_t n) {
+    char *buf_eof = (char *) malloc(sizeof *eof * n);
+    if (!buf_eof) {
+        SLOW5_MALLOC_ERROR();
+        slow5_errno = SLOW5_ERR_IO;
+        return -1;
+    }
+
+    size_t itms_read = fread(buf_eof, sizeof *eof, n, fp);
+    if (itms_read == n) {
+        if (memcmp(eof, buf_eof, sizeof *eof * n) == 0) {
+            free(buf_eof);
+            return 1;
+        } else {
+            goto go_back;
+        }
+    } else {
+        goto go_back;
+    }
+
+    free(buf_eof);
+    return 0;
+
+    go_back:
+        free(buf_eof);
+        if (fseek(fp, - sizeof *eof * itms_read, SEEK_CUR) != 0) {
+            SLOW5_ERROR("Seeking back '%zu' bytes failed: %s.",
+                    sizeof *eof * itms_read, strerror(errno));
+            slow5_errno = SLOW5_ERR_IO;
+            return -1;
+        }
+        return 0;
 }
 
 //int main(void) {
