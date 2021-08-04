@@ -5,6 +5,7 @@
 #include <stdarg.h>
 #include <slow5/slow5_error.h>
 #include <slow5/slow5_press.h>
+#include <slow5/slow5_defs.h>
 #include "slow5_misc.h"
 
 extern enum slow5_log_level_opt  slow5_log_level;
@@ -23,51 +24,78 @@ static int vfprintf_compress(struct slow5_press *comp, FILE *fp, const char *for
 
 /*
  * init slow5_press struct
- * returns NULL on error
+ * returns NULL on error and sets errno
+ * errors
+ * SLOW5_ERR_MEM
+ * SLOW5_ERR_ARG    method is bad
+ * SLOW5_ERR_PRESS  (de)compression failure
  */
 struct slow5_press *slow5_press_init(slow5_press_method_t method) {
 
     struct slow5_press *comp = NULL;
 
-    comp = (struct slow5_press *) malloc(sizeof *comp);
-    SLOW5_MALLOC_CHK(comp);
+    comp = (struct slow5_press *) calloc(1, sizeof *comp);
     if (!comp) {
+        SLOW5_MALLOC_ERROR();
+        slow5_errno = SLOW5_ERR_MEM;
         return NULL;
     }
     comp->method = method;
 
-    switch (method) {
+    if (method == SLOW5_COMPRESS_NONE) {
 
-        case SLOW5_COMPRESS_NONE:
-            comp->stream = NULL;
-            break;
+    } else if (method == SLOW5_COMPRESS_ZLIB) {
+        struct slow5_zlib_stream *zlib;
 
-        case SLOW5_COMPRESS_ZLIB: {
-            struct slow5_zlib_stream *zlib;
+        zlib = (struct slow5_zlib_stream *) malloc(sizeof *zlib);
+        if (!zlib) {
+            SLOW5_MALLOC_ERROR();
+            free(comp);
+            slow5_errno = SLOW5_ERR_MEM;
+            return NULL;
+        }
 
-            zlib = (struct slow5_zlib_stream *) malloc(sizeof *zlib);
-            SLOW5_MALLOC_CHK(zlib);
-            if (!zlib) {
-                free(comp);
-                return NULL;
+        if (zlib_init_deflate(&(zlib->strm_deflate)) != Z_OK) {
+            SLOW5_ERROR("zlib deflate init failed: %s.", zlib->strm_deflate.msg);
+            free(zlib);
+            free(comp);
+            slow5_errno = SLOW5_ERR_PRESS;
+            return NULL;
+        }
+        if (zlib_init_inflate(&(zlib->strm_inflate)) != Z_OK) {
+            SLOW5_ERROR("zlib inflate init failed: %s.", zlib->strm_inflate.msg);
+            if (deflateEnd(&(zlib->strm_deflate)) != Z_OK) {
+                SLOW5_ERROR("zlib deflate end failed: %s.", zlib->strm_deflate.msg);
             }
-            if (zlib_init_deflate(&(zlib->strm_deflate)) != Z_OK) {
-                free(zlib);
-                comp->stream = NULL;
-                SLOW5_ERROR("%s", "zlib deflate initialisation failed.");
-            } else if (zlib_init_inflate(&(zlib->strm_inflate)) != Z_OK) {
-                (void) deflateEnd(&(zlib->strm_deflate));
-                free(zlib);
-                comp->stream = NULL;
-                SLOW5_WARNING("%s", "zlib inflate initialisation failed.");
-            } else {
-                zlib->flush = Z_NO_FLUSH;
-                comp->stream = (union slow5_press_stream *) malloc(sizeof *comp->stream);
-                SLOW5_MALLOC_CHK(comp->stream);
-                comp->stream->zlib = zlib;
-            }
+            free(zlib);
+            free(comp);
+            slow5_errno = SLOW5_ERR_PRESS;
+            return NULL;
+        }
 
-        } break;
+        zlib->flush = Z_NO_FLUSH;
+        comp->stream = (union slow5_press_stream *) malloc(sizeof *comp->stream);
+        if (!comp->stream) {
+            SLOW5_MALLOC_ERROR();
+            if (deflateEnd(&(zlib->strm_deflate)) != Z_OK) {
+                SLOW5_ERROR("zlib deflate end failed: %s.", zlib->strm_deflate.msg);
+            }
+            if (inflateEnd(&(zlib->strm_inflate)) != Z_OK) {
+                SLOW5_ERROR("zlib inflate end failed: %s.", zlib->strm_inflate.msg);
+            }
+            free(zlib);
+            free(comp);
+            slow5_errno = SLOW5_ERR_PRESS;
+            return NULL;
+        }
+
+        comp->stream->zlib = zlib;
+
+    } else {
+        SLOW5_ERROR("Invalid (de)compression method '%d'.", method);
+        free(comp);
+        slow5_errno = SLOW5_ERR_ARG;
+        return NULL;
     }
 
     return comp;

@@ -387,7 +387,6 @@ int slow5_idx_get(struct slow5_idx *index, const char *read_id, struct slow5_rec
 }
 
 /*
- * return:
  * SLOW5_ERR_IO - issue closing index file pointer, check errno for details
  */
 void slow5_idx_free(struct slow5_idx *index) {

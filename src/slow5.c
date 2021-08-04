@@ -49,7 +49,6 @@ KSORT_INIT_STR
 // TODO (void) cast if ignoring return value
 // TODO sizeof of macros at compile time rather than strlen
 // TODO Make sure all mallocs are checked for success
-// TODO replace SLOW5_ASSERT with proper error messages and handling
 // TODO check klib mallocs
 
 #define INT16_MAX_LENGTH (6) /* Max length is 6 (−32768) for a int16_t */
@@ -96,6 +95,8 @@ inline int *slow5_errno_location(void) {
  * SLOW5_ERR_UNK    format could not be determined from extension
  * SLOW5_ERR_MEM    memory allocation failed
  * slow5_hdr_init errors
+ * slow5_press_init errors
+ * SLOW5_ERR_IO     ftello, fileno failed
  */
 struct slow5_file *slow5_init(FILE *fp, const char *pathname, enum slow5_fmt format) {
     /* pathname allowed to be NULL at this point */
@@ -124,7 +125,8 @@ struct slow5_file *slow5_init(FILE *fp, const char *pathname, enum slow5_fmt for
 
     struct slow5_file *s5p = (struct slow5_file *) calloc(1, sizeof *s5p);
     if (!s5p) {
-        SLOW5_MALLOC_ERROR()
+        SLOW5_MALLOC_ERROR();
+        slow5_hdr_free(header);
         slow5_errno = SLOW5_ERR_MEM;
         return NULL;
     }
@@ -132,19 +134,31 @@ struct slow5_file *slow5_init(FILE *fp, const char *pathname, enum slow5_fmt for
     s5p->fp = fp;
     s5p->format = format;
     s5p->header = header;
+
     s5p->compress = slow5_press_init(method);
+    if (!s5p->compress) {
+        slow5_hdr_free(header);
+        free(s5p);
+        return NULL;
+    }
 
     if ((s5p->meta.fd = fileno(fp)) == -1) {
-        SLOW5_ERROR("%s","Obtaining the fileno() for the file stream failed. Not a valid file stream.");
-        slow5_close(s5p);
-        s5p = NULL;
+        SLOW5_ERROR("Obtaining file descriptor with fileno() failed: %s.", strerror(errno));
+        slow5_press_free(s5p->compress);
+        slow5_hdr_free(header);
+        free(s5p);
+        slow5_errno = SLOW5_ERR_IO;
+        return NULL;
     }
+
     s5p->meta.pathname = pathname;
-    s5p->meta.start_rec_offset = ftello(fp);
-    if (s5p->meta.start_rec_offset == -1) {
-        SLOW5_ERROR("ftello() failed. %s", strerror(errno));
-        slow5_close(s5p);
-        s5p = NULL;
+    if ((s5p->meta.start_rec_offset = ftello(fp)) == -1) {
+        SLOW5_ERROR("Obtaining file offset with ftello() failed: %s.", strerror(errno));
+        slow5_press_free(s5p->compress);
+        slow5_hdr_free(header);
+        free(s5p);
+        slow5_errno = SLOW5_ERR_IO;
+        return NULL;
     }
 
     return s5p;
@@ -154,7 +168,7 @@ struct slow5_file *slow5_init(FILE *fp, const char *pathname, enum slow5_fmt for
 struct slow5_file *slow5_init_empty(FILE *fp, const char *pathname, enum slow5_fmt format) {
 
     if (slow5_is_big_endian()) {
-        SLOW5_ERROR("%s","Big endian machine detected. slow5lib only support little endian at this time. Please open a github issue stating your machine spec.");
+        SLOW5_ERROR("%s","Big endian machine detected. slow5lib only support little endian at this time. Please open a github issue stating your machine spec <https://github.com/hasindu2008/slow5lib/issues>.");
         return NULL;
     }
     // Pathname cannot be NULL at this point
@@ -273,21 +287,43 @@ struct slow5_file *slow5_open_with(const char *pathname, const char *mode, enum 
  *
  * Return:
  *  0   file successfully closed and memory freed
- *  <0  error code
+ *  EOF error occured
  *
  * Errors:
- * EOF  file closing error, see errno for details
+ * SLOW5_ERR_IO     file closing error, see errno for details
+ * slow5_idx_write errors
  *
  * @param   s5p     slow5 file
  * @return  see above
  */
 int slow5_close(struct slow5_file *s5p) {
-    int ret;
+    int ret = 0;
 
-    if (s5p == NULL) {
+    if (!s5p) {
         ret = EOF;
     } else {
-        ret = fclose(s5p->fp);
+        if (fclose(s5p->fp) == EOF) {
+            SLOW5_ERROR("Error closing slow5 file '%s': %s.", s5p->meta.pathname, strerror(errno));
+            slow5_errno = SLOW5_ERR_IO;
+            ret = EOF;
+        }
+
+        // TODO slow5_index_close
+        if (s5p->index && s5p->index->fp && s5p->index->dirty) { // if the index has been changed, write it back
+            if (fseek(s5p->index->fp, 0L, SEEK_SET) != 0) {
+                SLOW5_ERROR("Failed to fseek to start of index file '%s': %s.", s5p->index->pathname, strerror(errno));
+                slow5_errno = SLOW5_ERR_IO;
+                ret = EOF;
+            } else {
+                int err = slow5_idx_write(s5p->index);
+                if (err != 0) {
+                    SLOW5_ERROR("Writing index file to '%s' failed.", s5p->index->pathname);
+                    slow5_errno = err;
+                    ret = EOF;
+                }
+            }
+        }
+
         slow5_free(s5p);
     }
 
@@ -295,23 +331,10 @@ int slow5_close(struct slow5_file *s5p) {
 }
 
 static inline void slow5_free(struct slow5_file *s5p) {
-    if (s5p != NULL) {
+    if (s5p) {
         slow5_press_free(s5p->compress);
         slow5_hdr_free(s5p->header);
-
-        if (s5p->index != NULL) {
-
-            if (s5p->index->dirty) { // if the index has been changed, write it back
-                if (s5p->index->fp != NULL) {
-                    SLOW5_ASSERT(fclose(s5p->index->fp) == 0);
-                }
-
-                s5p->index->fp = fopen(s5p->index->pathname, "wb");
-                slow5_idx_write(s5p->index);
-            }
-            slow5_idx_free(s5p->index);
-        }
-
+        slow5_idx_free(s5p->index);
         free(s5p);
     }
 }
@@ -346,6 +369,12 @@ static inline int slow5_is_version_compatible(struct slow5_version file_version)
  * SLOW5_ERR_MEM        memory allocation failed
  * SLOW5_ERR_HDRPARSE   header parsing error
  * SLOW5_ERR_TRUNC      size of header in blow5 file differs to actual size
+ * SLOW5_ERR_IO
+ * SLOW5_ERR_EOF
+ * SLOW5_ERR_MAGIC
+ * SLOW5_ERR_VERSION
+ * slow5_hdr_data_init errors
+ * slow5_aux_meta_init errors
  */
 struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_method_t *method) {
 
@@ -453,7 +482,7 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
         }
 
         if (slow5_is_version_compatible(header->version) == 0) {
-            SLOW5_ERROR("File version '%" PRIu8 ".%" PRIu8 ".%" PRIu8 "' is higher than the max slow5 version '%" PRIu8 ".%" PRIu8 ".%" PRIu8 "' supported by this slow5lib! Please use a newer version of slow5lib. Otherwise, this file may be corrupted.",
+            SLOW5_ERROR("File version '%" PRIu8 ".%" PRIu8 ".%" PRIu8 "' is higher than the max slow5 version '%" PRIu8 ".%" PRIu8 ".%" PRIu8 "' supported by this slow5lib! Please use a newer version of slow5lib.",
                     header->version.major, header->version.minor, header->version.patch,
                     SLOW5_ASCII_VERSION_STRUCT.major, SLOW5_ASCII_VERSION_STRUCT.minor, SLOW5_ASCII_VERSION_STRUCT.patch);
             slow5_errno = SLOW5_ERR_VERSION;
@@ -551,7 +580,12 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
 
         size_t cap = SLOW5_HDR_DATA_BUF_INIT_CAP;
         buf = (char *) malloc(cap * sizeof *buf);
-        SLOW5_MALLOC_CHK(buf);
+        if (!buf) {
+            SLOW5_MALLOC_ERROR();
+            free(header);
+            slow5_errno = SLOW5_ERR_MEM;
+            return NULL;
+        }
 
         // Header data
         uint32_t header_act_size;
@@ -1114,7 +1148,11 @@ int64_t slow5_hdr_add_rg_data(struct slow5_hdr *header, khash_t(slow5_s2s) *new_
             const char *attr = kh_key(new_data, i);
             char *value = kh_value(new_data, i);
 
-            SLOW5_ASSERT(slow5_hdr_add_attr(attr, header) != -3);
+            if (slow5_hdr_add_attr(attr, header) == -3) {
+                SLOW5_ERROR("%s", "Internal klib error.");
+                /* TODO remove rg */
+                return -1;
+            }
             (void) slow5_hdr_set(attr, value, rg_num, header);
         }
     }
@@ -2577,7 +2615,10 @@ static inline void slow5_rec_set_aux_map(khash_t(slow5_s2a) *aux_map, const char
     } else {
         int ret;
         pos = kh_put(slow5_s2a, aux_map, attr, &ret);
-        SLOW5_ASSERT(ret != -1);
+        if (ret == -1) {
+            SLOW5_ERROR("%s", "Internal klib error.");
+            return;
+        }
         aux_data = &kh_value(aux_map, pos);
     }
     aux_data->len = len;
