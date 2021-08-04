@@ -43,7 +43,7 @@ struct slow5_idx *slow5_idx_init(struct slow5_file *s5p) {
 
     // If file doesn't exist
     if ((index_fp = fopen(index->pathname, "r")) == NULL) {
-        SLOW5_INFO("Index file not found. Creating an index at %s.",index->pathname)
+        SLOW5_INFO("Index file not found. Creating an index at '%s'.",index->pathname)
         if (slow5_idx_build(index, s5p) != 0) {
             slow5_idx_free(index);
             return NULL;
@@ -123,23 +123,25 @@ static int slow5_idx_build(struct slow5_idx *index, struct slow5_file *s5p) {
         free(buf);
 
     } else if (s5p->format == SLOW5_FORMAT_BINARY) {
+
         const char eof[] = SLOW5_BINARY_EOF;
-        char buf_eof[sizeof eof]; // TODO is this a vla?
-
-        if (fread(buf_eof, sizeof *eof, sizeof eof, s5p->fp) != sizeof eof) {
-            return -1;
-        }
-        while (memcmp(eof, buf_eof, sizeof *eof * sizeof eof) != 0) {
-            if (fseek(s5p->fp, - sizeof *eof * sizeof eof, SEEK_CUR) != 0) { // Seek back
-                return -1;
-            }
-
+        int is_eof;
+        while ((is_eof = slow5_is_eof(s5p->fp, eof, sizeof eof)) == 0) {
             // Set start offset
             offset = ftello(s5p->fp);
 
             // Get record size
             slow5_rec_size_t record_size;
             if (fread(&record_size, sizeof record_size, 1, s5p->fp) != 1) {
+                SLOW5_ERROR("Malformed slow5 record. Failed to read the record size.%s", feof(s5p->fp) ? " Missing blow5 end of file marker." : "");
+                /*
+                if (feof(s5p->fp)) {
+                    slow5_errno = SLOW5_ERR_TRUNC;
+                } else {
+                    slow5_errno = SLOW5_ERR_IO;
+                }
+                return slow5_errno;
+                */
                 return -1;
             }
 
@@ -178,16 +180,9 @@ static int slow5_idx_build(struct slow5_idx *index, struct slow5_file *s5p) {
             }
 
             free(read_decomp);
-
-            // Read in potential eof marker
-            if (fread(buf_eof, sizeof *eof, sizeof eof, s5p->fp) != sizeof eof) {
-                return -1;
-            }
         }
-
-        // Ensure actually at end of file
-        if (fread(buf_eof, 1, 1, s5p->fp) != 0) {
-            return -1;
+        if (is_eof == -1) {
+            return slow5_errno;
         }
     }
 
@@ -286,9 +281,9 @@ static int slow5_idx_read(struct slow5_idx *index) {
 
     if (slow5_idx_is_version_compatible(index->version) == 0){
         struct slow5_version supported_max_version = SLOW5_INDEX_VERSION;
-        SLOW5_ERROR("file version (%d.%d.%d) in your slow5 index file is higher than the maximally compatible version (%d.%d.%d) by this slow5lib. Please re-index or use a newer version of slow5lib",
+        SLOW5_ERROR("File version '%" PRIu8 ".%" PRIu8 ".%" PRIu8 "' in slow5 index file is higher than the max slow5 version '%" PRIu8 ".%" PRIu8 ".%" PRIu8 "' supported by this slow5lib! Please re-index or use a newer version of slow5lib.",
                 index->version.major, index->version.minor, index->version.patch,
-                     supported_max_version.major,  supported_max_version.minor,  supported_max_version.patch);
+                supported_max_version.major, supported_max_version.minor, supported_max_version.patch);
         return SLOW5_ERR_VERSION;
     }
 
@@ -297,19 +292,18 @@ static int slow5_idx_read(struct slow5_idx *index) {
     }
 
     const char eof[] = SLOW5_INDEX_EOF;
-    char buf_eof[sizeof eof]; // TODO is this a vla?
-
-    if (fread(buf_eof, sizeof *eof, sizeof eof, index->fp) != sizeof eof) {
-        return SLOW5_ERR_IO;
-    }
-    while (memcmp(eof, buf_eof, sizeof *eof * sizeof eof) != 0) {
-        if (fseek(index->fp, - sizeof *eof * sizeof eof, SEEK_CUR) != 0) { // Seek back
-            return SLOW5_ERR_IO;
-        }
+    int is_eof;
+    while ((is_eof = slow5_is_eof(index->fp, eof, sizeof eof)) == 0) {
 
         slow5_rid_len_t read_id_len;
         if (fread(&read_id_len, sizeof read_id_len, 1, index->fp) != 1) {
-            return SLOW5_ERR_IO;
+            SLOW5_ERROR("Malformed slow5 index. Failed to read the read ID length.%s", feof(index->fp) ? " Missing index end of file marker." : "");
+            if (feof(index->fp)) {
+                slow5_errno = SLOW5_ERR_TRUNC;
+            } else {
+                slow5_errno = SLOW5_ERR_IO;
+            }
+            return slow5_errno;
         }
         char *read_id = (char *) malloc((read_id_len + 1) * sizeof *read_id); // +1 for '\0'
         SLOW5_MALLOC_CHK(read_id);
@@ -330,10 +324,10 @@ static int slow5_idx_read(struct slow5_idx *index) {
         if (slow5_idx_insert(index, read_id, offset, size) == -1) {
             // TODO handle error
         }
+    }
 
-        if (fread(buf_eof, sizeof *eof, sizeof eof, index->fp) != sizeof eof) {
-            return SLOW5_ERR_IO;
-        }
+    if (is_eof == -1) {
+        return slow5_errno;
     }
 
     return 0;
@@ -377,7 +371,7 @@ int slow5_idx_get(struct slow5_idx *index, const char *read_id, struct slow5_rec
 
     khint_t pos = kh_get(slow5_s2i, index->hash, read_id);
     if (pos == kh_end(index->hash)) {
-        SLOW5_ERROR("Read ID [%s] was not found.", read_id)
+        SLOW5_ERROR("Read ID '%s' was not found.", read_id)
         ret = -1;
     } else if (read_index) {
         *read_index = kh_value(index->hash, pos);
@@ -387,7 +381,6 @@ int slow5_idx_get(struct slow5_idx *index, const char *read_id, struct slow5_rec
 }
 
 /*
- * return:
  * SLOW5_ERR_IO - issue closing index file pointer, check errno for details
  */
 void slow5_idx_free(struct slow5_idx *index) {

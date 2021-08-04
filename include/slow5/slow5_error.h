@@ -72,17 +72,17 @@ enum slow5_exit_condition_opt {
 int *slow5_errno_location(void);
 #define slow5_errno (*slow5_errno_location())
 
-#define SLOW5_DEBUG_PREFIX "[DEBUG] %s: "
+#define SLOW5_DEBUG_PREFIX "[DEBUG] %s: " /* TODO function before debug */
 #define SLOW5_VERBOSE_PREFIX "[INFO] %s: "
 #define SLOW5_INFO_PREFIX "[%s::INFO]\033[1;34m "
 #define SLOW5_WARNING_PREFIX "[%s::WARNING]\033[1;33m "
 #define SLOW5_ERROR_PREFIX "[%s::ERROR]\033[1;31m "
-#define SLOW5_NO_COLOUR "\033[0m\n"
+#define SLOW5_NO_COLOUR "\033[0m"
 
 #define SLOW5_LOG_DEBUG(msg, ...) { \
     if (slow5_log_level >= SLOW5_LOG_DBUG) { \
         fprintf(stderr, SLOW5_DEBUG_PREFIX msg \
-                "\nAt %s:%d\n", \
+                " At %s:%d\n", \
                 __func__, __VA_ARGS__, __FILE__, __LINE__ - 1); \
     } \
 }
@@ -95,18 +95,18 @@ int *slow5_errno_location(void);
 
 #define SLOW5_INFO(msg, ...) { \
     if (slow5_log_level >= SLOW5_LOG_INFO) { \
-        fprintf(stderr, SLOW5_INFO_PREFIX msg SLOW5_NO_COLOUR, __func__, __VA_ARGS__); \
+        fprintf(stderr, SLOW5_INFO_PREFIX msg SLOW5_NO_COLOUR "\n", __func__, __VA_ARGS__); \
     } \
 }
 
 #define SLOW5_WARNING(msg, ...) { \
     if (slow5_log_level >= SLOW5_LOG_WARN) { \
         fprintf(stderr, SLOW5_WARNING_PREFIX msg SLOW5_NO_COLOUR \
-                "At %s:%d\n", \
+                " At %s:%d\n", \
                 __func__, __VA_ARGS__, __FILE__, __LINE__ - 1); \
     } \
-    if (slow5_exit_condition == SLOW5_EXIT_ON_WARN){ \
-        fprintf(stderr, "Exiting on warning.\n"); \
+    if (slow5_exit_condition >= SLOW5_EXIT_ON_WARN){ \
+        SLOW5_INFO("%s", "Exiting on warning."); \
         exit(EXIT_FAILURE); \
     } \
 }
@@ -114,39 +114,42 @@ int *slow5_errno_location(void);
 #define SLOW5_ERROR(msg, ...) { \
     if (slow5_log_level >= SLOW5_LOG_ERR) { \
         fprintf(stderr, SLOW5_ERROR_PREFIX msg SLOW5_NO_COLOUR \
-                "At %s:%d\n", \
+                " At %s:%d\n", \
                 __func__, __VA_ARGS__, __FILE__, __LINE__ - 1); \
     } \
 }
 
 #define SLOW5_ERROR_EXIT(msg, ...) { \
-    if (slow5_log_level >= SLOW5_LOG_ERR) { \
-        fprintf(stderr, SLOW5_ERROR_PREFIX msg SLOW5_NO_COLOUR \
-                "At %s:%d\n", \
-                __func__, __VA_ARGS__, __FILE__, __LINE__ - 1); \
-    } \
-    if (slow5_exit_condition == SLOW5_EXIT_ON_ERR){ \
-        fprintf(stderr,"Exiting on error.\n"); \
+    SLOW5_ERROR(msg, __VA_ARGS__) \
+    SLOW5_EXIT_IF_ON_ERR() \
+}
+
+#define SLOW5_EXIT_IF_ON_ERR() { \
+    if (slow5_exit_condition >= SLOW5_EXIT_ON_ERR){ \
+        SLOW5_ERROR("%s", "Exiting on error."); \
         exit(EXIT_FAILURE); \
     } \
 }
 
 #define SLOW5_MALLOC_CHK(ret) { \
     if ((ret) == NULL) { \
-        SLOW5_ERROR("%s", "Failed to allocate memory") \
-    }\
+        SLOW5_MALLOC_ERROR() \
+    } \
 }
 
 #define SLOW5_MALLOC_CHK_EXIT(ret) { \
     if ((ret) == NULL) { \
-        SLOW5_ERROR_EXIT("%s", "Failed to allocate memory") \
-    }\
+        SLOW5_MALLOC_ERROR_EXIT() \
+    } \
 }
 
+#define SLOW5_MALLOC_ERROR() SLOW5_ERROR("Failed to allocate memory: %s", strerror(errno))
+#define SLOW5_MALLOC_ERROR_EXIT() SLOW5_ERROR_EXIT("Failed to allocate memory: %s", strerror(errno))
+
 #define SLOW5_ASSERT(ret) { \
-    if((ret) == 0){ \
+    if ((ret) == 0){ \
         fprintf(stderr, SLOW5_ERROR_PREFIX "Assertion failed." SLOW5_NO_COLOUR \
-                "At %s:%d\nExiting.\n", \
+                " At %s:%d\nExiting.\n", \
                 __func__ , __FILE__, __LINE__ - 1); \
         exit(EXIT_FAILURE); \
     } \
