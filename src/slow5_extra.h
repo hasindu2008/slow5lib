@@ -42,6 +42,8 @@ int slow5_aux_meta_add(struct slow5_aux_meta *aux_meta, const char *attr, enum s
 void slow5_aux_meta_free(struct slow5_aux_meta *aux_meta);
 
 // slow5 record
+void *slow5_get_mem(const char *read_id, size_t *n, const struct slow5_file *s5p);
+void *slow5_get_next_mem(size_t *n, const struct slow5_file *s5p);
 int slow5_rec_set(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, const char *attr, const void *data);
 int slow5_rec_set_array(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, const char *attr, const void *data, size_t len);
 static inline int slow5_rec_set_string(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, const char *attr, const void *data) {
