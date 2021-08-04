@@ -377,7 +377,7 @@ int slow5_idx_get(struct slow5_idx *index, const char *read_id, struct slow5_rec
 
     khint_t pos = kh_get(slow5_s2i, index->hash, read_id);
     if (pos == kh_end(index->hash)) {
-        SLOW5_ERROR("Read ID [%s] was not found.", read_id)
+        SLOW5_ERROR("Read ID '%s' was not found.", read_id)
         ret = -1;
     } else if (read_index) {
         *read_index = kh_value(index->hash, pos);

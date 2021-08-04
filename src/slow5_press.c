@@ -227,7 +227,7 @@ void *slow5_ptr_depress_solo(slow5_press_method_t method, const void *ptr, size_
     size_t n_tmp = 0;
 
     if (!ptr) {
-        SLOW5_ERROR("%s", "Argument 'ptr' cannot be NULL.")
+        SLOW5_ERROR("Argument '%s' cannot be NULL.", SLOW5_TO_STR(ptr))
     } else {
 
         switch (method) {
@@ -265,10 +265,17 @@ void *slow5_ptr_depress_solo(slow5_press_method_t method, const void *ptr, size_
 void *slow5_ptr_depress(struct slow5_press *comp, const void *ptr, size_t count, size_t *n) {
     void *out = NULL;
 
-    if (!comp) {
-        SLOW5_ERROR("%s", "Argument 'comp' cannot be NULL.")
-    } else if (!ptr) {
-        SLOW5_ERROR("%s", "Argument 'ptr' cannot be NULL.")
+    if (!comp || !ptr) {
+        if (!comp) {
+            SLOW5_ERROR("Argument '%s' cannot be NULL.", SLOW5_TO_STR(comp))
+        }
+        if (!ptr) {
+            SLOW5_ERROR("Argument '%s' cannot be NULL.", SLOW5_TO_STR(ptr))
+        }
+        if (n) {
+            *n = 0;
+        }
+        return NULL;
     } else {
 
         switch (comp->method) {
@@ -542,11 +549,11 @@ void *slow5_pread_depress_solo(slow5_press_method_t method, int fd, size_t count
     ssize_t ret;
     if ((ret = pread(fd, raw, count, offset)) != count) {
         if (ret == -1) {
-            SLOW5_ERROR("pread failed to read [%zu] bytes: %s", count, strerror(errno));
+            SLOW5_ERROR("pread failed to read '%zu' bytes: %s", count, strerror(errno));
         } else if (ret == 0) {
-            SLOW5_ERROR("End of file reached. pread failed to read [%zu] bytes.", count);
+            SLOW5_ERROR("End of file reached. pread failed to read '%zu' bytes.", count);
         } else {
-            SLOW5_ERROR("pread read less bytes [%zd] than expected [%zu].", ret, count);
+            SLOW5_ERROR("pread read less bytes '%zd' than expected '%zu'.", ret, count);
         }
         free(raw);
         return NULL;

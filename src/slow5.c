@@ -1670,12 +1670,19 @@ void slow5_hdr_data_free(struct slow5_hdr *header) {
  */
 void *slow5_get_mem(const char *read_id, size_t *n, const struct slow5_file *s5p) {
     if (!read_id || !s5p) {
+        if (!read_id) {
+            SLOW5_ERROR("Argument '%s' cannot be NULL.", SLOW5_TO_STR(read_id));
+        }
+        if (!s5p) {
+            SLOW5_ERROR("Argument '%s' cannot be NULL.", SLOW5_TO_STR(s5p));
+        }
         slow5_errno = SLOW5_ERR_ARG;
         goto err;
     }
 
     if (!s5p->index) {
         /* index not loaded */
+        SLOW5_ERROR("%s", "No slow5 index has been loaded.");
         slow5_errno = SLOW5_ERR_NOIDX;
         goto err;
     }
@@ -1697,13 +1704,14 @@ void *slow5_get_mem(const char *read_id, size_t *n, const struct slow5_file *s5p
         bytes = read_index.size;
         offset = read_index.offset;
     } else {
+        SLOW5_ERROR("Unknown slow5 format '%d'.", s5p->format);
         slow5_errno = SLOW5_ERR_UNK;
         goto err;
     }
 
     uint8_t *mem = (uint8_t *) malloc(bytes);
-    SLOW5_MALLOC_CHK_EXIT(mem);
     if (!mem) {
+        SLOW5_MALLOC_ERROR();
         slow5_errno = SLOW5_ERR_MEM;
         goto err;
     }
@@ -1715,6 +1723,8 @@ void *slow5_get_mem(const char *read_id, size_t *n, const struct slow5_file *s5p
     }
 
     if (pread(s5p->meta.fd, mem, bytes, offset) != bytes) {
+        SLOW5_ERROR("Failed to pread '%zu' bytes at offset '%zu' from slow5 file '%s'.",
+                bytes, offset, s5p->meta.pathname);
         free(mem);
         slow5_errno = SLOW5_ERR_IO;
         goto err;
@@ -1732,63 +1742,9 @@ void *slow5_get_mem(const char *read_id, size_t *n, const struct slow5_file *s5p
         return NULL;
 }
 
-/*
- * get slow5 record with read_id from file s5p and parse it into *read
- * if *read is NULL, allocate memory for it
- * otherwise reuse the memory
- * *read should be freed by the user even on error
- * on error sets and returns slow5_errno
- */
-int slow5_get(const char *read_id, struct slow5_rec **read, struct slow5_file *s5p) {
-
-    if (!read) {
-        return slow5_errno = SLOW5_ERR_ARG;
-    }
-
-    size_t bytes;
-    char *mem;
-    if (!(mem = slow5_get_mem(read_id, &bytes, s5p))) {
-        return slow5_errno;
-    }
-
-    if (s5p->compress && s5p->compress->method != SLOW5_COMPRESS_NONE) {
-        size_t new_bytes;
-        char *new_mem;
-        if (!(new_mem = slow5_ptr_depress_solo(s5p->compress->method, mem, bytes, &new_bytes))) {
-            free(mem);
-            return slow5_errno = SLOW5_ERR_PRESS;
-        }
-        free(mem);
-        bytes = new_bytes;
-        mem = new_mem;
-    }
-
-    if (!*read) {
-        /* allocate memory for read */
-        *read = (struct slow5_rec *) calloc(1, sizeof **read);
-        SLOW5_MALLOC_CHK(*read);
-        if (!*read) {
-            free(mem);
-            return slow5_errno = SLOW5_ERR_MEM;
-        }
-    } else {
-        /* free previously allocated memory except for raw_signal */
-        free((*read)->read_id);
-        (*read)->read_id = NULL;
-        slow5_rec_aux_free((*read)->aux_map);
-        (*read)->aux_map = NULL;
-    }
-
-    if (slow5_rec_parse(mem, bytes, read_id, *read, s5p->format, s5p->header->aux_meta) == -1) {
-        free(mem);
-        return slow5_errno = SLOW5_ERR_RECPARSE;
-    }
-
-    free(mem);
-    return 0;
-}
 
 /**
+ * slow5_get_old
  * Get a read entry from a slow5 file corresponding to a read_id.
  *
  * Allocates memory for *read if it is NULL.
@@ -1814,101 +1770,65 @@ int slow5_get(const char *read_id, struct slow5_rec **read, struct slow5_file *s
  * @param   s5p     slow5 file
  * @return  error code described above
  */
-int slow5_get_old(const char *read_id, struct slow5_rec **read, struct slow5_file *s5p) {
-    if (read_id == NULL) {
-        SLOW5_ERROR_EXIT("%s", "Argument 'read_id' cannot be NULL.");
-        return slow5_errno = SLOW5_ERR_ARG;
-    } else if (read == NULL) {
-        SLOW5_ERROR_EXIT("%s", "Argument 'read' cannot be NULL.");
-        return slow5_errno = SLOW5_ERR_ARG;
-    } else if (s5p == NULL) {
-        SLOW5_ERROR_EXIT("%s", "Argument 's5p' cannot be NULL.");
+/*
+ * get slow5 record with read_id from file s5p and parse it into *read
+ * if *read is NULL, allocate memory for it
+ * otherwise reuse the memory
+ * *read should be freed by the user even on error
+ * on error sets and returns slow5_errno
+ */
+int slow5_get(const char *read_id, struct slow5_rec **read, struct slow5_file *s5p) {
+
+    if (!read) {
+        SLOW5_ERROR_EXIT("Argument '%s' cannot be NULL.", SLOW5_TO_STR(read));
         return slow5_errno = SLOW5_ERR_ARG;
     }
 
-    int ret = 0;
-    char *read_mem = NULL;
-    size_t bytes_to_read = 0;
-
-    /* index must be loaded */
-    if (s5p->index == NULL) { /* index not loaded */
-        SLOW5_ERROR_EXIT("%s", "No slow5 index has been loaded. Call slow5_idx_load() before slow5_get().");
-        return slow5_errno = SLOW5_ERR_NOIDX;
+    size_t bytes;
+    char *mem;
+    if (!(mem = slow5_get_mem(read_id, &bytes, s5p))) {
+        SLOW5_ERROR_EXIT("Failed to get raw memory of read with ID '%s'.", read_id);
+        return slow5_errno;
     }
 
-    /* Get index record */
-    struct slow5_rec_idx read_index;
-    if (slow5_idx_get(s5p->index, read_id, &read_index) == -1) {
-        /* read_id not found in index */
-        SLOW5_ERROR_EXIT("Could not retrieve index record for read ID [%s].", read_id);
-        return slow5_errno = SLOW5_ERR_NOTFOUND;
+    if (s5p->compress && s5p->compress->method != SLOW5_COMPRESS_NONE) {
+        size_t new_bytes;
+        char *new_mem;
+        if (!(new_mem = slow5_ptr_depress_solo(s5p->compress->method, mem, bytes, &new_bytes))) {
+            SLOW5_ERROR_EXIT("Failed to decompress read with ID '%s' from slow5 file '%s'.",
+                    read_id, s5p->meta.pathname);
+            free(mem);
+            return slow5_errno = SLOW5_ERR_PRESS;
+        }
+        free(mem);
+        bytes = new_bytes;
+        mem = new_mem;
     }
 
-    if (s5p->format == SLOW5_FORMAT_ASCII) {
-
-        /* Malloc string to hold the read */
-        read_mem = (char *) malloc(read_index.size * sizeof *read_mem);
-        SLOW5_MALLOC_CHK_EXIT(read_mem);
-        if (read_mem == NULL) {
+    if (!*read) {
+        /* allocate memory for read */
+        *read = (struct slow5_rec *) calloc(1, sizeof **read);
+        if (!*read) {
+            SLOW5_MALLOC_ERROR_EXIT();
+            free(mem);
             return slow5_errno = SLOW5_ERR_MEM;
         }
-
-        /* Read into the string
-         * Don't read in newline for parsing */
-        bytes_to_read = (read_index.size - 1) * sizeof *read_mem;
-        ssize_t pread_ret;
-        if ((pread_ret = pread(s5p->meta.fd, read_mem, bytes_to_read, read_index.offset))
-                    != bytes_to_read) { /* reading error */
-            if (pread_ret == -1) {
-                SLOW5_ERROR("pread failed to read [%zu] bytes: %s", bytes_to_read, strerror(errno));
-            } else if (pread_ret == 0) {
-                SLOW5_ERROR("End of file reached. pread failed to read [%zu] bytes.", bytes_to_read);
-            } else {
-                SLOW5_ERROR("pread read less bytes [%zd] than expected [%zu].", pread_ret, bytes_to_read);
-            }
-            free(read_mem);
-            return slow5_errno = SLOW5_ERR_IO;
-        }
-
-        /* Null terminate */
-        read_mem[read_index.size - 1] = '\0';
-
-    } else if (s5p->format == SLOW5_FORMAT_BINARY) {
-
-        /* Read into the string and miss the preceding size */
-        read_mem = (char *) slow5_pread_depress_solo(s5p->compress->method, s5p->meta.fd,
-                                                read_index.size - sizeof (slow5_rec_size_t),
-                                                read_index.offset + sizeof (slow5_rec_size_t),
-                                                &bytes_to_read);
-        if (read_mem == NULL) {
-            /* reading error */
-            SLOW5_ERROR_EXIT("%s", "pread followed by decompression failed.");
-            return slow5_errno = SLOW5_ERR_IO;
-        }
-    }
-
-    if (*read == NULL) {
-        // Allocate memory for read
-        *read = (struct slow5_rec *) calloc(1, sizeof **read);
-        SLOW5_MALLOC_CHK(*read);
     } else {
-        // Free previously allocated strings
+        /* free previously allocated memory except for raw_signal */
         free((*read)->read_id);
         (*read)->read_id = NULL;
-        if ((*read)->aux_map != NULL) {
-            // Free previously allocated auxiliary data
-            slow5_rec_aux_free((*read)->aux_map);
-            (*read)->aux_map = NULL;
-        }
+        slow5_rec_aux_free((*read)->aux_map);
+        (*read)->aux_map = NULL;
     }
 
-    if (slow5_rec_parse(read_mem, bytes_to_read, read_id, *read, s5p->format, s5p->header->aux_meta) == -1) {
-        SLOW5_ERROR_EXIT("%s", "slow5 record parsing failed.");
-        ret = slow5_errno = SLOW5_ERR_RECPARSE;
+    if (slow5_rec_parse(mem, bytes, read_id, *read, s5p->format, s5p->header->aux_meta) == -1) {
+        SLOW5_ERROR_EXIT("%s", "Record parsing failed.");
+        free(mem);
+        return slow5_errno = SLOW5_ERR_RECPARSE;
     }
-    free(read_mem);
 
-    return ret;
+    free(mem);
+    return 0;
 }
 
 /*
@@ -1926,7 +1846,7 @@ int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struc
 
         char *tok = slow5_strsep(&read_mem, SLOW5_SEP_COL);
         if (read_mem == NULL) {
-            SLOW5_ERROR("Read ID could not be parsed from [%.10s%s]. Tab separator was not found.",
+            SLOW5_ERROR("Read ID could not be parsed from '%.10s%s'. Tab separator was not found.",
                     tok, strnlen(tok, 11) == 11 ? "..." : "");
             return -1;
         }
@@ -1939,7 +1859,7 @@ int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struc
                     /* Ensure line matches requested id */
                     if (read_id != NULL) {
                         if (strcmp(tok, read_id) != 0) {
-                            SLOW5_ERROR("Requested read ID [%s] does not match the read ID [%s] in fetched record.", read_id, tok);
+                            SLOW5_ERROR("Requested read ID '%s' does not match the read ID '%s' in fetched record.", read_id, tok);
                             ret = -1;
                             break;
                         }
@@ -1960,7 +1880,7 @@ int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struc
                     /* TODO check slow5_ato_uint32 and the other ones below */
                     read->read_group = slow5_ato_uint32(tok, &err);
                     if (err == -1) {
-                        SLOW5_ERROR("Read group could not be parsed from [%s].", tok);
+                        SLOW5_ERROR("Read group could not be parsed from '%s'.", tok);
                         ret = -1;
                     }
                     break;
@@ -1968,7 +1888,7 @@ int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struc
                 case COL_digitisation:
                     read->digitisation = slow5_strtod_check(tok, &err);
                     if (err == -1) {
-                        SLOW5_ERROR("Digitisation could not be parsed from [%s].", tok);
+                        SLOW5_ERROR("Digitisation could not be parsed from '%s'.", tok);
                         ret = -1;
                     }
                     break;
@@ -1976,7 +1896,7 @@ int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struc
                 case COL_offset:
                     read->offset = slow5_strtod_check(tok, &err);
                     if (err == -1) {
-                        SLOW5_ERROR("Offset could not be parsed from [%s].", tok);
+                        SLOW5_ERROR("Offset could not be parsed from '%s'.", tok);
                         ret = -1;
                     }
                     break;
@@ -1984,7 +1904,7 @@ int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struc
                 case COL_range:
                     read->range = slow5_strtod_check(tok, &err);
                     if (err == -1) {
-                        SLOW5_ERROR("Range could not be parsed from [%s].", tok);
+                        SLOW5_ERROR("Range could not be parsed from '%s'.", tok);
                         ret = -1;
                     }
                     break;
@@ -1992,7 +1912,7 @@ int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struc
                 case COL_sampling_rate:
                     read->sampling_rate = slow5_strtod_check(tok, &err);
                     if (err == -1) {
-                        SLOW5_ERROR("Sampling rate could not be parsed from [%s].", tok);
+                        SLOW5_ERROR("Sampling rate could not be parsed from '%s'.", tok);
                         ret = -1;
                     }
                     break;
@@ -2000,7 +1920,7 @@ int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struc
                 case COL_len_raw_signal:
                     read->len_raw_signal = slow5_ato_uint64(tok, &err);
                     if (err == -1) {
-                        SLOW5_ERROR("Raw signal length could not be parsed from [%s].", tok);
+                        SLOW5_ERROR("Raw signal length could not be parsed from '%s'.", tok);
                         ret = -1;
                     }
                     break;
@@ -2031,7 +1951,7 @@ int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struc
 
                     char *signal_tok = slow5_strsep(&tok, SLOW5_SEP_ARRAY);
                     if (tok == NULL && read->len_raw_signal > 1) {
-                        SLOW5_ERROR("Raw signals could not be parsed from [%.10s%s]. Comma separator was not found.",
+                        SLOW5_ERROR("Raw signals could not be parsed from '%.10s%s'. Comma separator was not found.",
                                 signal_tok, strnlen(signal_tok, 11) == 11 ? "..." : "");
                         ret = -1;
                         break;
@@ -2043,7 +1963,7 @@ int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struc
                     do {
                         (read->raw_signal)[j] = slow5_ato_int16(signal_tok, &err);
                         if (err == -1) {
-                            SLOW5_ERROR("Raw signal [%" PRIu64 "] could not be parsed from [%s].", j, signal_tok);
+                            SLOW5_ERROR("Raw signal '%" PRIu64 "' could not be parsed from '%s'.", j, signal_tok);
                             ret = -1;
                             break;
                         }
@@ -2051,7 +1971,7 @@ int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struc
                     } while ((signal_tok = slow5_strsep(&tok, SLOW5_SEP_ARRAY)) != NULL);
 
                     if (ret != -1 && j != read->len_raw_signal) {
-                        SLOW5_ERROR("Raw signal length [%" PRIu64 "] does not match the number of signals parsed [%" PRIu64 "]. Raw signal is potentially truncated.", read->len_raw_signal, j);
+                        SLOW5_ERROR("Raw signal length '%" PRIu64 "' does not match the number of signals parsed '%" PRIu64 "'. Raw signal is potentially truncated.", read->len_raw_signal, j);
                         ret = -1;
                     }
 
@@ -2071,7 +1991,7 @@ int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struc
 
         if (i < SLOW5_COLS_NUM) {
             /* Not all main columns parsed */
-            SLOW5_ERROR("Only [%" PRIu8 "/%" PRIu8 "] slow5 main columns were parsed.", i, SLOW5_COLS_NUM);
+            SLOW5_ERROR("%" PRIu8 "/%" PRIu8 " slow5 main columns were parsed.", i, SLOW5_COLS_NUM);
             ret = -1;
         } else if (!more_to_parse && aux_meta != NULL) {
             SLOW5_ERROR("%s", "Missing auxiliary fields in record, but present in header.");
@@ -2116,7 +2036,7 @@ int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struc
 
                     /* Ensure line matches requested id */
                     if (read_id != NULL && strcmp(read->read_id, read_id) != 0) {
-                        SLOW5_ERROR("Requested read ID [%s] does not match the read ID [%s] in fetched record.", read_id, read->read_id);
+                        SLOW5_ERROR("Requested read ID '%s' does not match the read ID '%s' in fetched record.", read_id, read->read_id);
                         ret = -1;
                         break;
                     }
@@ -2193,13 +2113,13 @@ int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struc
         }
 
         if (offset > read_size) { /* Read too much */
-            SLOW5_ERROR("Read more bytes than record size. At offset [%" PRIu64 "] but record size is [%zu].", offset, read_size);
+            SLOW5_ERROR("Read more bytes than record size. At offset '%" PRIu64 "' but record size is '%zu'.", offset, read_size);
             ret = -1;
         } else if (aux_meta == NULL && offset < read_size) { /* More to read but no auxiliary meta */
-            SLOW5_ERROR("No auxiliary meta data but more data in record. At offset [%" PRIu64 "] but record size is [%zu].", offset, read_size);
+            SLOW5_ERROR("No auxiliary meta data but more data in record. At offset '%" PRIu64 "' but record size is '%zu'.", offset, read_size);
             ret = -1;
         } else if (aux_meta != NULL && offset == read_size) { /* No more to read but auxiliary meta expected */
-            SLOW5_ERROR("Missing auxiliary data in record. At offset [%" PRIu64 "] which equals the record size.", offset);
+            SLOW5_ERROR("Missing auxiliary data in record. At offset '%" PRIu64 "' which equals the record size.", offset);
             ret = -1;
         } else if (aux_meta != NULL) {
             /* Parse auxiliary data */
@@ -2229,7 +2149,7 @@ static int slow5_rec_aux_parse(char *tok, char *read_mem, uint64_t offset, size_
 
         for (int64_t i = 0; i < aux_meta->num; ++ i) {
             if (tok == NULL) {
-                SLOW5_ERROR("Auxiliary field [%s] is missing in record.", aux_meta->attrs[i]);
+                SLOW5_ERROR("Auxiliary field '%s' is missing in record.", aux_meta->attrs[i]);
                 slow5_rec_aux_free(aux_map);
                 return -1;
             }
@@ -2270,7 +2190,7 @@ static int slow5_rec_aux_parse(char *tok, char *read_mem, uint64_t offset, size_
 
                         /* Memcpy giving the primitive type not the array type */
                         if (slow5_memcpy_type_from_str(data + (aux_meta->sizes[i] * array_i), tok_sep, SLOW5_TO_PRIM_TYPE(aux_meta->types[i])) == -1) {
-                            SLOW5_ERROR("Array element [%" PRIu64 "] of auxiliary field [%s] could not be parsed from [%s].", array_i, aux_meta->attrs[i], tok);
+                            SLOW5_ERROR("Array element '%" PRIu64 "' of auxiliary field '%s' could not be parsed from '%s'.", array_i, aux_meta->attrs[i], tok);
                             free(data);
                             slow5_rec_aux_free(aux_map);
                             return -1;
@@ -2306,7 +2226,7 @@ static int slow5_rec_aux_parse(char *tok, char *read_mem, uint64_t offset, size_
                 if (strcmp(tok, SLOW5_ASCII_MISSING) == 0) {
                     slow5_memcpy_null_type(data, aux_meta->types[i]);
                 } else if (slow5_memcpy_type_from_str(data, tok, aux_meta->types[i]) == -1) {
-                    SLOW5_ERROR("Auxiliary field [%s] could not be parsed from [%s].", aux_meta->attrs[i], tok);
+                    SLOW5_ERROR("Auxiliary field '%s' could not be parsed from '%s'.", aux_meta->attrs[i], tok);
                     free(data);
                     slow5_rec_aux_free(aux_map);
                     return -1;
@@ -2317,12 +2237,12 @@ static int slow5_rec_aux_parse(char *tok, char *read_mem, uint64_t offset, size_
             int absent;
             khint_t pos = kh_put(slow5_s2a, aux_map, aux_meta->attrs[i], &absent);
             if (absent == -1) {
-                SLOW5_ERROR("Inserting key [%s] into the auxiliary hash table failed.", aux_meta->attrs[i]);
+                SLOW5_ERROR("Inserting key '%s' into the auxiliary hash table failed.", aux_meta->attrs[i]);
                 free(data);
                 slow5_rec_aux_free(aux_map);
                 return -1;
             } else if (absent == 0) {
-                SLOW5_ERROR("Auxiliary field [%s] is duplicated.", aux_meta->attrs[i]);
+                SLOW5_ERROR("Auxiliary field '%s' is duplicated.", aux_meta->attrs[i]);
                 free(data);
                 slow5_rec_aux_free(aux_map);
                 return -1;
@@ -2349,7 +2269,7 @@ static int slow5_rec_aux_parse(char *tok, char *read_mem, uint64_t offset, size_
 
         for (int64_t i = 0; i < aux_meta->num; ++ i) {
             if (offset >= read_size) {
-                SLOW5_ERROR("Auxiliary field [%s] is missing in record. At offset [%ld] and record size is [%ld].", aux_meta->attrs[i], offset, read_size);
+                SLOW5_ERROR("Auxiliary field '%s' is missing in record. At offset '%ld' and record size is '%ld'.", aux_meta->attrs[i], offset, read_size);
                 slow5_rec_aux_free(aux_map);
                 return -1;
             }
@@ -2391,11 +2311,11 @@ static int slow5_rec_aux_parse(char *tok, char *read_mem, uint64_t offset, size_
             int absent;
             khint_t pos = kh_put(slow5_s2a, aux_map, aux_meta->attrs[i], &absent);
             if (absent == -1) {
-                SLOW5_ERROR("Inserting key [%s] into the auxiliary hash table failed.", aux_meta->attrs[i]);
+                SLOW5_ERROR("Inserting key '%s' into the auxiliary hash table failed.", aux_meta->attrs[i]);
                 slow5_rec_aux_free(aux_map);
                 return -1;
             } else if (absent == 0) {
-                SLOW5_ERROR("Auxiliary field [%s] is duplicated.", aux_meta->attrs[i]);
+                SLOW5_ERROR("Auxiliary field '%s' is duplicated.", aux_meta->attrs[i]);
                 slow5_rec_aux_free(aux_map);
                 return -1;
             }
@@ -2407,7 +2327,7 @@ static int slow5_rec_aux_parse(char *tok, char *read_mem, uint64_t offset, size_
         }
 
         if (offset != read_size) {
-            SLOW5_ERROR("More auxiliary record data exists but all header auxiliary columns were parsed. At offset [%" PRIu64 "] but record size is [%zu].", offset, read_size);
+            SLOW5_ERROR("More auxiliary record data exists but all header auxiliary columns were parsed. At offset '%" PRIu64 "' but record size is '%zu'.", offset, read_size);
             slow5_rec_aux_free(aux_map);
             return -1;
         }
@@ -2465,12 +2385,13 @@ void slow5_rec_aux_free(khash_t(slow5_s2a) *aux_map) {
  * @return  error code described above
  */
 int slow5_get_next(struct slow5_rec **read, struct slow5_file *s5p) {
-    if (read == NULL) {
-        SLOW5_ERROR_EXIT("%s", "Argument 'read' cannot be NULL.");
-        return slow5_errno = SLOW5_ERR_ARG;
-    }
-    if (s5p == NULL) {
-        SLOW5_ERROR_EXIT("%s", "Argument 's5p' cannot be NULL.");
+    if (!read || !s5p) {
+        if (!read) {
+            SLOW5_ERROR_EXIT("Argument '%s' cannot be NULL.", SLOW5_TO_STR(read));
+        }
+        if (!s5p) {
+            SLOW5_ERROR_EXIT("Argument '%s' cannot be NULL.", SLOW5_TO_STR(s5p));
+        }
         return slow5_errno = SLOW5_ERR_ARG;
     }
 
@@ -2632,11 +2553,13 @@ static inline void slow5_rec_set_aux_map(khash_t(slow5_s2a) *aux_map, const char
 #define SLOW5_AUX_GET(read, field, raw_type, null, prim_type) \
     int tmp_err = 0; \
     raw_type val = null; \
-    if (read == NULL) { \
-        SLOW5_ERROR_EXIT("%s", "Argument 'read' cannot be NULL.") \
-        tmp_err = slow5_errno = SLOW5_ERR_ARG; \
-    } else if (field == NULL) { \
-        SLOW5_ERROR_EXIT("%s", "Argument 'field' cannot be NULL.") \
+    if (!read || !field) { \
+        if (!read) { \
+            SLOW5_ERROR_EXIT("Argument '%s' cannot be NULL.", SLOW5_TO_STR(read)) \
+        } \
+        if (!field) { \
+            SLOW5_ERROR_EXIT("Argument '%s' cannot be NULL.", SLOW5_TO_STR(field)) \
+        } \
         tmp_err = slow5_errno = SLOW5_ERR_ARG; \
     } else if (read->aux_map == NULL) { \
         SLOW5_ERROR_EXIT("%s", "Missing auxiliary hash map.") \
@@ -2701,11 +2624,13 @@ char slow5_aux_get_char(const struct slow5_rec *read, const char *field, int *er
 #define SLOW5_AUX_GET_ARRAY(read, field, len, raw_type, ptr_type) \
     int tmp_err = 0; \
     raw_type val = NULL; \
-    if (read == NULL) { \
-        SLOW5_ERROR_EXIT("%s", "Argument 'read' cannot be NULL.") \
-        tmp_err = slow5_errno = SLOW5_ERR_ARG; \
-    } else if (field == NULL) { \
-        SLOW5_ERROR_EXIT("%s", "Argument 'field' cannot be NULL.") \
+    if (!read || !field) { \
+        if (!read) { \
+            SLOW5_ERROR_EXIT("Argument '%s' cannot be NULL.", SLOW5_TO_STR(read)) \
+        } \
+        if (!field) { \
+            SLOW5_ERROR_EXIT("Argument '%s' cannot be NULL.", SLOW5_TO_STR(field)) \
+        } \
         tmp_err = slow5_errno = SLOW5_ERR_ARG; \
     } else if (read->aux_map == NULL) { \
         SLOW5_ERROR_EXIT("%s", "Missing auxiliary hash map.") \
