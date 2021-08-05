@@ -1790,43 +1790,47 @@ int slow5_get(const char *read_id, struct slow5_rec **read, struct slow5_file *s
         return slow5_errno;
     }
 
-    if (s5p->compress && s5p->compress->method != SLOW5_COMPRESS_NONE) {
-        size_t new_bytes;
-        char *new_mem;
-        if (!(new_mem = slow5_ptr_depress_solo(s5p->compress->method, mem, bytes, &new_bytes))) {
-            SLOW5_ERROR_EXIT("Failed to decompress read with ID '%s' from slow5 file '%s'.",
-                    read_id, s5p->meta.pathname);
-            free(mem);
-            return slow5_errno = SLOW5_ERR_PRESS;
-        }
+    if (slow5_rec_depress_parse(&mem, &bytes, read_id, read, s5p) != 0) {
+        SLOW5_EXIT_IF_ON_ERR();
         free(mem);
-        bytes = new_bytes;
-        mem = new_mem;
-    }
-
-    if (!*read) {
-        /* allocate memory for read */
-        *read = (struct slow5_rec *) calloc(1, sizeof **read);
-        if (!*read) {
-            SLOW5_MALLOC_ERROR_EXIT();
-            free(mem);
-            return slow5_errno = SLOW5_ERR_MEM;
-        }
-    } else {
-        /* free previously allocated memory except for raw_signal */
-        free((*read)->read_id);
-        (*read)->read_id = NULL;
-        slow5_rec_aux_free((*read)->aux_map);
-        (*read)->aux_map = NULL;
-    }
-
-    if (slow5_rec_parse(mem, bytes, read_id, *read, s5p->format, s5p->header->aux_meta) == -1) {
-        SLOW5_ERROR_EXIT("%s", "Record parsing failed.");
-        free(mem);
-        return slow5_errno = SLOW5_ERR_RECPARSE;
+        return slow5_errno;
     }
 
     free(mem);
+    return 0;
+}
+
+/*
+ * decompress record if s5p has a compression method then parse to read
+ * set mem to decompressed mem and bytes to new bytes
+ * mem, bytes, s5p cannot be null
+ * return 0 on success
+ * return a SLOW5_ERR_* and set slow5_errno on failure
+ */
+int slow5_rec_depress_parse(char **mem, size_t *bytes, const char *read_id, struct slow5_rec **read, struct slow5_file *s5p) {
+
+    if (s5p->compress && s5p->compress->method != SLOW5_COMPRESS_NONE) {
+        size_t new_bytes;
+        char *new_mem;
+        if (!(new_mem = slow5_ptr_depress_solo(s5p->compress->method, *mem, *bytes, &new_bytes))) {
+            if (read_id) {
+                SLOW5_ERROR("Failed to decompress read with ID '%s' from slow5 file '%s'.",
+                        read_id, s5p->meta.pathname);
+            } else {
+                SLOW5_ERROR("Failed to decompress read from slow5 file '%s'.", s5p->meta.pathname);
+            }
+            return slow5_errno = SLOW5_ERR_PRESS;
+        }
+        free(*mem);
+        *bytes = new_bytes;
+        *mem = new_mem;
+    }
+
+    if (slow5_rec_parse(*mem, *bytes, read_id, read, s5p->format, s5p->header->aux_meta) == -1) {
+        SLOW5_ERROR("%s", "Record parsing failed.");
+        return slow5_errno = SLOW5_ERR_RECPARSE;
+    }
+
     return 0;
 }
 
@@ -1836,7 +1840,25 @@ int slow5_get(const char *read_id, struct slow5_rec **read, struct slow5_file *s
  * read_mem, read cannot be NULL
  * returns -1 on error, 0 on success
  */
-int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struct slow5_rec *read, enum slow5_fmt format, struct slow5_aux_meta *aux_meta) {
+int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struct slow5_rec **readp, enum slow5_fmt format, struct slow5_aux_meta *aux_meta) {
+
+    if (!*readp) {
+        /* allocate memory for read */
+        *readp = (struct slow5_rec *) calloc(1, sizeof **readp);
+        if (!*readp) {
+            SLOW5_MALLOC_ERROR();
+            return -1;
+        }
+    } else {
+        /* free previously allocated memory except for raw_signal */
+        free((*readp)->read_id);
+        (*readp)->read_id = NULL;
+        slow5_rec_aux_free((*readp)->aux_map);
+        (*readp)->aux_map = NULL;
+    }
+
+    struct slow5_rec *read = *readp;
+
     int ret = 0;
     uint8_t i = 0;
     const uint64_t prev_len_raw_signal = read->len_raw_signal;
@@ -2469,6 +2491,8 @@ void *slow5_get_next_mem(size_t *n, const struct slow5_file *s5p) {
  * >=0  the read was successfully found and stored
  * <0   error code described below
  *
+ * Not thread safe
+ *
  * Error
  * SLOW5_ERR_ARG        read or s5p is NULL
  * SLOW5_ERR_EOF        EOF reached
@@ -2496,39 +2520,10 @@ int slow5_get_next(struct slow5_rec **read, struct slow5_file *s5p) {
         return slow5_errno;
     }
 
-    if (s5p->compress && s5p->compress->method != SLOW5_COMPRESS_NONE) {
-        size_t new_bytes;
-        char *new_mem;
-        if (!(new_mem = slow5_ptr_depress(s5p->compress, mem, bytes, &new_bytes))) {
-            SLOW5_ERROR_EXIT("Failed to decompress read from slow5 file '%s'.", s5p->meta.pathname);
-            free(mem);
-            return slow5_errno = SLOW5_ERR_PRESS;
-        }
+    if (slow5_rec_depress_parse(&mem, &bytes, NULL, read, s5p) != 0) {
+        SLOW5_EXIT_IF_ON_ERR();
         free(mem);
-        bytes = new_bytes;
-        mem = new_mem;
-    }
-
-    if (!*read) {
-        /* allocate memory for read */
-        *read = (struct slow5_rec *) calloc(1, sizeof **read);
-        if (!*read) {
-            SLOW5_MALLOC_ERROR_EXIT();
-            free(mem);
-            return slow5_errno = SLOW5_ERR_MEM;
-        }
-    } else {
-        /* free previously allocated memory except for raw_signal */
-        free((*read)->read_id);
-        (*read)->read_id = NULL;
-        slow5_rec_aux_free((*read)->aux_map);
-        (*read)->aux_map = NULL;
-    }
-
-    if (slow5_rec_parse(mem, bytes, NULL, *read, s5p->format, s5p->header->aux_meta) == -1) {
-        SLOW5_ERROR_EXIT("%s", "Record parsing failed.");
-        free(mem);
-        return slow5_errno = SLOW5_ERR_RECPARSE;
+        return slow5_errno;
     }
 
     free(mem);
