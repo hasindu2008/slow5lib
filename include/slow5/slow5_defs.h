@@ -39,7 +39,9 @@ SOFTWARE.
 extern "C" {
 #endif
 
-// slow5lib version
+// versions
+#define SLOW5_VERSION_STRING "0.1.0"
+#define SLOW5_VERSION_ARRAY { 0, 1, 0 }
 #define SLOW5_LIB_VERSION "0.1.0-dirty"
 
 // SLOW5 format specs
@@ -96,7 +98,7 @@ extern "C" {
 // ASCII SLOW5 specs
 #define SLOW5_ASCII_NAME                    "slow5"
 #define SLOW5_ASCII_EXTENSION               "." SLOW5_ASCII_NAME
-#define SLOW5_ASCII_VERSION                 "0.1.0"
+#define SLOW5_ASCII_VERSION                 SLOW5_VERSION_STRING
 #define SLOW5_ASCII_VERSION_FORMAT          "%" PRIu8 ".%" PRIu8 ".%" PRIu8
 #define SLOW5_ASCII_NUM_GROUPS_FORMAT       "%" PRIu32
 #define SLOW5_ASCII_ENTRY_VERSION           SLOW5_HDR_ENTRY(SLOW5_HDR_FILE_VERSION, SLOW5_ASCII_VERSION)
@@ -111,7 +113,7 @@ extern "C" {
 // Binary SLOW5 specs
 #define SLOW5_BINARY_NAME                   "blow5"
 #define SLOW5_BINARY_EXTENSION              "." SLOW5_BINARY_NAME
-#define SLOW5_BINARY_VERSION                { 0, 1, 0 }
+#define SLOW5_BINARY_VERSION                SLOW5_VERSION_ARRAY
 #define SLOW5_BINARY_MAGIC_NUMBER           { 'B', 'L', 'O', 'W', '5', '\1' }
 #define SLOW5_BINARY_EOF                    { '5', 'W', 'O', 'L', 'B' }
 #define SLOW5_BINARY_HDR_SIZE_OFFSET        (64L)

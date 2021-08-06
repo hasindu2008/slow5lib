@@ -11,7 +11,7 @@ extern "C" {
 #endif
 
 #define SLOW5_INDEX_EXTENSION             "." "idx"
-#define SLOW5_INDEX_VERSION               { 0, 1, 0 }
+#define SLOW5_INDEX_VERSION               SLOW5_VERSION_ARRAY
 #define SLOW5_INDEX_MAGIC_NUMBER          { 'S', 'L', 'O', 'W', '5', 'I', 'D', 'X', '\1' }
 #define SLOW5_INDEX_EOF                   { 'X', 'D', 'I', '5', 'W', 'O', 'L', 'S' }
 #define SLOW5_INDEX_HEADER_SIZE_OFFSET    (64L)

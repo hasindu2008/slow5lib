@@ -58,7 +58,25 @@ struct slow5_idx *slow5_idx_init(struct slow5_file *s5p) {
         index->fp = NULL;
     } else {
         index->fp = index_fp;
+        int err;
+        if (slow5_filestamps_cmp(index->pathname, s5p->meta.pathname, &err) < 0.0) {
+            SLOW5_WARNING("Index file '%s' is older than slow5 file '%s'.",
+                    index->pathname, s5p->meta.pathname);
+        }
+        if (err == -1) {
+            slow5_idx_free(index);
+            return NULL;
+        }
         if (slow5_idx_read(index) != 0) {
+            slow5_idx_free(index);
+            return NULL;
+        }
+        if (index->version.major != s5p->header->version.major ||
+                index->version.minor != s5p->header->version.minor ||
+                index->version.patch != s5p->header->version.patch) {
+            SLOW5_ERROR("Index file version '%" PRIu8 ".%" PRIu8 ".%" PRIu8 "' is different to slow5 file version '%" PRIu8 ".%" PRIu8 ".%" PRIu8 "'. Please re-index.",
+                    index->version.major, index->version.minor, index->version.patch,
+                    s5p->header->version.major, s5p->header->version.minor, s5p->header->version.patch);
             slow5_idx_free(index);
             return NULL;
         }
@@ -290,7 +308,7 @@ static int slow5_idx_read(struct slow5_idx *index) {
 
     if (slow5_idx_is_version_compatible(index->version) == 0){
         struct slow5_version supported_max_version = SLOW5_INDEX_VERSION;
-        SLOW5_ERROR("File version '%" PRIu8 ".%" PRIu8 ".%" PRIu8 "' in slow5 index file is higher than the max slow5 version '%" PRIu8 ".%" PRIu8 ".%" PRIu8 "' supported by this slow5lib! Please re-index or use a newer version of slow5lib.",
+        SLOW5_ERROR("Index file version '%" PRIu8 ".%" PRIu8 ".%" PRIu8 "' is higher than the max slow5 version '%" PRIu8 ".%" PRIu8 ".%" PRIu8 "' supported by this slow5lib! Please re-index or use a newer version of slow5lib.",
                 index->version.major, index->version.minor, index->version.patch,
                 supported_max_version.major, supported_max_version.minor, supported_max_version.patch);
         return SLOW5_ERR_VERSION;

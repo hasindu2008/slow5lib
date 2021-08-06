@@ -13,6 +13,10 @@
 #include <limits.h>
 #include "slow5_misc.h"
 #include <slow5/slow5_error.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <time.h>
 
 extern enum slow5_log_level_opt  slow5_log_level;
 extern enum slow5_exit_condition_opt  slow5_exit_condition;
@@ -440,3 +444,36 @@ static uint8_t get_type_size(const char *name) {
     return size;
 }
 */
+
+/*
+ * given filepaths a and b get the difference between their last modification times
+ * return <a_time> - <b_time>
+ * =0 both are created at the same time
+ * >0 a is newer than b
+ * <0 a is older than b
+ * *err=-1 return 0 if failed
+ * *err=0 return diff if success
+ */
+double slow5_filestamps_cmp(const char *a, const char *b, int *err) {
+    struct stat a_stat;
+    struct stat b_stat;
+    if (stat(a, &a_stat) == -1) {
+        SLOW5_ERROR("Failed to retrieve stats about file '%s'.", a);
+        if (err) {
+            *err = -1;
+        }
+        return 0;
+    }
+    if (stat(b, &b_stat) == -1) {
+        SLOW5_ERROR("Failed to retrieve stats about file '%s'.", b);
+        if (err) {
+            *err = -1;
+        }
+        return 0;
+    }
+
+    if (err) {
+        *err = 0;
+    }
+    return difftime(a_stat.st_mtime, b_stat.st_mtime);
+}

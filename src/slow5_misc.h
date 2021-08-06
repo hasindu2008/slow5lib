@@ -133,6 +133,8 @@ char *slow5_double_to_str(double x, size_t *len);
 // Convert float to decimal string without trailing 0s
 char *slow5_float_to_str(float x, size_t *len);
 
+double slow5_filestamps_cmp(const char *a, const char *b, int *err);
+
 #ifdef __cplusplus
 }
 #endif
