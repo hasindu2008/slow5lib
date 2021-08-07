@@ -11,7 +11,7 @@ int slow5_hdr_init_empty_valid(void) {
 
 int slow5_hdr_add(void) {
     struct slow5_hdr *header = slow5_hdr_init_empty();
-    header->version = SLOW5_ASCII_VERSION_STRUCT;
+    header->version = SLOW5_VERSION_STRUCT;
     ASSERT(slow5_hdr_add_rg(header) == 0);
     ASSERT(slow5_hdr_add_rg(header) == 1);
     ASSERT(slow5_hdr_add_rg(header) == 2);
@@ -73,7 +73,7 @@ int slow5_rec_set_valid(void) {
     ASSERT(aux_meta->num == 6);
 
     struct slow5_hdr *header = slow5_hdr_init_empty();
-    header->version = SLOW5_ASCII_VERSION_STRUCT;
+    header->version = SLOW5_VERSION_STRUCT;
     header->aux_meta = aux_meta;
     header->num_read_groups = 1;
     ASSERT(slow5_hdr_print(header, SLOW5_FORMAT_ASCII, SLOW5_COMPRESS_NONE) != -1);

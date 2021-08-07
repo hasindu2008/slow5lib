@@ -13,6 +13,7 @@
 #include <limits.h>
 #include "slow5_misc.h"
 #include <slow5/slow5_error.h>
+#include <slow5/slow5_defs.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>

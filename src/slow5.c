@@ -184,7 +184,7 @@ struct slow5_file *slow5_init_empty(FILE *fp, const char *pathname, enum slow5_f
 
     struct slow5_file *s5p;
     struct slow5_hdr *header = slow5_hdr_init_empty();
-    header->version = SLOW5_ASCII_VERSION_STRUCT;
+    header->version = SLOW5_VERSION_STRUCT;
     s5p = (struct slow5_file *) calloc(1, sizeof *s5p);
     SLOW5_MALLOC_CHK(s5p);
 
@@ -315,7 +315,7 @@ int slow5_close(struct slow5_file *s5p) {
                 slow5_errno = SLOW5_ERR_IO;
                 ret = EOF;
             } else {
-                int err = slow5_idx_write(s5p->index);
+                int err = slow5_idx_write(s5p->index, s5p->header->version);
                 if (err != 0) {
                     SLOW5_ERROR("Writing index file to '%s' failed.", s5p->index->pathname);
                     slow5_errno = err;
@@ -350,17 +350,6 @@ struct slow5_hdr *slow5_hdr_init_empty(void) {
     return header;
 }
 
-
-
-static inline int slow5_is_version_compatible(struct slow5_version file_version) {
-    if (file_version.major > SLOW5_ASCII_VERSION_STRUCT.major ||
-            file_version.minor > SLOW5_ASCII_VERSION_STRUCT.minor ||
-            file_version.patch > SLOW5_ASCII_VERSION_STRUCT.patch) {
-        return 0;
-    } else {
-        return 1;
-    }
-}
 
 /*
  * parses a slow5 header
@@ -481,9 +470,8 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
         }
 
         if (slow5_is_version_compatible(header->version) == 0) {
-            SLOW5_ERROR("File version '%" PRIu8 ".%" PRIu8 ".%" PRIu8 "' is higher than the max slow5 version '%" PRIu8 ".%" PRIu8 ".%" PRIu8 "' supported by this slow5lib! Please use a newer version of slow5lib.",
-                    header->version.major, header->version.minor, header->version.patch,
-                    SLOW5_ASCII_VERSION_STRUCT.major, SLOW5_ASCII_VERSION_STRUCT.minor, SLOW5_ASCII_VERSION_STRUCT.patch);
+            SLOW5_ERROR("File version '" SLOW5_VERSION_STRING_FORMAT "' is higher than the max slow5 version '" SLOW5_VERSION_STRING "' supported by this slow5lib! Please use a newer version of slow5lib.",
+                    header->version.major, header->version.minor, header->version.patch);
             slow5_errno = SLOW5_ERR_VERSION;
             goto err;
         }
@@ -569,9 +557,8 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
         }
 
         if (slow5_is_version_compatible(header->version) == 0) {
-            SLOW5_ERROR("File version '%" PRIu8 ".%" PRIu8 ".%" PRIu8 "' is higher than the max slow5 version '%" PRIu8 ".%" PRIu8 ".%" PRIu8 "' supported by this slow5lib! Please use a newer version of slow5lib.",
-                    header->version.major, header->version.minor, header->version.patch,
-                    SLOW5_ASCII_VERSION_STRUCT.major, SLOW5_ASCII_VERSION_STRUCT.minor, SLOW5_ASCII_VERSION_STRUCT.patch);
+            SLOW5_ERROR("File version '" SLOW5_VERSION_STRING_FORMAT "' is higher than the max slow5 version '" SLOW5_VERSION_STRING "' supported by this slow5lib! Please use a newer version of slow5lib.",
+                    header->version.major, header->version.minor, header->version.patch);
             free(header);
             slow5_errno = SLOW5_ERR_VERSION;
             return NULL;
@@ -689,7 +676,7 @@ void *slow5_hdr_to_mem(struct slow5_hdr *header, enum slow5_fmt format, slow5_pr
 
         // Relies on SLOW5_HDR_DATA_BUF_INIT_CAP being bigger than
         // strlen(ASCII_SLOW5_HDR) + UINT32_MAX_LENGTH + strlen("\0")
-        int len_ret = sprintf(mem, SLOW5_ASCII_SLOW5_HDR_FORMAT,
+        int len_ret = sprintf(mem, SLOW5_ASCII_HDR_FORMAT,
                               version->major,
                               version->minor,
                               version->patch,
@@ -3646,6 +3633,21 @@ int slow5_is_eof(FILE *fp, const char *eof, size_t n) {
         }
         return 0;
 }
+
+/* return 1 if compatible, 0 otherwise */
+int slow5_is_version_compatible(struct slow5_version file_version) {
+    if (file_version.major > SLOW5_VERSION_MAJOR ||
+            (file_version.major == SLOW5_VERSION_MAJOR &&
+             file_version.minor > SLOW5_VERSION_MINOR) ||
+            (file_version.major == SLOW5_VERSION_MAJOR &&
+             file_version.minor == SLOW5_VERSION_MINOR &&
+             file_version.patch > SLOW5_VERSION_PATCH)) {
+        return 0;
+    } else {
+        return 1;
+    }
+}
+
 
 //int main(void) {
 

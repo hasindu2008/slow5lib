@@ -31,8 +31,6 @@ extern "C" {
         } \
     }
 
-#define SLOW5_TO_STR(x) #x
-
 
 // // Timing
 
