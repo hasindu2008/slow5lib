@@ -7,7 +7,6 @@
 #include "slow5_extra.h"
 #include "slow5_misc.h"
 //#include "slow5_error.h"
-//TODO SLOW5_MALLOC_CHK automated test
 
 extern enum slow5_log_level_opt  slow5_log_level;
 extern enum slow5_exit_condition_opt  slow5_exit_condition;
@@ -32,10 +31,12 @@ static inline struct slow5_idx *slow5_idx_init_empty(void) {
 struct slow5_idx *slow5_idx_init(struct slow5_file *s5p) {
 
     struct slow5_idx *index = slow5_idx_init_empty();
+    if (!index) {
+        return NULL;
+    }
     index->pathname = slow5_get_idx_path(s5p->meta.pathname);
-
-    if(index==NULL || index->pathname==NULL ){
-        //TODO fix mem leak
+    if (!index->pathname) {
+        slow5_idx_free(index);
         return NULL;
     }
 
@@ -43,7 +44,7 @@ struct slow5_idx *slow5_idx_init(struct slow5_file *s5p) {
 
     // If file doesn't exist
     if ((index_fp = fopen(index->pathname, "r")) == NULL) {
-        SLOW5_INFO("Index file not found. Creating an index at '%s'.",index->pathname)
+        SLOW5_INFO("Index file not found. Creating an index at '%s'.", index->pathname)
         if (slow5_idx_build(index, s5p) != 0) {
             slow5_idx_free(index);
             return NULL;
@@ -57,8 +58,27 @@ struct slow5_idx *slow5_idx_init(struct slow5_file *s5p) {
         index->fp = NULL;
     } else {
         index->fp = index_fp;
+        int err;
+        if (slow5_filestamps_cmp(index->pathname, s5p->meta.pathname, &err) < 0.0) {
+            SLOW5_WARNING("Index file '%s' is older than slow5 file '%s'.",
+                    index->pathname, s5p->meta.pathname);
+        }
+        if (err == -1) {
+            slow5_idx_free(index);
+            return NULL;
+        }
         if (slow5_idx_read(index) != 0) {
-            // TODO error
+            slow5_idx_free(index);
+            return NULL;
+        }
+        if (index->version.major != s5p->header->version.major ||
+                index->version.minor != s5p->header->version.minor ||
+                index->version.patch != s5p->header->version.patch) {
+            SLOW5_ERROR("Index file version '%" PRIu8 ".%" PRIu8 ".%" PRIu8 "' is different to slow5 file version '%" PRIu8 ".%" PRIu8 ".%" PRIu8 "'. Please re-index.",
+                    index->version.major, index->version.minor, index->version.patch,
+                    s5p->header->version.major, s5p->header->version.minor, s5p->header->version.patch);
+            slow5_idx_free(index);
+            return NULL;
         }
     }
 
@@ -91,6 +111,11 @@ int slow5_idx_to(struct slow5_file *s5p, const char *pathname) {
     return 0;
 }
 
+/*
+ * return 0 on success
+ * return <0 on failure
+ * TODO fix error handling
+ */
 static int slow5_idx_build(struct slow5_idx *index, struct slow5_file *s5p) {
 
     uint64_t curr_offset = ftello(s5p->fp);
@@ -115,7 +140,8 @@ static int slow5_idx_build(struct slow5_idx *index, struct slow5_file *s5p) {
             size = buf_len;
 
             if (slow5_idx_insert(index, read_id, offset, size) == -1) {
-                // TODO handle error
+                // TODO handle error and free
+                return -1;
             }
             offset += buf_len;
         }
@@ -176,7 +202,8 @@ static int slow5_idx_build(struct slow5_idx *index, struct slow5_file *s5p) {
 
             // Insert index record
             if (slow5_idx_insert(index, read_id, offset, size) == -1) {
-                // TODO handle error
+                // TODO handle error and free
+                return -1;
             }
 
             free(read_decomp);
@@ -281,7 +308,7 @@ static int slow5_idx_read(struct slow5_idx *index) {
 
     if (slow5_idx_is_version_compatible(index->version) == 0){
         struct slow5_version supported_max_version = SLOW5_INDEX_VERSION;
-        SLOW5_ERROR("File version '%" PRIu8 ".%" PRIu8 ".%" PRIu8 "' in slow5 index file is higher than the max slow5 version '%" PRIu8 ".%" PRIu8 ".%" PRIu8 "' supported by this slow5lib! Please re-index or use a newer version of slow5lib.",
+        SLOW5_ERROR("Index file version '%" PRIu8 ".%" PRIu8 ".%" PRIu8 "' is higher than the max slow5 version '%" PRIu8 ".%" PRIu8 ".%" PRIu8 "' supported by this slow5lib! Please re-index or use a newer version of slow5lib.",
                 index->version.major, index->version.minor, index->version.patch,
                 supported_max_version.major, supported_max_version.minor, supported_max_version.patch);
         return SLOW5_ERR_VERSION;
@@ -322,7 +349,8 @@ static int slow5_idx_read(struct slow5_idx *index) {
         }
 
         if (slow5_idx_insert(index, read_id, offset, size) == -1) {
-            // TODO handle error
+            // TODO handle error and free
+            return -1;
         }
     }
 

@@ -1743,14 +1743,14 @@ void *slow5_get_mem(const char *read_id, size_t *n, const struct slow5_file *s5p
 
 
 /**
- * slow5_get_old
+ * slow5_get
  * Get a read entry from a slow5 file corresponding to a read_id.
  *
  * Allocates memory for *read if it is NULL.
  * Otherwise, the data in *read is freed and overwritten.
  * slow5_rec_free() should always be called when finished with the structure.
  *
- * Require the slow5 index to be loaded using slow5_idx_load
+ * Require the slow5 index to be loaded beforehand using slow5_idx_load()
  *
  * Return:
  *  >=0   the read was successfully found and stored
@@ -1758,23 +1758,18 @@ void *slow5_get_mem(const char *read_id, size_t *n, const struct slow5_file *s5p
  *
  * Errors:
  * SLOW5_ERR_ARG        read_id, read or s5p is NULL
- * SLOW5_ERR_NOTFOUND      read_id was not found in the index
+ * SLOW5_ERR_NOTFOUND   read_id was not found in the index
  * SLOW5_ERR_IO         other error when reading the slow5 file
- * SLOW5_ERR_RECPARSE      parsing error
+ * SLOW5_ERR_RECPARSE   record parsing error
  * SLOW5_ERR_NOIDX      the index has not been loaded
  * SLOW5_ERR_MEM        memory allocation error
+ * SLOW5_ERR_UNK        slow5 file format is unknown
+ * SLOW5_ERR_PRESS      decompression error
  *
  * @param   read_id the read identifier
  * @param   read    address of a slow5_rec pointer
  * @param   s5p     slow5 file
  * @return  error code described above
- */
-/*
- * get slow5 record with read_id from file s5p and parse it into *read
- * if *read is NULL, allocate memory for it
- * otherwise reuse the memory
- * *read should be freed by the user even on error
- * on error sets and returns slow5_errno
  */
 int slow5_get(const char *read_id, struct slow5_rec **read, struct slow5_file *s5p) {
 
@@ -1806,6 +1801,7 @@ int slow5_get(const char *read_id, struct slow5_rec **read, struct slow5_file *s
  * mem, bytes, s5p cannot be null
  * return 0 on success
  * return a SLOW5_ERR_* and set slow5_errno on failure
+ * doesn't free *mem
  */
 int slow5_rec_depress_parse(char **mem, size_t *bytes, const char *read_id, struct slow5_rec **read, struct slow5_file *s5p) {
 
@@ -2495,11 +2491,13 @@ void *slow5_get_next_mem(size_t *n, const struct slow5_file *s5p) {
  *
  * Error
  * SLOW5_ERR_ARG        read or s5p is NULL
- * SLOW5_ERR_EOF        EOF reached
+ * SLOW5_ERR_EOF        EOF reached (and eof marker found if blow5)
  * SLOW5_ERR_IO         other reading error when reading the slow5 file
  * SLOW5_ERR_MEM        memory allocation error
  * SLOW5_ERR_PRESS      record decompression error
- * SLOW5_ERR_RECPARSE      record parsing error
+ * SLOW5_ERR_RECPARSE   record parsing error
+ * SLOW5_ERR_TRUNC      record truncated
+ * SLOW5_ERR_UNK        slow5 format is unknown
  *
  * @param   read    address of a slow5_rec pointer
  * @param   s5p     slow5 file
