@@ -50,7 +50,7 @@ struct slow5_idx *slow5_idx_init(struct slow5_file *s5p) {
             return NULL;
         }
         index->fp = fopen(index->pathname, "w");
-        if (slow5_idx_write(index) != 0) {
+        if (slow5_idx_write(index, s5p->header->version) != 0) {
             slow5_idx_free(index);
             return NULL;
         }
@@ -74,7 +74,7 @@ struct slow5_idx *slow5_idx_init(struct slow5_file *s5p) {
         if (index->version.major != s5p->header->version.major ||
                 index->version.minor != s5p->header->version.minor ||
                 index->version.patch != s5p->header->version.patch) {
-            SLOW5_ERROR("Index file version '%" PRIu8 ".%" PRIu8 ".%" PRIu8 "' is different to slow5 file version '%" PRIu8 ".%" PRIu8 ".%" PRIu8 "'. Please re-index.",
+            SLOW5_ERROR("Index file version '" SLOW5_VERSION_STRING_FORMAT "' is different to slow5 file version '" SLOW5_VERSION_STRING_FORMAT "'. Please re-index.",
                     index->version.major, index->version.minor, index->version.patch,
                     s5p->header->version.major, s5p->header->version.minor, s5p->header->version.patch);
             slow5_idx_free(index);
@@ -102,7 +102,7 @@ int slow5_idx_to(struct slow5_file *s5p, const char *pathname) {
     }
 
     index->fp = fopen(pathname, "w");
-    if (slow5_idx_write(index) != 0) {
+    if (slow5_idx_write(index, s5p->header->version) != 0) {
         slow5_idx_free(index);
         return -1;
     }
@@ -224,14 +224,13 @@ static int slow5_idx_build(struct slow5_idx *index, struct slow5_file *s5p) {
  * write an index to its file
  * returns 0 on success, <0 on error
  */
-int slow5_idx_write(struct slow5_idx *index) {
+int slow5_idx_write(struct slow5_idx *index, struct slow5_version version) {
 
     const char magic[] = SLOW5_INDEX_MAGIC_NUMBER;
     if (fwrite(magic, sizeof *magic, sizeof magic, index->fp) != sizeof magic) {
         return SLOW5_ERR_IO;
     }
 
-    struct slow5_version version = SLOW5_INDEX_VERSION;
     if (fwrite(&version.major, sizeof version.major, 1, index->fp) != 1 ||
             fwrite(&version.minor, sizeof version.minor, 1, index->fp) != 1 ||
             fwrite(&version.patch, sizeof version.patch, 1, index->fp) != 1) {
@@ -276,19 +275,6 @@ int slow5_idx_write(struct slow5_idx *index) {
     return 0;
 }
 
-static inline int slow5_idx_is_version_compatible(struct slow5_version file_version){
-
-    struct slow5_version supported_max_version = SLOW5_INDEX_VERSION;
-
-    if (file_version.major > supported_max_version.major ||
-            file_version.minor > supported_max_version.minor ||
-            file_version.patch > supported_max_version.patch) {
-        return 0;
-    } else {
-        return 1;
-    }
-}
-
 static int slow5_idx_read(struct slow5_idx *index) {
 
     const char magic[] = SLOW5_INDEX_MAGIC_NUMBER;
@@ -306,11 +292,9 @@ static int slow5_idx_read(struct slow5_idx *index) {
         return SLOW5_ERR_IO;
     }
 
-    if (slow5_idx_is_version_compatible(index->version) == 0){
-        struct slow5_version supported_max_version = SLOW5_INDEX_VERSION;
-        SLOW5_ERROR("Index file version '%" PRIu8 ".%" PRIu8 ".%" PRIu8 "' is higher than the max slow5 version '%" PRIu8 ".%" PRIu8 ".%" PRIu8 "' supported by this slow5lib! Please re-index or use a newer version of slow5lib.",
-                index->version.major, index->version.minor, index->version.patch,
-                supported_max_version.major, supported_max_version.minor, supported_max_version.patch);
+    if (slow5_is_version_compatible(index->version) == 0){
+        SLOW5_ERROR("Index file version '" SLOW5_VERSION_STRING_FORMAT "' is higher than the max slow5 version '" SLOW5_VERSION_STRING "' supported by this slow5lib! Please re-index or use a newer version of slow5lib.",
+                index->version.major, index->version.minor, index->version.patch);
         return SLOW5_ERR_VERSION;
     }
 

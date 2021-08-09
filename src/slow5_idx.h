@@ -50,7 +50,7 @@ int slow5_idx_to(struct slow5_file *s5p, const char *pathname);
 void slow5_idx_free(struct slow5_idx *index);
 int slow5_idx_get(struct slow5_idx *index, const char *read_id, struct slow5_rec_idx *read_index);
 int slow5_idx_insert(struct slow5_idx *index, char *read_id, uint64_t offset, uint64_t size);
-int slow5_idx_write(struct slow5_idx *index);
+int slow5_idx_write(struct slow5_idx *index, struct slow5_version version);
 void slow5_rec_idx_print(struct slow5_rec_idx read_index);
 
 #ifdef __cplusplus

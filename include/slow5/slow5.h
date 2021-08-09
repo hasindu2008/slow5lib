@@ -98,9 +98,7 @@ struct slow5_version {
     uint8_t patch;  ///< patch version
 };
 
-// TODO is this ok or put somewhere else or get rid of?
-static const struct slow5_version SLOW5_ASCII_VERSION_STRUCT = { .major = 0, .minor = 1, .patch = 0 };
-static const struct slow5_version SLOW5_BINARY_VERSION_STRUCT = { .major = 0, .minor = 1, .patch = 0 };
+static const struct slow5_version SLOW5_VERSION_STRUCT = SLOW5_VERSION_ARRAY;
 
 // SLOW5 auxiliary types
 // DO NOT rearrange! See subtracting SLOW5_INT8_T_ARRAY in SLOW5_TO_PRIM_TYPE
@@ -156,9 +154,9 @@ struct slow5_aux_type_meta {
     const char *type_str;
 };
 
-#define SLOW5_STRINGIFY(x) #x
-#define SLOW5_AUX_TYPE_META_PRIM(aux_type, raw_type) { aux_type, sizeof (raw_type), SLOW5_STRINGIFY(raw_type) }
-#define SLOW5_AUX_TYPE_META_ARRAY(aux_type, raw_type) { aux_type, sizeof (raw_type), SLOW5_STRINGIFY(raw_type) "*" }
+#define SLOW5_TO_STR(x) #x
+#define SLOW5_AUX_TYPE_META_PRIM(aux_type, raw_type) { aux_type, sizeof (raw_type), SLOW5_TO_STR(raw_type) }
+#define SLOW5_AUX_TYPE_META_ARRAY(aux_type, raw_type) { aux_type, sizeof (raw_type), SLOW5_TO_STR(raw_type) "*" }
 //any modifications to slow5_aux_type should follow by appropriate modifications to this.
 //the order should be identical to that in slow5_aux_type
 static const struct slow5_aux_type_meta SLOW5_AUX_TYPE_META[] = {
