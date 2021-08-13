@@ -296,6 +296,7 @@ void *slow5_ptr_depress(struct slow5_press *comp, const void *ptr, size_t count,
         }
         return NULL;
     } else {
+        size_t n_tmp = 0;
 
         switch (SLOW5_PRESS_RECORD_METHOD(comp->method)) {
 
@@ -318,7 +319,7 @@ void *slow5_ptr_depress(struct slow5_press *comp, const void *ptr, size_t count,
                 if (!comp->stream) {
                     SLOW5_ERROR("%s", "Decompression stream cannot be NULL.")
                 } else {
-                    out = ptr_depress_zlib(comp->stream->zlib, ptr, count, n);
+                    out = ptr_depress_zlib(comp->stream->zlib, ptr, count, &n_tmp);
                     if (!out) {
                         SLOW5_ERROR("%s", "zlib decompression failed.")
                     }
@@ -326,12 +327,16 @@ void *slow5_ptr_depress(struct slow5_press *comp, const void *ptr, size_t count,
                 break;
 
             case SLOW5_COMPRESS_SVB_ZD:
-                out = ptr_depress_svb_zd(ptr, count, n);
+                out = ptr_depress_svb_zd(ptr, count, &n_tmp);
                 break;
 
             case SLOW5_COMPRESS_ZSTD:
-                out = ptr_depress_zstd(ptr, count, n);
+                out = ptr_depress_zstd(ptr, count, &n_tmp);
                 break;
+        }
+
+        if (n) {
+            *n = n_tmp;
         }
     }
 
@@ -716,9 +721,7 @@ static void *ptr_depress_zlib(struct slow5_zlib_stream *zlib, const void *ptr, s
 
     } while (strm->avail_out == 0);
 
-    if (n) {
-        *n = n_cur;
-    }
+    *n = n_cur;
     if (out && inflateReset(strm) == Z_STREAM_ERROR) {
         SLOW5_WARNING("%s", "Stream state is inconsistent.")
     };
