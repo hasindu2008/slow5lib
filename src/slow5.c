@@ -1795,7 +1795,7 @@ int slow5_rec_depress_parse(char **mem, size_t *bytes, const char *read_id, stru
     if (s5p->compress && s5p->compress->method != SLOW5_COMPRESS_NONE) {
         size_t new_bytes;
         char *new_mem;
-        if (!(new_mem = slow5_ptr_depress_solo(s5p->compress->method, *mem, *bytes, &new_bytes))) {
+        if (!(new_mem = slow5_ptr_depress_solo(SLOW5_PRESS_RECORD_METHOD(s5p->compress->method), *mem, *bytes, &new_bytes)) || new_bytes == 0) {
             if (read_id) {
                 SLOW5_ERROR("Failed to decompress read with ID '%s' from slow5 file '%s'.",
                         read_id, s5p->meta.pathname);
@@ -1809,7 +1809,7 @@ int slow5_rec_depress_parse(char **mem, size_t *bytes, const char *read_id, stru
         *mem = new_mem;
     }
 
-    if (slow5_rec_parse(*mem, *bytes, read_id, read, s5p->format, s5p->header->aux_meta) == -1) {
+    if (slow5_rec_parse(*mem, *bytes, read_id, read, s5p->format, s5p->header->aux_meta, s5p->compress->method) == -1) {
         SLOW5_ERROR("%s", "Record parsing failed.");
         return slow5_errno = SLOW5_ERR_RECPARSE;
     }
@@ -1823,7 +1823,7 @@ int slow5_rec_depress_parse(char **mem, size_t *bytes, const char *read_id, stru
  * read_mem, read cannot be NULL
  * returns -1 on error, 0 on success
  */
-int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struct slow5_rec **readp, enum slow5_fmt format, struct slow5_aux_meta *aux_meta) {
+int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struct slow5_rec **readp, enum slow5_fmt format, struct slow5_aux_meta *aux_meta, slow5_press_method_t method) {
 
     if (!*readp) {
         /* allocate memory for read */
@@ -2084,7 +2084,11 @@ int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struc
                     break;
 
                 case COL_raw_signal: {
-                    size = read->len_raw_signal * sizeof *(read->raw_signal);
+                    if (SLOW5_PRESS_SIGNAL_METHOD(method) == SLOW5_COMPRESS_NONE) {
+                        size = read->len_raw_signal * sizeof *(read->raw_signal);
+                    } else { /* integer encoding */
+                        size = read->len_raw_signal;
+                    }
                     if (read->raw_signal == NULL) {
                         read->raw_signal = (int16_t *) malloc(size);
                         SLOW5_MALLOC_CHK(read->raw_signal);
@@ -2106,6 +2110,21 @@ int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struc
 
                     memcpy(read->raw_signal, read_mem + offset, size);
                     offset += size;
+
+                    if (SLOW5_PRESS_SIGNAL_METHOD(method) != SLOW5_COMPRESS_NONE) {
+                        size_t raw_sig_depress_bytes;
+                        int16_t *raw_sig_depress = slow5_ptr_depress_solo(SLOW5_PRESS_SIGNAL_METHOD(method), read->raw_signal, read->len_raw_signal, &raw_sig_depress_bytes);
+                        if (!raw_sig_depress) {
+                            SLOW5_ERROR("%s", "Decompressing raw signal failed.");
+                            ret = -1;
+                            break;
+                        }
+
+                        free(read->raw_signal);
+                        read->raw_signal = raw_sig_depress;
+                        read->len_raw_signal = raw_sig_depress_bytes / sizeof *read->raw_signal;
+                    }
+
                  } break;
 
                 default: /* All columns parsed */
@@ -3031,10 +3050,28 @@ void *slow5_rec_to_mem(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, 
         curr_len += sizeof read->range;
         memcpy(mem + curr_len, &read->sampling_rate, sizeof read->sampling_rate);
         curr_len += sizeof read->sampling_rate;
+
+        size_t bytes_raw_sig = read->len_raw_signal * sizeof *read->raw_signal;
+
+        if (SLOW5_PRESS_SIGNAL_METHOD(compress->method) != SLOW5_COMPRESS_NONE) { /* integer encoding */
+            uint8_t *raw_sig_svb = slow5_ptr_compress_solo(SLOW5_PRESS_SIGNAL_METHOD(compress->method), read->raw_signal, read->len_raw_signal * sizeof *read->raw_signal, &bytes_raw_sig);
+            if (!raw_sig_svb) {
+                SLOW5_ERROR("%s", "Compression using streamvbyte failed.");
+                free(mem);
+                if (compress_to_free) {
+                    slow5_press_free(compress);
+                }
+                return NULL;
+            }
+            free(read->raw_signal);
+            read->len_raw_signal = bytes_raw_sig;
+            read->raw_signal = (int16_t *) raw_sig_svb;
+        }
+
         memcpy(mem + curr_len, &read->len_raw_signal, sizeof read->len_raw_signal);
         curr_len += sizeof read->len_raw_signal;
-        memcpy(mem + curr_len, read->raw_signal, read->len_raw_signal * sizeof *read->raw_signal);
-        curr_len += read->len_raw_signal * sizeof *read->raw_signal;
+        memcpy(mem + curr_len, read->raw_signal, bytes_raw_sig);
+        curr_len += bytes_raw_sig;
 
         // Auxiliary fields
         if (read->aux_map != NULL && aux_meta != NULL) { // TODO error if one is NULL but not another

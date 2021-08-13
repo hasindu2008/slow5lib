@@ -58,7 +58,7 @@ prep_unit() {
 }
 
 ret=0
-compile='-Wall -g -std=gnu99 lib/libslow5.a -I include/ -I src/ -lm -lz'
+compile='-Wall -g -std=gnu99 lib/libslow5.a -I include/ -I src/ -I streamvbyte/include/ -lm -lz streamvbyte/libstreamvbyte.so.0.0.1'
 
 prep
 

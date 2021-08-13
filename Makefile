@@ -1,6 +1,6 @@
 CC			= gcc
 AR			= ar
-CPPFLAGS	+= -I include/
+CPPFLAGS	+= -I include/ -I streamvbyte/include/
 CFLAGS		+= -g -Wall -O2 -std=c99
 LDFLAGS		+=  -lm -lz
 BUILD_DIR	= lib
@@ -20,6 +20,9 @@ SLOW5_H = include/slow5/slow5.h include/slow5/klib/khash.h include/slow5/klib/kv
 #libslow5
 slow5lib: $(BUILD_DIR)/libslow5.so $(BUILD_DIR)/libslow5.a
 
+streamvbyte/libstreamvbyte.so.0.0.1:
+	make -C libstreamvbyte
+
 $(BUILD_DIR)/libslow5.so: $(OBJ_LIB)
 	$(CC) $(CFLAGS) -shared $^  -o $@ $(LDFLAGS)
 
@@ -35,7 +38,7 @@ $(BUILD_DIR)/slow5_idx.o: src/slow5_idx.c src/slow5_idx.h src/slow5_extra.h src/
 $(BUILD_DIR)/slow5_misc.o: src/slow5_misc.c src/slow5_misc.h include/slow5/slow5_error.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) $< -c -fpic -o $@
 
-$(BUILD_DIR)/slow5_press.o: src/slow5_press.c include/slow5/slow5_press.h src/slow5_misc.h include/slow5/slow5_error.h
+$(BUILD_DIR)/slow5_press.o: src/slow5_press.c include/slow5/slow5_press.h src/slow5_misc.h include/slow5/slow5_error.h streamvbyte/libstreamvbyte.so.0.0.1
 	$(CC) $(CFLAGS) $(CPPFLAGS) $< -c -fpic -o $@
 
 clean:

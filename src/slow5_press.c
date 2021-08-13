@@ -7,6 +7,8 @@
 #include <slow5/slow5_error.h>
 #include <slow5/slow5_press.h>
 #include <slow5/slow5_defs.h>
+#include <streamvbyte.h>
+#include <streamvbyte_zigzag.h>
 #include "slow5_misc.h"
 
 extern enum slow5_log_level_opt  slow5_log_level;
@@ -16,9 +18,17 @@ static int zlib_init_deflate(z_stream *strm);
 static int zlib_init_inflate(z_stream *strm);
 
 static void *ptr_compress_zlib(struct slow5_zlib_stream *zlib, const void *ptr, size_t count, size_t *n);
+static void *ptr_compress_zlib_solo(const void *ptr, size_t count, size_t *n);
 static void *ptr_depress_zlib(struct slow5_zlib_stream *zlib, const void *ptr, size_t count, size_t *n);
 static void *ptr_depress_zlib_solo(const void *ptr, size_t count, size_t *n);
-static size_t fwrite_compress_zlib(struct slow5_zlib_stream *zlib, const void *ptr, size_t size, size_t nmemb, FILE *fp);
+static ssize_t fwrite_compress_zlib(struct slow5_zlib_stream *zlib, const void *ptr, size_t size, size_t nmemb, FILE *fp);
+
+static uint8_t *ptr_compress_svb(const uint32_t *ptr, size_t count, size_t *n);
+static uint8_t *ptr_compress_svb_zd(const int16_t *ptr, size_t count, size_t *n);
+static uint32_t *ptr_depress_svb(const uint8_t *ptr, size_t count, size_t *n);
+static int16_t *ptr_depress_svb_zd(const uint8_t *ptr, size_t count, size_t *n);
+static ssize_t fwrite_compress_svb_zd(const int16_t *ptr, size_t size, size_t nmemb, FILE *fp);
+
 static int vfprintf_compress(struct slow5_press *comp, FILE *fp, const char *format, va_list ap);
 
 /* --- Init / free slow5_press structure --- */
@@ -43,107 +53,126 @@ struct slow5_press *slow5_press_init(slow5_press_method_t method) {
     }
     comp->method = method;
 
-    if (method == SLOW5_COMPRESS_NONE) {
+    method = SLOW5_PRESS_RECORD_METHOD(method);
+    switch (method) {
+        case SLOW5_COMPRESS_NONE: break;
+        case SLOW5_COMPRESS_ZLIB:
+            {
+            struct slow5_zlib_stream *zlib;
 
-    } else if (method == SLOW5_COMPRESS_ZLIB) {
-        struct slow5_zlib_stream *zlib;
-
-        zlib = (struct slow5_zlib_stream *) malloc(sizeof *zlib);
-        if (!zlib) {
-            SLOW5_MALLOC_ERROR();
-            free(comp);
-            slow5_errno = SLOW5_ERR_MEM;
-            return NULL;
-        }
-
-        if (zlib_init_deflate(&(zlib->strm_deflate)) != Z_OK) {
-            SLOW5_ERROR("zlib deflate init failed: %s.", zlib->strm_deflate.msg);
-            free(zlib);
-            free(comp);
-            slow5_errno = SLOW5_ERR_PRESS;
-            return NULL;
-        }
-        if (zlib_init_inflate(&(zlib->strm_inflate)) != Z_OK) {
-            SLOW5_ERROR("zlib inflate init failed: %s.", zlib->strm_inflate.msg);
-            if (deflateEnd(&(zlib->strm_deflate)) != Z_OK) {
-                SLOW5_ERROR("zlib deflate end failed: %s.", zlib->strm_deflate.msg);
+            zlib = (struct slow5_zlib_stream *) malloc(sizeof *zlib);
+            if (!zlib) {
+                SLOW5_MALLOC_ERROR();
+                free(comp);
+                slow5_errno = SLOW5_ERR_MEM;
+                return NULL;
             }
-            free(zlib);
-            free(comp);
-            slow5_errno = SLOW5_ERR_PRESS;
-            return NULL;
-        }
 
-        zlib->flush = Z_NO_FLUSH;
-        comp->stream = (union slow5_press_stream *) malloc(sizeof *comp->stream);
-        if (!comp->stream) {
-            SLOW5_MALLOC_ERROR();
-            if (deflateEnd(&(zlib->strm_deflate)) != Z_OK) {
-                SLOW5_ERROR("zlib deflate end failed: %s.", zlib->strm_deflate.msg);
+            if (zlib_init_deflate(&(zlib->strm_deflate)) != Z_OK) {
+                SLOW5_ERROR("zlib deflate init failed: %s.", zlib->strm_deflate.msg);
+                free(zlib);
+                free(comp);
+                slow5_errno = SLOW5_ERR_PRESS;
+                return NULL;
             }
-            if (inflateEnd(&(zlib->strm_inflate)) != Z_OK) {
-                SLOW5_ERROR("zlib inflate end failed: %s.", zlib->strm_inflate.msg);
+            if (zlib_init_inflate(&(zlib->strm_inflate)) != Z_OK) {
+                SLOW5_ERROR("zlib inflate init failed: %s.", zlib->strm_inflate.msg);
+                if (deflateEnd(&(zlib->strm_deflate)) != Z_OK) {
+                    SLOW5_ERROR("zlib deflate end failed: %s.", zlib->strm_deflate.msg);
+                }
+                free(zlib);
+                free(comp);
+                slow5_errno = SLOW5_ERR_PRESS;
+                return NULL;
             }
-            free(zlib);
+
+            zlib->flush = Z_NO_FLUSH;
+            comp->stream = (union slow5_press_stream *) malloc(sizeof *comp->stream);
+            if (!comp->stream) {
+                SLOW5_MALLOC_ERROR();
+                if (deflateEnd(&(zlib->strm_deflate)) != Z_OK) {
+                    SLOW5_ERROR("zlib deflate end failed: %s.", zlib->strm_deflate.msg);
+                }
+                if (inflateEnd(&(zlib->strm_inflate)) != Z_OK) {
+                    SLOW5_ERROR("zlib inflate end failed: %s.", zlib->strm_inflate.msg);
+                }
+                free(zlib);
+                free(comp);
+                slow5_errno = SLOW5_ERR_PRESS;
+                return NULL;
+            }
+
+            comp->stream->zlib = zlib;
+            } break;
+
+        case SLOW5_COMPRESS_SVB_ZD: break;
+
+        default:
+            SLOW5_ERROR("Invalid (de)compression method '%d'.", method);
             free(comp);
-            slow5_errno = SLOW5_ERR_PRESS;
+            slow5_errno = SLOW5_ERR_ARG;
             return NULL;
-        }
-
-        comp->stream->zlib = zlib;
-
-    } else {
-        SLOW5_ERROR("Invalid (de)compression method '%d'.", method);
-        free(comp);
-        slow5_errno = SLOW5_ERR_ARG;
-        return NULL;
     }
 
     return comp;
-}
-
-static int zlib_init_deflate(z_stream *strm) {
-    strm->zalloc = Z_NULL;
-    strm->zfree = Z_NULL;
-    strm->opaque = Z_NULL;
-
-    return deflateInit2(strm,
-            Z_DEFAULT_COMPRESSION,
-            Z_DEFLATED,
-            MAX_WBITS,
-            SLOW5_ZLIB_MEM_DEFAULT,
-            Z_DEFAULT_STRATEGY);
-}
-
-static int zlib_init_inflate(z_stream *strm) {
-    strm->zalloc = Z_NULL;
-    strm->zfree = Z_NULL;
-    strm->opaque = Z_NULL;
-
-    return inflateInit2(strm, MAX_WBITS);
 }
 
 void slow5_press_free(struct slow5_press *comp) {
 
     if (comp) {
 
-        switch (comp->method) {
+        switch (SLOW5_PRESS_RECORD_METHOD(comp->method)) {
 
-            case SLOW5_COMPRESS_NONE:
-                break;
-
-            case SLOW5_COMPRESS_ZLIB: {
+            case SLOW5_COMPRESS_NONE: break;
+            case SLOW5_COMPRESS_ZLIB:
                 (void) deflateEnd(&(comp->stream->zlib->strm_deflate));
                 (void) inflateEnd(&(comp->stream->zlib->strm_inflate));
                 free(comp->stream->zlib);
                 free(comp->stream);
-            } break;
+                break;
+            case SLOW5_COMPRESS_SVB_ZD: break;
         }
 
         free(comp);
     }
 }
 
+void *slow5_ptr_compress_solo(slow5_press_method_t method, const void *ptr, size_t count, size_t *n) {
+    void *out = NULL;
+    size_t n_tmp = 0;
+
+    if (!ptr) {
+        SLOW5_ERROR("Argument '%s' cannot be NULL.", SLOW5_TO_STR(ptr))
+    } else {
+        switch (method) {
+
+            case SLOW5_COMPRESS_NONE:
+                out = (void *) malloc(count);
+                SLOW5_MALLOC_CHK(out);
+                if (!out) {
+                    // Malloc failed
+                    return out;
+                }
+                memcpy(out, ptr, count);
+                n_tmp = count;
+                break;
+
+            case SLOW5_COMPRESS_ZLIB:
+                out = ptr_compress_zlib_solo(ptr, count, &n_tmp);
+                break;
+
+            case SLOW5_COMPRESS_SVB_ZD:
+                out = ptr_compress_svb_zd(ptr, count, &n_tmp);
+                break;
+        }
+    }
+
+    if (n) {
+        *n = n_tmp;
+    }
+
+    return out;
+}
 
 /* --- Compress / decompress to some memory --- */
 
@@ -153,7 +182,7 @@ void *slow5_ptr_compress(struct slow5_press *comp, const void *ptr, size_t count
 
     if (comp && ptr) {
 
-        switch (comp->method) {
+        switch (SLOW5_PRESS_RECORD_METHOD(comp->method)) {
 
             case SLOW5_COMPRESS_NONE:
                 out = (void *) malloc(count);
@@ -171,50 +200,15 @@ void *slow5_ptr_compress(struct slow5_press *comp, const void *ptr, size_t count
                     out = ptr_compress_zlib(comp->stream->zlib, ptr, count, &n_tmp);
                 }
                 break;
+
+            case SLOW5_COMPRESS_SVB_ZD:
+                out = ptr_compress_svb_zd(ptr, count, &n_tmp);
+                break;
         }
     }
 
     if (n) {
         *n = n_tmp;
-    }
-
-    return out;
-}
-
-static void *ptr_compress_zlib(struct slow5_zlib_stream *zlib, const void *ptr, size_t count, size_t *n) {
-    uint8_t *out = NULL;
-
-    size_t n_cur = 0;
-    z_stream *strm = &(zlib->strm_deflate);
-
-    strm->avail_in = count;
-    strm->next_in = (Bytef *) ptr;
-
-    uLong chunk_sz = SLOW5_ZLIB_COMPRESS_CHUNK;
-
-    do {
-        out = (uint8_t *) realloc(out, n_cur + chunk_sz);
-        SLOW5_MALLOC_CHK(out);
-
-        strm->avail_out = chunk_sz;
-        strm->next_out = out + n_cur;
-
-        if (deflate(strm, zlib->flush) == Z_STREAM_ERROR) {
-            free(out);
-            out = NULL;
-            n_cur = 0;
-            break;
-        }
-
-        n_cur += chunk_sz - strm->avail_out;
-
-    } while (strm->avail_out == 0);
-
-    *n = n_cur;
-
-    if (zlib->flush == Z_FINISH) {
-        zlib->flush = Z_NO_FLUSH;
-        deflateReset(strm);
     }
 
     return out;
@@ -246,6 +240,10 @@ void *slow5_ptr_depress_solo(slow5_press_method_t method, const void *ptr, size_
 
             case SLOW5_COMPRESS_ZLIB:
                 out = ptr_depress_zlib_solo(ptr, count, &n_tmp);
+                break;
+
+            case SLOW5_COMPRESS_SVB_ZD:
+                out = ptr_depress_svb_zd(ptr, count, &n_tmp);
                 break;
         }
     }
@@ -279,7 +277,7 @@ void *slow5_ptr_depress(struct slow5_press *comp, const void *ptr, size_t count,
         return NULL;
     } else {
 
-        switch (comp->method) {
+        switch (SLOW5_PRESS_RECORD_METHOD(comp->method)) {
 
             case SLOW5_COMPRESS_NONE:
                 out = (void *) malloc(count);
@@ -306,119 +304,24 @@ void *slow5_ptr_depress(struct slow5_press *comp, const void *ptr, size_t count,
                     }
                 }
                 break;
+
+            case SLOW5_COMPRESS_SVB_ZD:
+                out = ptr_depress_svb_zd(ptr, count, n);
+                break;
         }
     }
 
     return out;
 }
-
-/*
- * zlib decompress count bytes of a ptr to compressed memory
- * returns pointer to decompressed memory of size *n bytes to be later freed
- * returns NULL on error and *n set to 0
- * DONE
- */
-static void *ptr_depress_zlib(struct slow5_zlib_stream *zlib, const void *ptr, size_t count, size_t *n) {
-    uint8_t *out = NULL;
-
-    size_t n_cur = 0;
-    if (!zlib) {
-        SLOW5_ERROR("%s", "zlib stream cannot be NULL.")
-        return NULL;
-    }
-    z_stream *strm = &(zlib->strm_inflate);
-    if (!strm) {
-        SLOW5_ERROR("%s", "zlib inflate stream cannot be NULL.")
-        return NULL;
-    }
-
-    strm->avail_in = count;
-    strm->next_in = (Bytef *) ptr;
-
-    do {
-        uint8_t *out_new = (uint8_t *) realloc(out, n_cur + SLOW5_ZLIB_DEPRESS_CHUNK);
-        SLOW5_MALLOC_CHK(out_new);
-        if (!out_new) {
-            free(out);
-            out = NULL;
-            n_cur = 0;
-            break;
-        }
-        out = out_new;
-
-        strm->avail_out = SLOW5_ZLIB_DEPRESS_CHUNK;
-        strm->next_out = out + n_cur;
-
-        int ret = inflate(strm, Z_NO_FLUSH);
-        if (ret == Z_STREAM_ERROR || ret == Z_DATA_ERROR) {
-            SLOW5_ERROR("zlib inflate failed with error code %d.", ret)
-            free(out);
-            out = NULL;
-            n_cur = 0;
-            break;
-        }
-
-        n_cur += SLOW5_ZLIB_DEPRESS_CHUNK- strm->avail_out;
-
-    } while (strm->avail_out == 0);
-
-    if (n) {
-        *n = n_cur;
-    }
-    if (out && inflateReset(strm) == Z_STREAM_ERROR) {
-        SLOW5_WARNING("%s", "Stream state is inconsistent.")
-    };
-
-    return out;
-}
-
-static void *ptr_depress_zlib_solo(const void *ptr, size_t count, size_t *n) {
-    uint8_t *out = NULL;
-
-    size_t n_cur = 0;
-
-    z_stream strm_local;
-    zlib_init_inflate(&strm_local);
-    z_stream *strm = &strm_local;
-
-    strm->avail_in = count;
-    strm->next_in = (Bytef *) ptr;
-
-    do {
-        out = (uint8_t *) realloc(out, n_cur + SLOW5_ZLIB_DEPRESS_CHUNK);
-        SLOW5_MALLOC_CHK(out);
-
-        strm->avail_out = SLOW5_ZLIB_DEPRESS_CHUNK;
-        strm->next_out = out + n_cur;
-
-        int ret = inflate(strm, Z_NO_FLUSH);
-        if (ret == Z_STREAM_ERROR || ret == Z_DATA_ERROR) {
-            SLOW5_ERROR("%s","inflate failed");
-            free(out);
-            out = NULL;
-            n_cur = 0;
-            break;
-        }
-
-        n_cur += SLOW5_ZLIB_DEPRESS_CHUNK- strm->avail_out;
-
-    } while (strm->avail_out == 0);
-
-    *n = n_cur;
-
-    (void) inflateEnd(strm);
-
-    return out;
-}
-
 
 /* --- Compress / decompress a ptr to some file --- */
 
-size_t slow5_fwrite_compress(struct slow5_press *comp, const void *ptr, size_t size, size_t nmemb, FILE *fp) {
-    size_t bytes = -1;
+/* return -1 on failure */
+ssize_t slow5_fwrite_compress(struct slow5_press *comp, const void *ptr, size_t size, size_t nmemb, FILE *fp) {
+    ssize_t bytes = -1;
 
     if (comp) {
-        switch (comp->method) {
+        switch (SLOW5_PRESS_RECORD_METHOD(comp->method)) {
 
             case SLOW5_COMPRESS_NONE:
                 bytes = fwrite(ptr, size, nmemb, fp);
@@ -429,55 +332,15 @@ size_t slow5_fwrite_compress(struct slow5_press *comp, const void *ptr, size_t s
                     bytes = fwrite_compress_zlib(comp->stream->zlib, ptr, size, nmemb, fp);
                 }
                 break;
+
+            case SLOW5_COMPRESS_SVB_ZD:
+                bytes = fwrite_compress_svb_zd(ptr, size, nmemb, fp);
+                break;
         }
     }
 
     return bytes;
 }
-
-static size_t fwrite_compress_zlib(struct slow5_zlib_stream *zlib, const void *ptr, size_t size, size_t nmemb, FILE *fp) {
-
-    size_t bytes = 0;
-    z_stream *strm = &(zlib->strm_deflate);
-
-    strm->avail_in = size * nmemb;
-    strm->next_in = (Bytef *) ptr;
-
-    uLong chunk_sz = SLOW5_ZLIB_COMPRESS_CHUNK;
-    uint8_t *buf = (uint8_t *) malloc(sizeof *buf * chunk_sz);
-    SLOW5_MALLOC_CHK(buf);
-    if (!buf) {
-        return -1;
-    }
-
-    do {
-        strm->avail_out = chunk_sz;
-        strm->next_out = buf;
-
-        if (deflate(strm, zlib->flush) == Z_STREAM_ERROR) {
-            bytes = -1;
-            break;
-        }
-
-        size_t have = (sizeof *buf * chunk_sz) - strm->avail_out;
-        if (fwrite(buf, sizeof *buf, have, fp) != have || ferror(fp)) {
-            bytes = -1;
-            break;
-        }
-
-        bytes += have;
-
-    } while (strm->avail_out == 0);
-
-    free(buf);
-
-    if (zlib->flush == Z_FINISH) {
-        zlib->flush = Z_NO_FLUSH;
-    }
-
-    return bytes;
-}
-
 
 /*
  * decompress count bytes from some file
@@ -600,7 +463,7 @@ static int vfprintf_compress(struct slow5_press *comp, FILE *fp, const char *for
 
     if (comp) {
 
-        if (comp->method == SLOW5_COMPRESS_NONE) {
+        if (SLOW5_PRESS_RECORD_METHOD(comp->method) == SLOW5_COMPRESS_NONE) {
             ret = vfprintf(fp, format, ap);
         } else {
             char *buf;
@@ -621,9 +484,8 @@ static int vfprintf_compress(struct slow5_press *comp, FILE *fp, const char *for
 void slow5_compress_footer_next(struct slow5_press *comp) {
 
     if (comp && comp->stream) {
-        switch (comp->method) {
-            case SLOW5_COMPRESS_NONE:
-                break;
+        switch (SLOW5_PRESS_RECORD_METHOD(comp->method)) {
+            case SLOW5_COMPRESS_NONE: break;
             case SLOW5_COMPRESS_ZLIB: {
                 struct slow5_zlib_stream *zlib = comp->stream->zlib;
 
@@ -631,8 +493,385 @@ void slow5_compress_footer_next(struct slow5_press *comp) {
                     zlib->flush = Z_FINISH;
                 }
             } break;
+            case SLOW5_COMPRESS_SVB_ZD: break;
         }
     }
+}
+
+
+
+
+/********
+ * ZLIB *
+ ********/
+
+static int zlib_init_deflate(z_stream *strm) {
+    strm->zalloc = Z_NULL;
+    strm->zfree = Z_NULL;
+    strm->opaque = Z_NULL;
+
+    return deflateInit2(strm,
+            Z_DEFAULT_COMPRESSION,
+            Z_DEFLATED,
+            MAX_WBITS,
+            SLOW5_ZLIB_MEM_DEFAULT,
+            Z_DEFAULT_STRATEGY);
+}
+
+static int zlib_init_inflate(z_stream *strm) {
+    strm->zalloc = Z_NULL;
+    strm->zfree = Z_NULL;
+    strm->opaque = Z_NULL;
+
+    return inflateInit2(strm, MAX_WBITS);
+}
+
+static void *ptr_compress_zlib(struct slow5_zlib_stream *zlib, const void *ptr, size_t count, size_t *n) {
+    uint8_t *out = NULL;
+
+    size_t n_cur = 0;
+    z_stream *strm = &(zlib->strm_deflate);
+
+    strm->avail_in = count;
+    strm->next_in = (Bytef *) ptr;
+
+    uLong chunk_sz = SLOW5_ZLIB_COMPRESS_CHUNK;
+
+    do {
+        out = (uint8_t *) realloc(out, n_cur + chunk_sz);
+        SLOW5_MALLOC_CHK(out);
+
+        strm->avail_out = chunk_sz;
+        strm->next_out = out + n_cur;
+
+        if (deflate(strm, zlib->flush) == Z_STREAM_ERROR) {
+            free(out);
+            out = NULL;
+            n_cur = 0;
+            break;
+        }
+
+        n_cur += chunk_sz - strm->avail_out;
+
+    } while (strm->avail_out == 0);
+
+    *n = n_cur;
+
+    if (zlib->flush == Z_FINISH) {
+        zlib->flush = Z_NO_FLUSH;
+        deflateReset(strm);
+    }
+
+    return out;
+}
+
+static void *ptr_compress_zlib_solo(const void *ptr, size_t count, size_t *n) {
+    uint8_t *out = NULL;
+
+    size_t n_cur = 0;
+
+    z_stream strm_local;
+    zlib_init_inflate(&strm_local);
+    z_stream *strm = &strm_local;
+
+    strm->avail_in = count;
+    strm->next_in = (Bytef *) ptr;
+
+    uLong chunk_sz = SLOW5_ZLIB_COMPRESS_CHUNK;
+
+    do {
+        out = (uint8_t *) realloc(out, n_cur + chunk_sz);
+        SLOW5_MALLOC_CHK(out);
+
+        strm->avail_out = chunk_sz;
+        strm->next_out = out + n_cur;
+
+        if (deflate(strm, Z_FINISH) == Z_STREAM_ERROR) {
+            free(out);
+            out = NULL;
+            n_cur = 0;
+            break;
+        }
+
+        n_cur += chunk_sz - strm->avail_out;
+
+    } while (strm->avail_out == 0);
+
+    *n = n_cur;
+
+    (void) inflateEnd(strm);
+
+    return out;
+}
+
+/*
+ * zlib decompress count bytes of a ptr to compressed memory
+ * returns pointer to decompressed memory of size *n bytes to be later freed
+ * returns NULL on error and *n set to 0
+ * DONE
+ */
+static void *ptr_depress_zlib(struct slow5_zlib_stream *zlib, const void *ptr, size_t count, size_t *n) {
+    uint8_t *out = NULL;
+
+    size_t n_cur = 0;
+    if (!zlib) {
+        SLOW5_ERROR("%s", "zlib stream cannot be NULL.")
+        return NULL;
+    }
+    z_stream *strm = &(zlib->strm_inflate);
+    if (!strm) {
+        SLOW5_ERROR("%s", "zlib inflate stream cannot be NULL.")
+        return NULL;
+    }
+
+    strm->avail_in = count;
+    strm->next_in = (Bytef *) ptr;
+
+    do {
+        uint8_t *out_new = (uint8_t *) realloc(out, n_cur + SLOW5_ZLIB_DEPRESS_CHUNK);
+        SLOW5_MALLOC_CHK(out_new);
+        if (!out_new) {
+            free(out);
+            out = NULL;
+            n_cur = 0;
+            break;
+        }
+        out = out_new;
+
+        strm->avail_out = SLOW5_ZLIB_DEPRESS_CHUNK;
+        strm->next_out = out + n_cur;
+
+        int ret = inflate(strm, Z_NO_FLUSH);
+        if (ret == Z_STREAM_ERROR || ret == Z_DATA_ERROR) {
+            SLOW5_ERROR("zlib inflate failed with error code %d.", ret)
+            free(out);
+            out = NULL;
+            n_cur = 0;
+            break;
+        }
+
+        n_cur += SLOW5_ZLIB_DEPRESS_CHUNK- strm->avail_out;
+
+    } while (strm->avail_out == 0);
+
+    if (n) {
+        *n = n_cur;
+    }
+    if (out && inflateReset(strm) == Z_STREAM_ERROR) {
+        SLOW5_WARNING("%s", "Stream state is inconsistent.")
+    };
+
+    return out;
+}
+
+static void *ptr_depress_zlib_solo(const void *ptr, size_t count, size_t *n) {
+    uint8_t *out = NULL;
+
+    size_t n_cur = 0;
+
+    z_stream strm_local;
+    zlib_init_inflate(&strm_local);
+    z_stream *strm = &strm_local;
+
+    strm->avail_in = count;
+    strm->next_in = (Bytef *) ptr;
+
+    do {
+        out = (uint8_t *) realloc(out, n_cur + SLOW5_ZLIB_DEPRESS_CHUNK);
+        SLOW5_MALLOC_CHK(out);
+
+        strm->avail_out = SLOW5_ZLIB_DEPRESS_CHUNK;
+        strm->next_out = out + n_cur;
+
+        int ret = inflate(strm, Z_NO_FLUSH);
+        if (ret == Z_STREAM_ERROR || ret == Z_DATA_ERROR || ret == Z_NEED_DICT || ret == Z_MEM_ERROR) {
+            SLOW5_ERROR("%s","inflate failed");
+            free(out);
+            out = NULL;
+            n_cur = 0;
+            break;
+        }
+
+        n_cur += SLOW5_ZLIB_DEPRESS_CHUNK- strm->avail_out;
+
+    } while (strm->avail_out == 0);
+
+    *n = n_cur;
+
+    (void) inflateEnd(strm);
+
+    return out;
+}
+
+static ssize_t fwrite_compress_zlib(struct slow5_zlib_stream *zlib, const void *ptr, size_t size, size_t nmemb, FILE *fp) {
+
+    ssize_t bytes = 0;
+    z_stream *strm = &(zlib->strm_deflate);
+
+    strm->avail_in = size * nmemb;
+    strm->next_in = (Bytef *) ptr;
+
+    uLong chunk_sz = SLOW5_ZLIB_COMPRESS_CHUNK;
+    uint8_t *buf = (uint8_t *) malloc(sizeof *buf * chunk_sz);
+    SLOW5_MALLOC_CHK(buf);
+    if (!buf) {
+        return -1;
+    }
+
+    do {
+        strm->avail_out = chunk_sz;
+        strm->next_out = buf;
+
+        if (deflate(strm, zlib->flush) == Z_STREAM_ERROR) {
+            bytes = -1;
+            break;
+        }
+
+        size_t have = (sizeof *buf * chunk_sz) - strm->avail_out;
+        if (fwrite(buf, sizeof *buf, have, fp) != have || ferror(fp)) {
+            bytes = -1;
+            break;
+        }
+
+        bytes += have;
+
+    } while (strm->avail_out == 0);
+
+    free(buf);
+
+    if (zlib->flush == Z_FINISH) {
+        zlib->flush = Z_NO_FLUSH;
+    }
+
+    return bytes;
+}
+
+
+
+/***************
+ * STREAMVBYTE *
+ ***************/
+
+/* return NULL on malloc error, n cannot be NULL */
+static uint8_t *ptr_compress_svb(const uint32_t *ptr, size_t count, size_t *n) {
+    uint32_t length = count / sizeof *ptr;
+
+    size_t max_n = streamvbyte_max_compressedbytes(length);
+    uint8_t *out = malloc(max_n + sizeof length);
+    if (!out) {
+        SLOW5_MALLOC_ERROR();
+        slow5_errno = SLOW5_ERR_MEM;
+        return NULL;
+    }
+
+    *n = streamvbyte_encode(ptr, length, out + sizeof length);
+    memcpy(out, &length, sizeof length); /* copy original length of ptr (needed for depress) */
+    *n = *n + sizeof length;
+    fprintf(stderr, "max svb bytes=%zu\nsvb bytes=%zu\n",
+            max_n, *n); /* TESTING */
+    return out;
+}
+
+/* return NULL on malloc error, n cannot be NULL */
+static uint8_t *ptr_compress_svb_zd(const int16_t *ptr, size_t count, size_t *n) {
+    uint32_t length = count / sizeof *ptr;
+    int32_t *in = malloc(length * sizeof *in);
+    if (!in) {
+        SLOW5_MALLOC_ERROR();
+        slow5_errno = SLOW5_ERR_MEM;
+        return NULL;
+    }
+    for (int64_t i = 0; i < length; ++ i) {
+        in[i] = ptr[i];
+    }
+
+    uint32_t *diff = malloc(length * sizeof *diff);
+    if (!diff) {
+        SLOW5_MALLOC_ERROR();
+        free(in);
+        slow5_errno = SLOW5_ERR_MEM;
+        return NULL;
+    }
+    zigzag_delta_encode(in, diff, length, 0);
+
+    fprintf(stderr, "orig bytes=%zu\n", count); /* TESTING */
+    uint8_t *out = ptr_compress_svb(diff, length * sizeof *diff, n);
+
+    free(in);
+    free(diff);
+    return out;
+}
+
+/* return NULL on malloc error, n cannot be NULL */
+static uint32_t *ptr_depress_svb(const uint8_t *ptr, size_t count, size_t *n) {
+    uint32_t length;
+    memcpy(&length, ptr, sizeof length); /* get original array length */
+
+    uint32_t *out = malloc(length * sizeof *out);
+    if (!out) {
+        SLOW5_MALLOC_ERROR();
+        slow5_errno = SLOW5_ERR_MEM;
+        return NULL;
+    }
+
+    size_t bytes_read;
+    if ((bytes_read = streamvbyte_decode(ptr + sizeof length, out, length)) != count - sizeof length) {
+        SLOW5_ERROR("Expected streamvbyte_decode to read '%zu' bytes, instead read '%zu' bytes.",
+                count - sizeof length, bytes_read);
+        slow5_errno = SLOW5_ERR_PRESS;
+        free(out);
+        return NULL;
+    }
+
+    *n = length * sizeof *out;
+    return out;
+}
+
+/* return NULL on malloc error, n cannot be NULL */
+static int16_t *ptr_depress_svb_zd(const uint8_t *ptr, size_t count, size_t *n) {
+
+    uint32_t *diff = ptr_depress_svb(ptr, count, n);
+    if (!diff) {
+        return NULL;
+    }
+    uint32_t length = *n / sizeof *diff;
+
+    int32_t *out = malloc(length * sizeof *out);
+    if (!out) {
+        SLOW5_MALLOC_ERROR();
+        free(diff);
+        slow5_errno = SLOW5_ERR_MEM;
+        return NULL;
+    }
+    zigzag_delta_decode(diff, out, length, 0);
+
+    int16_t *orig = malloc(length * sizeof *orig);
+    for (int64_t i = 0; i < length; ++ i) {
+        orig[i] = out[i];
+    }
+
+    *n = length * sizeof *orig;
+    free(diff);
+    free(out);
+    return orig;
+}
+
+/* return -1 on IO error */
+static ssize_t fwrite_compress_svb_zd(const int16_t *ptr, size_t size, size_t nmemb, FILE *fp) {
+    size_t n;
+    const uint8_t *comp_buf = ptr_compress_svb_zd(ptr, size * nmemb, &n);
+    size_t bytes_written = fwrite(comp_buf, 1, n, fp);
+    if (bytes_written != n || ferror(fp)) {
+        if (bytes_written != n) {
+            SLOW5_ERROR("Expected to write '%zu' compressed bytes, instead wrote '%zu' bytes.",
+                    n, bytes_written);
+        } else if (ferror(fp)) {
+            SLOW5_ERROR("%s", "File error after trying to write.");
+        }
+        slow5_errno = SLOW5_ERR_IO;
+        return -1;
+    }
+    return bytes_written;
 }
 
 

@@ -15,6 +15,8 @@ if (!(statement)) { \
 
 #define APPROX_MARGIN (1e-100)
 
+#define LENGTH(arr) (sizeof arr / sizeof *arr)
+
 static char assert_fail[256];
 
 typedef struct command command_t;

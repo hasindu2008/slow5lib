@@ -102,6 +102,77 @@ int press_printf_valid(void) {
     return EXIT_SUCCESS;
 }
 
+int press_svb_one_valid(void) {
+
+    const int16_t one[] = { 100 };
+    size_t bytes_svb = 0;
+    uint8_t *one_svb = slow5_ptr_compress_solo(SLOW5_COMPRESS_SVB_ZD, one, sizeof *one, &bytes_svb);
+    ASSERT(one_svb);
+    ASSERT(bytes_svb > 0);
+
+    uint32_t length;
+    memcpy(&length, one_svb, sizeof length);
+    ASSERT(length == 1);
+
+    size_t bytes_orig = 0;
+    int16_t *one_depress = slow5_ptr_depress_solo(SLOW5_COMPRESS_SVB_ZD, one_svb, bytes_svb, &bytes_orig);
+    ASSERT(bytes_orig == sizeof *one);
+    ASSERT(memcmp(one, one_depress, bytes_orig) == 0);
+    ASSERT(one_depress[0] == one[0]);
+
+    free(one_svb);
+    free(one_depress);
+
+    return EXIT_SUCCESS;
+}
+
+int press_svb_big_valid(void) {
+
+    const int16_t big[] = { 100, -100, 0, 10000, 3442, 234, 2326, 346, 213, 234 };
+    size_t bytes_svb = 0;
+    uint8_t *big_svb = slow5_ptr_compress_solo(SLOW5_COMPRESS_SVB_ZD, big, sizeof big, &bytes_svb);
+    ASSERT(big_svb);
+    ASSERT(bytes_svb > 0);
+
+    uint32_t length;
+    memcpy(&length, big_svb, sizeof length);
+    ASSERT(length == LENGTH(big));
+
+    size_t bytes_orig = 0;
+    int16_t *big_depress = slow5_ptr_depress_solo(SLOW5_COMPRESS_SVB_ZD, big_svb, bytes_svb, &bytes_orig);
+    ASSERT(bytes_orig == sizeof big);
+    ASSERT(memcmp(big, big_depress, bytes_orig) == 0);
+
+    free(big_svb);
+    free(big_depress);
+
+    return EXIT_SUCCESS;
+}
+
+int press_svb_exp_valid(void) {
+
+    const int16_t big[] = { 1039, 588, 588, 593, 586, 574, 570, 585, 588, 586 };
+    size_t bytes_svb = 0;
+    uint8_t *big_svb = slow5_ptr_compress_solo(SLOW5_COMPRESS_SVB_ZD, big, sizeof big, &bytes_svb);
+    ASSERT(big_svb);
+    ASSERT(bytes_svb > 0);
+    ASSERT(bytes_svb < sizeof big);
+
+    uint32_t length;
+    memcpy(&length, big_svb, sizeof length);
+    ASSERT(length == LENGTH(big));
+
+    size_t bytes_orig = 0;
+    int16_t *big_depress = slow5_ptr_depress_solo(SLOW5_COMPRESS_SVB_ZD, big_svb, bytes_svb, &bytes_orig);
+    ASSERT(bytes_orig == sizeof big);
+    ASSERT(memcmp(big, big_depress, bytes_orig) == 0);
+
+    free(big_svb);
+    free(big_depress);
+
+    return EXIT_SUCCESS;
+}
+
 
 int main(void) {
 
@@ -110,14 +181,14 @@ int main(void) {
 
     struct command tests[] = {
         CMD(press_init_valid)
-
         CMD(press_buf_valid)
-
         CMD(press_buf_valid2)
-
         CMD(press_print_valid)
-
         CMD(press_printf_valid)
+
+        CMD(press_svb_one_valid)
+        CMD(press_svb_big_valid)
+        CMD(press_svb_exp_valid)
     };
 
     return RUN_TESTS(tests);
