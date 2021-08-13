@@ -57,6 +57,8 @@ extern "C" {
 #define SLOW5_ZLIB_COMPRESS_CHUNK (131072) /* compression buffer size -- 128KB (2^17) */
 #define SLOW5_ZLIB_DEPRESS_CHUNK (262144) /* decompression buffer size -- 256KB (2^18) */
 
+#define SLOW5_ZSTD_COMPRESS_LEVEL (1)
+
 #define SLOW5_PRESS_RECORD_METHOD(method) (method & 0x0f)
 #define SLOW5_PRESS_SIGNAL_METHOD(method) (method >> 4)
 
@@ -65,6 +67,7 @@ enum slow5_press_method {
     SLOW5_COMPRESS_NONE,
     SLOW5_COMPRESS_ZLIB,
     SLOW5_COMPRESS_SVB_ZD, /* streamvbyte zigzag delta */
+    SLOW5_COMPRESS_ZSTD,
 };
 typedef uint8_t slow5_press_method_t;
 

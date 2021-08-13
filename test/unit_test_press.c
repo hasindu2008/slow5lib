@@ -173,6 +173,28 @@ int press_svb_exp_valid(void) {
     return EXIT_SUCCESS;
 }
 
+int press_zstd_buf_valid(void) {
+
+    const char *str = "1234567890123456789012345678901234567890";
+    struct slow5_press *comp = slow5_press_init(SLOW5_COMPRESS_ZSTD);
+
+    size_t size_zstd = 0;
+    void *str_zstd = slow5_str_compress(comp, str, &size_zstd);
+    ASSERT(str_zstd);
+    ASSERT(size_zstd < strlen(str));
+
+    size_t size_copy;
+    char *str_copy = slow5_ptr_depress(comp, str_zstd, size_zstd, &size_copy);
+    ASSERT(strncmp(str_copy, str, strlen(str)) == 0);
+    ASSERT(size_copy - 1 == strlen(str));
+
+    free(str_zstd);
+    free(str_copy);
+    slow5_press_free(comp);
+
+    return EXIT_SUCCESS;
+}
+
 
 int main(void) {
 
@@ -189,6 +211,8 @@ int main(void) {
         CMD(press_svb_one_valid)
         CMD(press_svb_big_valid)
         CMD(press_svb_exp_valid)
+
+        CMD(press_zstd_buf_valid)
     };
 
     return RUN_TESTS(tests);
