@@ -9,26 +9,32 @@
 #include <slow5/slow5_defs.h>
 #include <streamvbyte.h>
 #include <streamvbyte_zigzag.h>
+#include <zstd.h>
 #include "slow5_misc.h"
 
 extern enum slow5_log_level_opt  slow5_log_level;
 extern enum slow5_exit_condition_opt  slow5_exit_condition;
 
+/* zlib */
 static int zlib_init_deflate(z_stream *strm);
 static int zlib_init_inflate(z_stream *strm);
-
 static void *ptr_compress_zlib(struct slow5_zlib_stream *zlib, const void *ptr, size_t count, size_t *n);
 static void *ptr_compress_zlib_solo(const void *ptr, size_t count, size_t *n);
 static void *ptr_depress_zlib(struct slow5_zlib_stream *zlib, const void *ptr, size_t count, size_t *n);
 static void *ptr_depress_zlib_solo(const void *ptr, size_t count, size_t *n);
 static ssize_t fwrite_compress_zlib(struct slow5_zlib_stream *zlib, const void *ptr, size_t size, size_t nmemb, FILE *fp);
 
+/* streamvbyte */
 static uint8_t *ptr_compress_svb(const uint32_t *ptr, size_t count, size_t *n);
 static uint8_t *ptr_compress_svb_zd(const int16_t *ptr, size_t count, size_t *n);
 static uint32_t *ptr_depress_svb(const uint8_t *ptr, size_t count, size_t *n);
 static int16_t *ptr_depress_svb_zd(const uint8_t *ptr, size_t count, size_t *n);
-static ssize_t fwrite_compress_svb_zd(const int16_t *ptr, size_t size, size_t nmemb, FILE *fp);
 
+/* zstd */
+static void *ptr_compress_zstd(const void *ptr, size_t count, size_t *n);
+static void *ptr_depress_zstd(const void *ptr, size_t count, size_t *n);
+
+/* other */
 static int vfprintf_compress(struct slow5_press *comp, FILE *fp, const char *format, va_list ap);
 
 /* --- Init / free slow5_press structure --- */
@@ -106,6 +112,7 @@ struct slow5_press *slow5_press_init(slow5_press_method_t method) {
             } break;
 
         case SLOW5_COMPRESS_SVB_ZD: break;
+        case SLOW5_COMPRESS_ZSTD: break;
 
         default:
             SLOW5_ERROR("Invalid (de)compression method '%d'.", method);
@@ -131,6 +138,7 @@ void slow5_press_free(struct slow5_press *comp) {
                 free(comp->stream);
                 break;
             case SLOW5_COMPRESS_SVB_ZD: break;
+            case SLOW5_COMPRESS_ZSTD: break;
         }
 
         free(comp);
@@ -163,6 +171,10 @@ void *slow5_ptr_compress_solo(slow5_press_method_t method, const void *ptr, size
 
             case SLOW5_COMPRESS_SVB_ZD:
                 out = ptr_compress_svb_zd(ptr, count, &n_tmp);
+                break;
+
+            case SLOW5_COMPRESS_ZSTD:
+                out = ptr_compress_zstd(ptr, count, &n_tmp);
                 break;
         }
     }
@@ -204,6 +216,10 @@ void *slow5_ptr_compress(struct slow5_press *comp, const void *ptr, size_t count
             case SLOW5_COMPRESS_SVB_ZD:
                 out = ptr_compress_svb_zd(ptr, count, &n_tmp);
                 break;
+
+            case SLOW5_COMPRESS_ZSTD:
+                out = ptr_compress_zstd(ptr, count, &n_tmp);
+                break;
         }
     }
 
@@ -244,6 +260,10 @@ void *slow5_ptr_depress_solo(slow5_press_method_t method, const void *ptr, size_
 
             case SLOW5_COMPRESS_SVB_ZD:
                 out = ptr_depress_svb_zd(ptr, count, &n_tmp);
+                break;
+
+            case SLOW5_COMPRESS_ZSTD:
+                out = ptr_depress_zstd(ptr, count, &n_tmp);
                 break;
         }
     }
@@ -308,6 +328,10 @@ void *slow5_ptr_depress(struct slow5_press *comp, const void *ptr, size_t count,
             case SLOW5_COMPRESS_SVB_ZD:
                 out = ptr_depress_svb_zd(ptr, count, n);
                 break;
+
+            case SLOW5_COMPRESS_ZSTD:
+                out = ptr_depress_zstd(ptr, count, n);
+                break;
         }
     }
 
@@ -319,12 +343,24 @@ void *slow5_ptr_depress(struct slow5_press *comp, const void *ptr, size_t count,
 /* return -1 on failure */
 ssize_t slow5_fwrite_compress(struct slow5_press *comp, const void *ptr, size_t size, size_t nmemb, FILE *fp) {
     ssize_t bytes = -1;
+    size_t bytes_tmp = 0;
+    void *out = NULL;
 
     if (comp) {
         switch (SLOW5_PRESS_RECORD_METHOD(comp->method)) {
 
             case SLOW5_COMPRESS_NONE:
                 bytes = fwrite(ptr, size, nmemb, fp);
+                if (bytes != size * nmemb || ferror(fp)) {
+                    if (bytes != size * nmemb) {
+                        SLOW5_ERROR("Expected to write '%zu' bytes, instead wrote '%zu' bytes.",
+                                size * nmemb, bytes);
+                    } else {
+                        SLOW5_ERROR("%s", "File error after trying to write.");
+                    }
+                    slow5_errno = SLOW5_ERR_IO;
+                    return -1;
+                }
                 break;
 
             case SLOW5_COMPRESS_ZLIB:
@@ -334,12 +370,37 @@ ssize_t slow5_fwrite_compress(struct slow5_press *comp, const void *ptr, size_t 
                 break;
 
             case SLOW5_COMPRESS_SVB_ZD:
-                bytes = fwrite_compress_svb_zd(ptr, size, nmemb, fp);
+                out = ptr_compress_svb_zd(ptr, size * nmemb, &bytes_tmp);
+                if (!out) {
+                    return -1;
+                }
+                break;
+
+            case SLOW5_COMPRESS_ZSTD:
+                out = ptr_compress_zstd(ptr, size * nmemb, &bytes_tmp);
+                if (!out) {
+                    return -1;
+                }
                 break;
         }
     }
 
-    return bytes;
+    if (out) {
+        size_t bytes_written = fwrite(out, 1, bytes_tmp, fp);
+        free(out);
+        if (bytes_written != bytes_tmp || ferror(fp)) {
+            if (bytes_written != bytes_tmp) {
+                SLOW5_ERROR("Expected to write '%zu' compressed bytes, instead wrote '%zu' bytes.",
+                        bytes_tmp, bytes_written);
+            } else {
+                SLOW5_ERROR("%s", "File error after trying to write.");
+            }
+            slow5_errno = SLOW5_ERR_IO;
+            return -1;
+        }
+    }
+
+    return bytes = (ssize_t) bytes_tmp;
 }
 
 /*
@@ -494,6 +555,7 @@ void slow5_compress_footer_next(struct slow5_press *comp) {
                 }
             } break;
             case SLOW5_COMPRESS_SVB_ZD: break;
+            case SLOW5_COMPRESS_ZSTD: break;
         }
     }
 }
@@ -757,7 +819,7 @@ static uint8_t *ptr_compress_svb(const uint32_t *ptr, size_t count, size_t *n) {
     uint32_t length = count / sizeof *ptr;
 
     size_t max_n = streamvbyte_max_compressedbytes(length);
-    uint8_t *out = malloc(max_n + sizeof length);
+    uint8_t *out = (uint8_t *) malloc(max_n + sizeof length);
     if (!out) {
         SLOW5_MALLOC_ERROR();
         slow5_errno = SLOW5_ERR_MEM;
@@ -775,7 +837,7 @@ static uint8_t *ptr_compress_svb(const uint32_t *ptr, size_t count, size_t *n) {
 /* return NULL on malloc error, n cannot be NULL */
 static uint8_t *ptr_compress_svb_zd(const int16_t *ptr, size_t count, size_t *n) {
     uint32_t length = count / sizeof *ptr;
-    int32_t *in = malloc(length * sizeof *in);
+    int32_t *in = (int32_t *) malloc(length * sizeof *in);
     if (!in) {
         SLOW5_MALLOC_ERROR();
         slow5_errno = SLOW5_ERR_MEM;
@@ -785,7 +847,7 @@ static uint8_t *ptr_compress_svb_zd(const int16_t *ptr, size_t count, size_t *n)
         in[i] = ptr[i];
     }
 
-    uint32_t *diff = malloc(length * sizeof *diff);
+    uint32_t *diff = (uint32_t *) malloc(length * sizeof *diff);
     if (!diff) {
         SLOW5_MALLOC_ERROR();
         free(in);
@@ -807,7 +869,7 @@ static uint32_t *ptr_depress_svb(const uint8_t *ptr, size_t count, size_t *n) {
     uint32_t length;
     memcpy(&length, ptr, sizeof length); /* get original array length */
 
-    uint32_t *out = malloc(length * sizeof *out);
+    uint32_t *out = (uint32_t *) malloc(length * sizeof *out);
     if (!out) {
         SLOW5_MALLOC_ERROR();
         slow5_errno = SLOW5_ERR_MEM;
@@ -836,7 +898,7 @@ static int16_t *ptr_depress_svb_zd(const uint8_t *ptr, size_t count, size_t *n) 
     }
     uint32_t length = *n / sizeof *diff;
 
-    int32_t *out = malloc(length * sizeof *out);
+    int32_t *out = (int32_t *) malloc(length * sizeof *out);
     if (!out) {
         SLOW5_MALLOC_ERROR();
         free(diff);
@@ -845,7 +907,7 @@ static int16_t *ptr_depress_svb_zd(const uint8_t *ptr, size_t count, size_t *n) 
     }
     zigzag_delta_decode(diff, out, length, 0);
 
-    int16_t *orig = malloc(length * sizeof *orig);
+    int16_t *orig = (int16_t *) malloc(length * sizeof *orig);
     for (int64_t i = 0; i < length; ++ i) {
         orig[i] = out[i];
     }
@@ -856,24 +918,61 @@ static int16_t *ptr_depress_svb_zd(const uint8_t *ptr, size_t count, size_t *n) 
     return orig;
 }
 
-/* return -1 on IO error */
-static ssize_t fwrite_compress_svb_zd(const int16_t *ptr, size_t size, size_t nmemb, FILE *fp) {
-    size_t n;
-    const uint8_t *comp_buf = ptr_compress_svb_zd(ptr, size * nmemb, &n);
-    size_t bytes_written = fwrite(comp_buf, 1, n, fp);
-    if (bytes_written != n || ferror(fp)) {
-        if (bytes_written != n) {
-            SLOW5_ERROR("Expected to write '%zu' compressed bytes, instead wrote '%zu' bytes.",
-                    n, bytes_written);
-        } else if (ferror(fp)) {
-            SLOW5_ERROR("%s", "File error after trying to write.");
-        }
-        slow5_errno = SLOW5_ERR_IO;
-        return -1;
+
+
+/********
+ * ZSTD *
+ ********/
+
+/* return NULL on error */
+static void *ptr_compress_zstd(const void *ptr, size_t count, size_t *n) {
+    size_t max_bytes = ZSTD_compressBound(count);
+
+    void *out = malloc(max_bytes);
+    if (!out) {
+        SLOW5_MALLOC_ERROR();
+        slow5_errno = SLOW5_ERR_MEM;
+        return NULL;
     }
-    return bytes_written;
+
+    *n = ZSTD_compress(out, max_bytes, ptr, count, SLOW5_ZSTD_COMPRESS_LEVEL);
+    if (ZSTD_isError(*n)) {
+        SLOW5_ERROR("zstd compress failed with error code %zu.", *n);
+        free(out);
+        slow5_errno = SLOW5_ERR_PRESS;
+        return NULL;
+    }
+
+    return out;
 }
 
+/* return NULL on error */
+static void *ptr_depress_zstd(const void *ptr, size_t count, size_t *n) {
+    unsigned long long depress_bytes = ZSTD_getFrameContentSize(ptr, count);
+    if (depress_bytes == ZSTD_CONTENTSIZE_UNKNOWN ||
+            depress_bytes == ZSTD_CONTENTSIZE_ERROR) {
+        SLOW5_ERROR("zstd get decompressed size failed with error code %llu\n", depress_bytes);
+        slow5_errno = SLOW5_ERR_PRESS;
+        return NULL;
+    }
+
+    void *out = malloc(depress_bytes);
+    if (!out) {
+        SLOW5_MALLOC_ERROR();
+        slow5_errno = SLOW5_ERR_MEM;
+        return NULL;
+    }
+
+    *n = ZSTD_decompress(out, depress_bytes, ptr, count);
+    if (ZSTD_isError(*n)) {
+        SLOW5_ERROR("zstd decompress failed with error code %zu.", *n);
+        free(out);
+        slow5_errno = SLOW5_ERR_PRESS;
+        return NULL;
+    }
+
+    return out;
+}
 
 
 

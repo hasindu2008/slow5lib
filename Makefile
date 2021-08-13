@@ -2,7 +2,7 @@ CC			= gcc
 AR			= ar
 CPPFLAGS	+= -I include/ -I streamvbyte/include/
 CFLAGS		+= -g -Wall -O2 -std=c99
-LDFLAGS		+=  -lm -lz
+LDFLAGS		+=  -lm -lz -lzstd
 BUILD_DIR	= lib
 
 OBJ_LIB = $(BUILD_DIR)/slow5.o \
