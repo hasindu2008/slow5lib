@@ -21,7 +21,7 @@ SLOW5_H = include/slow5/slow5.h include/slow5/klib/khash.h include/slow5/klib/kv
 slow5lib: $(BUILD_DIR)/libslow5.so $(BUILD_DIR)/libslow5.a
 
 streamvbyte/libstreamvbyte.so.0.0.1:
-	make -C libstreamvbyte
+	make -C streamvbyte
 
 $(BUILD_DIR)/libslow5.so: $(OBJ_LIB)
 	$(CC) $(CFLAGS) -shared $^  -o $@ $(LDFLAGS)
