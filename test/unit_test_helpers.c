@@ -327,34 +327,34 @@ int asprintf_mine_valid(void) {
 int version_compatible(void) {
 
     struct slow5_version file_version;
-    struct slow5_version lib_version;
+    struct slow5_version max_supported;
 
     //lib version must be >= file version
 
     file_version.major=0 ; file_version.minor=1 ; file_version.patch=0 ;
-    lib_version.major=0  ; lib_version.minor=1  ; lib_version.patch=0  ;
-    ASSERT(slow5_is_version_compatible(file_version, lib_version)==1);  //file 0.1.0 lib 0.1.0
+    max_supported.major=0  ; max_supported.minor=1  ; max_supported.patch=0  ;
+    ASSERT(slow5_is_version_compatible(file_version, max_supported)==1);  //file 0.1.0 max_supported 0.1.0
 
-    lib_version.major=0  ; lib_version.minor=1  ; lib_version.patch=1  ;
-    ASSERT(slow5_is_version_compatible(file_version, lib_version)==1);  //file 0.1.0 lib 0.1.1
+    max_supported.major=0  ; max_supported.minor=1  ; max_supported.patch=1  ;
+    ASSERT(slow5_is_version_compatible(file_version, max_supported)==1);  //file 0.1.0 max_supported 0.1.1
 
-    lib_version.major=1  ; lib_version.minor=0  ; lib_version.patch=0  ;
-    ASSERT(slow5_is_version_compatible(file_version, lib_version)==1);  //file 0.1.0 lib 1.0.0
+    max_supported.major=1  ; max_supported.minor=0  ; max_supported.patch=0  ;
+    ASSERT(slow5_is_version_compatible(file_version, max_supported)==1);  //file 0.1.0 max_supported 1.0.0
 
     file_version.major=1 ; file_version.minor=10 ; file_version.patch=10 ;
-    lib_version.major=1  ; lib_version.minor=11  ; lib_version.patch=1  ;
-    ASSERT(slow5_is_version_compatible(file_version, lib_version)==1);  //file 1.10.10 lib 1.11.1
+    max_supported.major=1  ; max_supported.minor=11  ; max_supported.patch=1  ;
+    ASSERT(slow5_is_version_compatible(file_version, max_supported)==1);  //file 1.10.10 max_supported 1.11.1
 
-    lib_version.major=0  ; lib_version.minor=1  ; lib_version.patch=0  ;
+    max_supported.major=0  ; max_supported.minor=1  ; max_supported.patch=0  ;
     file_version.major=0 ; file_version.minor=1 ; file_version.patch=1 ;
-    ASSERT(slow5_is_version_compatible(file_version, lib_version)==0);  //file 0.1.1 lib 0.1.0
+    ASSERT(slow5_is_version_compatible(file_version, max_supported)==0);  //file 0.1.1 max_supported 0.1.0
 
     file_version.major=1 ; file_version.minor=0 ; file_version.patch=0 ;
-    ASSERT(slow5_is_version_compatible(file_version, lib_version)==0);  //file 1.0.0 lib 0.1.0
+    ASSERT(slow5_is_version_compatible(file_version, max_supported)==0);  //file 1.0.0 max_supported 0.1.0
 
-    lib_version.major=1  ; lib_version.minor=10  ; lib_version.patch=3  ;
+    max_supported.major=1  ; max_supported.minor=10  ; max_supported.patch=3  ;
     file_version.major=1 ; file_version.minor=11 ; file_version.patch=1 ;
-    ASSERT(slow5_is_version_compatible(file_version, lib_version)==0);  //file 1.11.1 lib 1.10.3
+    ASSERT(slow5_is_version_compatible(file_version, max_supported)==0);  //file 1.11.1 max_supported 1.10.3
 
 
 
