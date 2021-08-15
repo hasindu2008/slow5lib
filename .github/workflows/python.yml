@@ -49,7 +49,7 @@ jobs:
     - name: build
       run: make pyslow5
   arm64:
-    name: ubuntu arm
+    name: pyslow5 ubuntu arm
     runs-on: ubuntu-latest
     steps:
     - run: docker run --rm --privileged multiarch/qemu-user-static:register --reset
