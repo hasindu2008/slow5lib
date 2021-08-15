@@ -11,7 +11,7 @@ slow5_hdr_get -  fetches a header data attribute from a SLOW5 header
 ## DESCRIPTION
 `slow5_hdr_get()` fetches the attribute value for specified attribute name *attr* of a specified read group *read_group* from a SLOW5 file header pointed by *header* and returns as a *char** pointers.
 
-The argument *header* points to a SLOW5 header of type *slow5_hdr_t* and typically this is the *s5p->header* member inside the *slow5_file_t *s5p* returned by  `slow5_open().
+The argument *header* points to a SLOW5 header of type *slow5_hdr_t* and typically this is the *s5p->header* member inside the *slow5_file_t *s5p* returned by  `slow5_open()`.
 
 
 ## RETURN VALUE

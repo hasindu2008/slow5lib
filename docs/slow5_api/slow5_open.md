@@ -17,20 +17,34 @@ An open slow5 file should be closed at the end using `slow5_close()` function.
 
 ## RETURN VALUE
 
-Upon successful completion, `slow_open()` returns a *slow5_file_t* pointer. Otherwise, NULL is returned.
+Upon successful completion, `slow_open()` returns a *slow5_file_t* pointer. Otherwise, NULL is returned and `slow5_errno` is set to indicate the error.
 
 ## ERRORS
 
-`slow_open()` fails and returns NULL in the following occasions (not an exhaustive list):
-- pathname or mode is NULL
-- pathname is invalid (i.e., internally `fopen()` failed on the pathname)
-- wrong file extension, that is neither *.slow5* nor *.blow5*
-- parsing and populating the header failed
-- `fileno()` failed internally
+* `SLOW5_ERR_ARG`       
+  &nbsp;&nbsp;&nbsp;&nbsp;Invalid argument - pathname or mode provided was NULL.
+* `SLOW5_ERR_IO`        
+  &nbsp;&nbsp;&nbsp;&nbsp;File I/O error, for instance, `fopen`, `ftello` or `fileno` failed.
+* `SLOW5_ERR_UNK`       
+  &nbsp;&nbsp;&nbsp;&nbsp;Wrong file extension, that is neither *.slow5* nor *.blow5*
+* `SLOW5_ERR_HDRPARSE`  
+  &nbsp;&nbsp;&nbsp;&nbsp; Parsing and populating the header failed.
+* `SLOW5_ERR_MEM`       
+  &nbsp;&nbsp;&nbsp;&nbsp; Memory allocation failed.
+* `SLOW5_ERR_TRUNC`     
+  &nbsp;&nbsp;&nbsp;&nbsp; End of file (EOF) reached prematurely.
+* `SLOW5_ERR_MAGIC`     
+  &nbsp;&nbsp;&nbsp;&nbsp; Invalid magic number,  
+* `SLOW5_ERR_VERSION`   
+  &nbsp;&nbsp;&nbsp;&nbsp; File version is incompatible with this library version.
+* `SLOW5_ERR_PRESS`     
+  &nbsp;&nbsp;&nbsp;&nbsp; Initialisation of compression/decompression buffers failed.
+* `SLOW5_ERR_OTH`       
+  &nbsp;&nbsp;&nbsp;&nbsp; Other error.
+
 
 ## NOTES
 Internally uses `fopen()`. The stream is positioned at the beginning of the data records when `slow_open()` returns.
-In future, a error number will be introduced to indicate the error.
 
 
 ## EXAMPLES

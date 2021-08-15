@@ -38,7 +38,16 @@ The argument *err* is an address of a *uint64_t* usigned integer which will be s
 Upon successful completion, `slow5_aux_get_<array_datatype>()` returns a pointer to an array.
 
 ## ERRORS
-A non zero error code is set in *err*.
+
+In case of an error, `slow5_errno` or the non zero error code is set in *err* (unless *err* is NULL) are as follows.
+
+`SLOW5_ERR_NOFLD`
+    &nbsp;&nbsp;&nbsp;&nbsp; The requested field was not found.
+`SLOW5_ERR_NOAUX`
+    &nbsp;&nbsp;&nbsp;&nbsp; Auxiliary hash map for the record was not found.
+`SLOW5_ERR_ARG`   
+    &nbsp;&nbsp;&nbsp;&nbsp; Invalid argument - read or field is NULL
+
 
 ## NOTES
 
@@ -46,7 +55,7 @@ The returned pointer is from an internal data structure and the user must NOT fr
 
 `slow5_aux_get_string()` is used to fetch an array of chars.
 
-Error codes are not finalised and subject to change.
+More error codes will be introduced in future.
 
 
 ## EXAMPLES
@@ -71,7 +80,7 @@ int main(){
         fprintf(stderr,"Error in slow5_get_next. Error code %d\n",ret);
         exit(EXIT_FAILURE);
     }
-    
+
     //------------------------------------------------------------------------
     //              get auxiliary values with array datatype
     //------------------------------------------------------------------------
