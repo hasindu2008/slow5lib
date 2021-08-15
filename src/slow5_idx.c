@@ -277,6 +277,7 @@ int slow5_idx_write(struct slow5_idx *index, struct slow5_version version) {
 
 static int slow5_idx_read(struct slow5_idx *index) {
 
+    struct slow5_version lib_version = {.major = SLOW5_VERSION_MAJOR, .minor = SLOW5_VERSION_MINOR, .patch = SLOW5_VERSION_PATCH};
     const char magic[] = SLOW5_INDEX_MAGIC_NUMBER;
     char buf_magic[sizeof magic]; // TODO is this a vla?
     if (fread(buf_magic, sizeof *magic, sizeof magic, index->fp) != sizeof magic) {
@@ -292,7 +293,7 @@ static int slow5_idx_read(struct slow5_idx *index) {
         return SLOW5_ERR_IO;
     }
 
-    if (slow5_is_version_compatible(index->version) == 0){
+    if (slow5_is_version_compatible(index->version, lib_version) == 0){
         SLOW5_ERROR("Index file version '" SLOW5_VERSION_STRING_FORMAT "' is higher than the max slow5 version '" SLOW5_VERSION_STRING "' supported by this slow5lib! Please re-index or use a newer version of slow5lib.",
                 index->version.major, index->version.minor, index->version.patch);
         return SLOW5_ERR_VERSION;

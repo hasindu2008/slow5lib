@@ -384,6 +384,7 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
         return NULL;
     }
 
+    struct slow5_version lib_version = {.major = SLOW5_VERSION_MAJOR, .minor = SLOW5_VERSION_MINOR, .patch = SLOW5_VERSION_PATCH};
     char *buf = NULL;
 
     // Parse slow5 header
@@ -469,7 +470,7 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
             goto err;
         }
 
-        if (slow5_is_version_compatible(header->version) == 0) {
+        if (slow5_is_version_compatible(header->version, lib_version) == 0) {
             SLOW5_ERROR("File version '" SLOW5_VERSION_STRING_FORMAT "' is higher than the max slow5 version '" SLOW5_VERSION_STRING "' supported by this slow5lib! Please use a newer version of slow5lib.",
                     header->version.major, header->version.minor, header->version.patch);
             slow5_errno = SLOW5_ERR_VERSION;
@@ -556,7 +557,7 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
             goto err_fread;
         }
 
-        if (slow5_is_version_compatible(header->version) == 0) {
+        if (slow5_is_version_compatible(header->version, lib_version) == 0) {
             SLOW5_ERROR("File version '" SLOW5_VERSION_STRING_FORMAT "' is higher than the max slow5 version '" SLOW5_VERSION_STRING "' supported by this slow5lib! Please use a newer version of slow5lib.",
                     header->version.major, header->version.minor, header->version.patch);
             free(header);
@@ -3635,13 +3636,13 @@ int slow5_is_eof(FILE *fp, const char *eof, size_t n) {
 }
 
 /* return 1 if compatible, 0 otherwise */
-int slow5_is_version_compatible(struct slow5_version file_version) {
-    if (file_version.major > SLOW5_VERSION_MAJOR ||
-            (file_version.major == SLOW5_VERSION_MAJOR &&
-             file_version.minor > SLOW5_VERSION_MINOR) ||
-            (file_version.major == SLOW5_VERSION_MAJOR &&
-             file_version.minor == SLOW5_VERSION_MINOR &&
-             file_version.patch > SLOW5_VERSION_PATCH)) {
+int slow5_is_version_compatible(struct slow5_version file_version, struct slow5_version lib_version) {
+    if (file_version.major > lib_version.major ||
+            (file_version.major == lib_version.major &&
+             file_version.minor > lib_version.minor) ||
+            (file_version.major == lib_version.major &&
+             file_version.minor == lib_version.minor &&
+             file_version.patch > lib_version.patch)) {
         return 0;
     } else {
         return 1;
