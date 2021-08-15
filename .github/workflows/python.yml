@@ -62,5 +62,6 @@ jobs:
         args: >
           bash -c "apt-get update &&
           apt-get install -y zlib1g-dev gcc make python3 python3-pip python3-numpy &&
+          pip3 install setuptools cython &&
           ldd --version && gcc --version && python3 --version &&
           make pyslow5
