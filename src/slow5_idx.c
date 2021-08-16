@@ -96,7 +96,7 @@ struct slow5_idx *slow5_idx_init(struct slow5_file *s5p) {
 int slow5_idx_to(struct slow5_file *s5p, const char *pathname) {
 
     struct slow5_idx *index = slow5_idx_init_empty();
-    if (slow5_idx_build(index, s5p) == -1) {
+    if (slow5_idx_build(index, s5p) != 0) {
         slow5_idx_free(index);
         return -1;
     }
@@ -150,25 +150,37 @@ static int slow5_idx_build(struct slow5_idx *index, struct slow5_file *s5p) {
 
     } else if (s5p->format == SLOW5_FORMAT_BINARY) {
 
-        const char eof[] = SLOW5_BINARY_EOF;
-        int is_eof;
-        while ((is_eof = slow5_is_eof(s5p->fp, eof, sizeof eof)) == 0) {
+        while (1) {
             // Set start offset
             offset = ftello(s5p->fp);
 
             // Get record size
             slow5_rec_size_t record_size;
-            if (fread(&record_size, sizeof record_size, 1, s5p->fp) != 1) {
-                SLOW5_ERROR("Malformed slow5 record. Failed to read the record size.%s", feof(s5p->fp) ? " Missing blow5 end of file marker." : "");
-                /*
-                if (feof(s5p->fp)) {
-                    slow5_errno = SLOW5_ERR_TRUNC;
-                } else {
-                    slow5_errno = SLOW5_ERR_IO;
+            size_t bytes_read;
+            if ((bytes_read = fread(&record_size, 1, sizeof record_size, s5p->fp)) != sizeof record_size) {
+                const char eof[] = SLOW5_BINARY_EOF;
+                int is_eof = 0;
+                if (bytes_read == sizeof eof) {
+                    /* check if eof */
+                    is_eof = slow5_is_eof(s5p->fp, eof, sizeof eof);
+                    if (is_eof == -1) { /* io/mem error */
+                        SLOW5_ERROR("%s", "Internal error while checking for blow5 eof marker.");
+                    } else if (is_eof == -2) {
+                        SLOW5_ERROR("%s", "Malformed blow5. End of file marker found, but end of file not reached.");
+                    } else if (is_eof == 1) {
+                        /* slow5_errno = SLOW5_ERR_EOF; */
+                        break;
+                    }
+                }
+                if (!is_eof) { /* catches the case when bytes_read != sizeof eof */
+                    SLOW5_ERROR("Malformed blow5 record. Failed to read the record size.%s", feof(s5p->fp) ? " Missing blow5 end of file marker." : "");
+                    if (feof(s5p->fp)) {
+                        slow5_errno = SLOW5_ERR_TRUNC;
+                    } else {
+                        slow5_errno = SLOW5_ERR_IO;
+                    }
                 }
                 return slow5_errno;
-                */
-                return -1;
             }
 
             size = sizeof record_size + record_size;
@@ -207,9 +219,6 @@ static int slow5_idx_build(struct slow5_idx *index, struct slow5_file *s5p) {
             }
 
             free(read_decomp);
-        }
-        if (is_eof == -1) {
-            return slow5_errno;
         }
     }
 
@@ -302,10 +311,7 @@ static int slow5_idx_read(struct slow5_idx *index) {
         return SLOW5_ERR_IO;
     }
 
-    const char eof[] = SLOW5_INDEX_EOF;
-    int is_eof;
-    while ((is_eof = slow5_is_eof(index->fp, eof, sizeof eof)) == 0) {
-
+    while (1) {
         slow5_rid_len_t read_id_len;
         if (fread(&read_id_len, sizeof read_id_len, 1, index->fp) != 1) {
             SLOW5_ERROR("Malformed slow5 index. Failed to read the read ID length.%s", feof(index->fp) ? " Missing index end of file marker." : "");
@@ -319,8 +325,26 @@ static int slow5_idx_read(struct slow5_idx *index) {
         char *read_id = (char *) malloc((read_id_len + 1) * sizeof *read_id); // +1 for '\0'
         SLOW5_MALLOC_CHK(read_id);
 
-        if (fread(read_id, sizeof *read_id, read_id_len, index->fp) != read_id_len) {
-            return SLOW5_ERR_IO;
+        size_t bytes_read;
+        if ((bytes_read = fread(read_id, sizeof *read_id, read_id_len, index->fp)) != read_id_len) {
+            free(read_id);
+            bytes_read += sizeof read_id_len;
+            const char eof[] = SLOW5_INDEX_EOF;
+            if (bytes_read == sizeof eof) {
+                /* check if eof marker */
+                int is_eof = slow5_is_eof(index->fp, eof, sizeof eof);
+                if (is_eof == -1) { /* io/mem error */
+                    SLOW5_ERROR("%s", "Internal error while checking for index eof marker.");
+                } else if (is_eof == -2) {
+                    SLOW5_ERROR("%s", "Malformed index. End of file marker found, but end of file not reached.");
+                } else if (is_eof == 1) {
+                    /* slow5_errno = SLOW5_ERR_EOF; */
+                    break;
+                }
+            } else {
+                slow5_errno = SLOW5_ERR_IO;
+            }
+            return slow5_errno;
         }
         read_id[read_id_len] = '\0'; // Add null byte
 
@@ -336,10 +360,6 @@ static int slow5_idx_read(struct slow5_idx *index) {
             // TODO handle error and free
             return -1;
         }
-    }
-
-    if (is_eof == -1) {
-        return slow5_errno;
     }
 
     return 0;
