@@ -1,5 +1,4 @@
-
-// an example programme that uses slow5lib to read a SLOW5 file sequentially
+// an example programme that uses slow5lib to randomly access records in a SLOW5 file
 
 #include <stdio.h>
 #include <stdlib.h>

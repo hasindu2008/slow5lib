@@ -18,7 +18,12 @@ If a slow5 index has been associated with the *s5p* structure (using a previous 
 
 ## RETURN VALUE
 
-Upon successful completion, `slow5_close()` returns 0. Otherwise, a negative value is returned.
+Upon successful completion, `slow5_close()` returns 0. Otherwise, a negative value (EOF) is returned and `slow5_errno` is set to indicate the error.
+
+## ERRORS
+
+* `SLOW5_ERR_IO`        
+  &nbsp;&nbsp;&nbsp;&nbsp;File I/O error, for instance, `fclose` failed.
 
 ## NOTES
 

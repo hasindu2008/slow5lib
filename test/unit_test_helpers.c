@@ -324,6 +324,43 @@ int asprintf_mine_valid(void) {
     return EXIT_SUCCESS;
 }
 
+int version_compatible(void) {
+
+    struct slow5_version file_version;
+    struct slow5_version max_supported;
+
+    //lib version must be >= file version
+
+    file_version.major=0 ; file_version.minor=1 ; file_version.patch=0 ;
+    max_supported.major=0  ; max_supported.minor=1  ; max_supported.patch=0  ;
+    ASSERT(slow5_is_version_compatible(file_version, max_supported)==1);  //file 0.1.0 max_supported 0.1.0
+
+    max_supported.major=0  ; max_supported.minor=1  ; max_supported.patch=1  ;
+    ASSERT(slow5_is_version_compatible(file_version, max_supported)==1);  //file 0.1.0 max_supported 0.1.1
+
+    max_supported.major=1  ; max_supported.minor=0  ; max_supported.patch=0  ;
+    ASSERT(slow5_is_version_compatible(file_version, max_supported)==1);  //file 0.1.0 max_supported 1.0.0
+
+    file_version.major=1 ; file_version.minor=10 ; file_version.patch=10 ;
+    max_supported.major=1  ; max_supported.minor=11  ; max_supported.patch=1  ;
+    ASSERT(slow5_is_version_compatible(file_version, max_supported)==1);  //file 1.10.10 max_supported 1.11.1
+
+    max_supported.major=0  ; max_supported.minor=1  ; max_supported.patch=0  ;
+    file_version.major=0 ; file_version.minor=1 ; file_version.patch=1 ;
+    ASSERT(slow5_is_version_compatible(file_version, max_supported)==0);  //file 0.1.1 max_supported 0.1.0
+
+    file_version.major=1 ; file_version.minor=0 ; file_version.patch=0 ;
+    ASSERT(slow5_is_version_compatible(file_version, max_supported)==0);  //file 1.0.0 max_supported 0.1.0
+
+    max_supported.major=1  ; max_supported.minor=10  ; max_supported.patch=3  ;
+    file_version.major=1 ; file_version.minor=11 ; file_version.patch=1 ;
+    ASSERT(slow5_is_version_compatible(file_version, max_supported)==0);  //file 1.11.1 max_supported 1.10.3
+
+
+
+    return EXIT_SUCCESS;
+
+}
 
 int main(void) {
 
@@ -340,6 +377,9 @@ int main(void) {
         CMD(fmt_get_name_test)
 
         CMD(asprintf_mine_valid)
+
+        CMD(version_compatible)
+
     };
 
     return RUN_TESTS(tests);

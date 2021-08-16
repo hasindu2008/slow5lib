@@ -1,5 +1,7 @@
 random_read
 sequential_read
-get_aux_field
-get_hdr_attribute
+auxiliary_field
+header_attribute
+random_read_pthreads
+random_read_openmp
 *.idx

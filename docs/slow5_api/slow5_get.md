@@ -25,17 +25,26 @@ The argument *s5p* points to a *slow5_file_t* opened using `slow5_open()`. `slow
 
 ## RETURN VALUE
 
-Upon successful completion, `slow5_get()` returns a non negative integer (>=0). Otherwise, a negative value is returned that indicates the error.
+Upon successful completion, `slow5_get()` returns a non negative integer (>=0). Otherwise, a negative value is returned that indicates the error and `slow5_errno` is set to indicate the error.
 
 ## ERRORS
 
-A negative return value indicates an error as follows.
-
-* `SLOW5_ERR_NOTFOUND`  &nbsp;&nbsp;&nbsp;&nbsp; Read_id was not found in the index.
-* `SLOW5_ERR_ARG`       &nbsp;&nbsp;&nbsp;&nbsp; Bad argument - read_id, read or s5p is NULL.
-* `SLOW5_ERR_RECPARSE`  &nbsp;&nbsp;&nbsp;&nbsp; Record parsing error.
-* `SLOW5_ERR_NOIDX`     &nbsp;&nbsp;&nbsp;&nbsp; The index has not been loaded.
-* `SLOW5_ERR_IO`        &nbsp;&nbsp;&nbsp;&nbsp; Other error when reading the slow5 file.
+* `SLOW5_ERR_NOTFOUND`  
+    &nbsp;&nbsp;&nbsp;&nbsp; Read_id was not found in the index.
+* `SLOW5_ERR_ARG`       
+    &nbsp;&nbsp;&nbsp;&nbsp; Invalid argument - read_id, read or s5p is NULL.
+* `SLOW5_ERR_RECPARSE`  
+    &nbsp;&nbsp;&nbsp;&nbsp; Record parsing error.
+* `SLOW5_ERR_NOIDX`     
+    &nbsp;&nbsp;&nbsp;&nbsp; The index has not been loaded.
+* `SLOW5_ERR_IO`        
+    &nbsp;&nbsp;&nbsp;&nbsp; I/O error when reading the slow5 file, for instance, `pread()`failed.
+* `SLOW5_ERR_MEM`        
+    &nbsp;&nbsp;&nbsp;&nbsp; Memory allocation error.
+* `SLOW5_ERR_UNK`        
+    &nbsp;&nbsp;&nbsp;&nbsp; Slow5 file format is unknown.
+* `SLOW5_ERR_PRESS`      
+    &nbsp;&nbsp;&nbsp;&nbsp; Decompression error.
 
 ## NOTES
 

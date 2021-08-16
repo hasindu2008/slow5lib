@@ -49,7 +49,7 @@ jobs:
     - name: build
       run: make pyslow5
   arm64:
-    name: ubuntu arm
+    name: pyslow5 ubuntu arm
     runs-on: ubuntu-latest
     steps:
     - run: docker run --rm --privileged multiarch/qemu-user-static:register --reset
@@ -61,7 +61,7 @@ jobs:
       with:
         args: >
           bash -c "apt-get update &&
-          apt-get install -y zlib1g-dev gcc make python3 python3-pip &&
-          pip3 install setuptools cython numpy &&
+          apt-get install -y zlib1g-dev gcc make python3 python3-pip python3-numpy &&
+          pip3 install setuptools cython &&
           ldd --version && gcc --version && python3 --version &&
           make pyslow5

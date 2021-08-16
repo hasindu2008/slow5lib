@@ -1,3 +1,6 @@
+
+// an example programme that uses slow5lib to obtain a slow5 header attribute
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <slow5/slow5.h>
@@ -12,8 +15,9 @@ int main(){
         exit(EXIT_FAILURE);
     }
     const slow5_hdr_t* header = sp->header;
-    char* read_group_0_run_id_value = slow5_hdr_get("run_id", 0, header);
-    if(read_group_0_run_id_value){
+    int read_group = 0;
+    char* read_group_0_run_id_value = slow5_hdr_get("run_id", read_group, header);
+    if(read_group_0_run_id_value != NULL ){
         printf("%s\n",read_group_0_run_id_value);
     }
 

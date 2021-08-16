@@ -42,8 +42,8 @@ extern "C" {
 // library version
 #define SLOW5_LIB_VERSION "0.1.0-dirty"
 
-// file version
-// if updating change all 4
+// maximum file version supported by this library - independent of slow5 library version above
+// if updating change all 4 below
 #define SLOW5_VERSION_MAJOR (0)
 #define SLOW5_VERSION_MINOR (1)
 #define SLOW5_VERSION_PATCH (0)

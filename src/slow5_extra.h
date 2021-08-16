@@ -27,7 +27,7 @@ int slow5_is_eof(FILE *fp, const char *eof, size_t n);
 struct slow5_hdr *slow5_hdr_init_empty(void);
 struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_method_t *method);
 void slow5_hdr_free(struct slow5_hdr *header);
-int slow5_is_version_compatible(struct slow5_version file_version);
+int slow5_is_version_compatible(struct slow5_version file_version, struct slow5_version max_supported);
 
 // slow5 header data
 int slow5_hdr_data_init(FILE *fp, char **buf, size_t *cap, struct slow5_hdr *header, uint32_t *hdr_len);

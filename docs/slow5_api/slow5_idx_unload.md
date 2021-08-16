@@ -14,6 +14,10 @@ slow5_idx_unload - unloads a SLOW5 index from the memory
 No return value
 
 
+## NOTES
+`slow5_errno` will be set in future to indicate the type of error that occurred.
+
+
 ## EXAMPLES
 
 ```
