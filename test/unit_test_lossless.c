@@ -164,6 +164,15 @@ int slow5_aux_get_invalid(void) {
     ASSERT(slow5_aux_get_string(read, NULL, NULL, &err) == NULL);
     ASSERT(slow5_aux_get_string(read, NULL, NULL, NULL) == NULL);
 
+    ASSERT(slow5_aux_get_int8(read, "start_time", &err) == SLOW5_INT8_T_NULL);
+    ASSERT(err == SLOW5_ERR_TYPE);
+    ASSERT(slow5_aux_get_int8_array(read, "start_time", NULL, &err) == NULL);
+    ASSERT(err == SLOW5_ERR_TYPE);
+    ASSERT(isnan(slow5_aux_get_float(read, "start_time", &err)));
+    ASSERT(err == SLOW5_ERR_TYPE);
+    ASSERT(slow5_aux_get_float_array(read, "start_time", NULL, &err) == NULL);
+    ASSERT(err == SLOW5_ERR_TYPE);
+
     slow5_rec_free(read);
 
     ASSERT(slow5_close(s5p) == 0);

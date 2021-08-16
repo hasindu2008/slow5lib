@@ -144,6 +144,7 @@ extern "C" {
 #define SLOW5_ERR_MAGIC         (-14)   // magic number invalid
 #define SLOW5_ERR_VERSION       (-15)   // version incompatible
 #define SLOW5_ERR_HDRPARSE      (-16)   // header parsing error
+#define SLOW5_ERR_TYPE          (-17)   // error relating to slow5 type
 
 
 #ifdef __cplusplus
