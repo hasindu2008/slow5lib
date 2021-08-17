@@ -22,7 +22,7 @@ Upon successful completion, `slow5_get_next()` returns a non negative integer (>
 ## ERRORS
 
 * `SLOW5_ERR_EOF`      
-   &nbsp;&nbsp;&nbsp;&nbsp; End of file (EOF) reached (if blow5, EOF marker was properly found at the end).
+   &nbsp;&nbsp;&nbsp;&nbsp; End of file (EOF) (if blow5, EOF marker was properly found at the end).
 * `SLOW5_ERR_ARG`      
    &nbsp;&nbsp;&nbsp;&nbsp; Invalid argument - Read or s5p is NULL.
 * `SLOW5_ERR_RECPARSE`  
@@ -34,7 +34,7 @@ Upon successful completion, `slow5_get_next()` returns a non negative integer (>
 * `SLOW5_ERR_PRESS`      
   &nbsp;&nbsp;&nbsp;&nbsp; Record decompression error.
 * `SLOW5_ERR_TRUNC`      
-  &nbsp;&nbsp;&nbsp;&nbsp; Truncated blow5 file - EOF reached with the blow5 EOF marker.. 
+  &nbsp;&nbsp;&nbsp;&nbsp; Truncated blow5 file - EOF reached without seeing the blow5 EOF marker. 
 *  `SLOW5_ERR_UNK`        
   &nbsp;&nbsp;&nbsp;&nbsp; Slow5 format is unknown.
 

@@ -26,7 +26,7 @@ char slow5_aux_get_char(const slow5_rec_t *read, const char *field, int *err)
 
 ## DESCRIPTION
 
-`slow5_aux_get_<primitive_datatype>()` fetches the value of an auxiliary field of a primitive datatype specified by the field name *field* from the slow5 record pointed by *read*. User has to choose the appropriate function so that the returned datatype matches the correct datatype of the stored field, because the data stored in memory will be reinterpreted as the requested type.
+`slow5_aux_get_<primitive_datatype>()` fetches the value of an auxiliary field of a primitive datatype specified by the field name *field* from the slow5 record pointed by *read*. User has to choose the appropriate function so that the returned datatype matches the correct datatype of the stored field, because the data stored in memory as a series of bytes will be reinterpreted as the requested type.
 
 The argument *err* is an address of an integer which will be set inside the function call to indicate an error. Unless *err* is NULL, `slow5_aux_get_<primitive_datatype>()` sets a non zero error code in **err* in case of failure.
 
@@ -45,12 +45,14 @@ In case of an error, `slow5_errno` or the non zero error code is set in *err* (u
 `SLOW5_ERR_NOAUX`
     &nbsp;&nbsp;&nbsp;&nbsp; Auxiliary hash map for the record was not found.
 `SLOW5_ERR_ARG`   
-    &nbsp;&nbsp;&nbsp;&nbsp; Invalid argument - read or field is NULL
+    &nbsp;&nbsp;&nbsp;&nbsp; Invalid argument - read or field is NULL.
+`SLOW5_ERR_TYPE`  
+    &nbsp;&nbsp;&nbsp;&nbsp; Type conversion was not possible - an array data type field cannot be converted to a primitive type.
 
 
 ## NOTES
 
-More error codes will be introduced in future.
+More error codes may be introduced in future.
 
 ## EXAMPLES
 ```

@@ -15,7 +15,6 @@ No return value
 
 
 ## NOTES
-`slow5_errno` will be set in future to indicate the type of error that occurred.
 
 
 ## EXAMPLES

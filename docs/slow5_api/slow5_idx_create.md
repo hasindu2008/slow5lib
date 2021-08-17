@@ -12,7 +12,8 @@ Creates an index file to a SLOW5 file pointed by *s5p* to enable random access (
 ## RETURN VALUE
 Upon successful completion, `slow5_idx_create()` returns a non-negative integer. Otherwise, a negative value is returned.
 
-
+## NOTES
+`slow5_errno` will be set in future to indicate the type of error that occurred.
 
 ## EXAMPLES
 
