@@ -1741,7 +1741,7 @@ void *slow5_get_mem(const char *read_id, size_t *n, const struct slow5_file *s5p
  * Require the slow5 index to be loaded beforehand using slow5_idx_load()
  *
  * Return:
- *  >=0   the read was successfully found and stored
+ *  =0   the read was successfully found and stored
  *  <0   error code
  *
  * Errors:
@@ -2558,6 +2558,7 @@ int slow5_rec_set(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, const
 
 // For array types
 // Return
+// 0    success
 // -1   input invalid
 // -2   attr not found
 // -3   type is not an array type
@@ -2602,7 +2603,12 @@ static inline void slow5_rec_set_aux_map(khash_t(slow5_s2a) *aux_map, const char
     aux_data->len = len;
     aux_data->bytes = bytes;
     aux_data->type = type;
-    aux_data->data = (uint8_t *) malloc(bytes);
+    if (type == SLOW5_STRING) {
+        aux_data->data = (uint8_t *) malloc(bytes + 1);
+        aux_data->data[bytes] = '\0';
+    } else {
+        aux_data->data = (uint8_t *) malloc(bytes);
+    }
     SLOW5_MALLOC_CHK(aux_data->data);
     memcpy(aux_data->data, data, bytes);
 }
