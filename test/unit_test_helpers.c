@@ -409,14 +409,34 @@ int double_to_str_valid(void) {
 
     free(str);
 
-    /* negative 0 test */
-    double b = -0.00000000000000001;
-    const char *b_str = "0";
+    double b = -0.001;
+    const char *b_str = "-0.001";
 
     str = slow5_double_to_str(b, &len);
     ASSERT(str);
     ASSERT(strcmp(str, b_str) == 0);
     ASSERT(len == strlen(b_str));
+
+    free(str);
+
+    /* negative 0 test */
+    double c = -0.00000000000000001;
+    const char *c_str = "0";
+
+    str = slow5_double_to_str(c, &len);
+    ASSERT(str);
+    ASSERT(strcmp(str, c_str) == 0);
+    ASSERT(len == strlen(c_str));
+
+    free(str);
+
+    double d = -0.000;
+    const char *d_str = "0";
+
+    str = slow5_double_to_str(d, &len);
+    ASSERT(str);
+    ASSERT(strcmp(str, d_str) == 0);
+    ASSERT(len == strlen(d_str));
 
     free(str);
 
