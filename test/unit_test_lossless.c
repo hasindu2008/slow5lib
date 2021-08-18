@@ -1,6 +1,7 @@
 #include <float.h>
 #include "unit_test.h"
 #include <slow5/slow5.h>
+#include "slow5_extra.h"
 
 int slow5_open_valid(void) {
     struct slow5_file *s5p = slow5_open("test/data/exp/one_fast5/exp_1_lossless.slow5", "r");
@@ -372,6 +373,33 @@ int slow5_get_aux_names_valid(void) {
     return EXIT_SUCCESS;
 }
 
+int slow5_set_aux_string(void) {
+    struct slow5_file *s5p = slow5_open("test/data/exp/aux_array/exp_lossless.slow5", "r");
+    ASSERT(s5p);
+    ASSERT(slow5_idx_load(s5p) == 0);
+
+    struct slow5_rec *read = NULL;
+    ASSERT(slow5_get("a649a4ae-c43d-492a-b6a1-a5b8b8076be4", &read, s5p) == 0);
+    ASSERT(read);
+
+    size_t len;
+    char *cn = slow5_aux_get_string(read, "channel_number", &len, NULL);
+    ASSERT(cn);
+    ASSERT(len == strlen(cn));
+    ASSERT(len == strlen("115"));
+    ASSERT(strcmp(cn, "115") == 0);
+
+    /* set 115 back using this bloody buggy function to make sure it doesn't ever bug again */
+    ASSERT(slow5_rec_set_string(read, s5p->header->aux_meta, "channel_number", cn) == 0);
+    ASSERT(slow5_rec_print(read, s5p->header->aux_meta, SLOW5_FORMAT_BINARY, NULL) != -1);
+
+    free(cn);
+    slow5_rec_free(read);
+    ASSERT(slow5_close(s5p) == 0);
+
+    return EXIT_SUCCESS;
+}
+
 
 int main(void) {
 
@@ -397,6 +425,8 @@ int main(void) {
 
         CMD(slow5_get_hdr_keys_valid)
         CMD(slow5_get_aux_names_valid)
+
+        CMD(slow5_set_aux_string)
     };
 
     return RUN_TESTS(tests);
