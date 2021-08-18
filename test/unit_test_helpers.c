@@ -362,6 +362,117 @@ int version_compatible(void) {
 
 }
 
+int double_to_str_valid(void) {
+
+    double x = 3.14;
+    const char *x_str = "3.14";
+    size_t len;
+
+    char *str = slow5_double_to_str(x, &len);
+    ASSERT(str);
+    ASSERT(strcmp(str, x_str) == 0);
+    ASSERT(len == strlen(x_str));
+
+    free(str);
+
+    double y = 3.00014;
+    const char *y_str = "3.00014";
+
+    str = slow5_double_to_str(y, &len);
+    ASSERT(str);
+    ASSERT(strcmp(str, y_str) == 0);
+    ASSERT(len == strlen(y_str));
+
+    free(str);
+
+    /* 1 at the 15th digit (max double digits) */
+    /*
+     * Doesn't work "0", since we are using default precision (6 decimals)
+    double z = -0000000000000.00000000000000100000;
+    const char *z_str = "-0.000000000000001";
+
+    str = slow5_double_to_str(z, &len);
+    ASSERT(str);
+    ASSERT(strcmp(str, z_str) == 0);
+    ASSERT(len == strlen(z_str));
+
+    free(str);
+    */
+
+    double a = 1467.61;
+    const char *a_str = "1467.61";
+
+    str = slow5_double_to_str(a, &len);
+    ASSERT(str);
+    ASSERT(strcmp(str, a_str) == 0);
+    ASSERT(len == strlen(a_str));
+
+    free(str);
+
+    /* negative 0 test */
+    double b = -0.00000000000000001;
+    const char *b_str = "0";
+
+    str = slow5_double_to_str(b, &len);
+    ASSERT(str);
+    ASSERT(strcmp(str, b_str) == 0);
+    ASSERT(len == strlen(b_str));
+
+    free(str);
+
+    return EXIT_SUCCESS;
+}
+
+int float_to_str_valid(void) {
+
+    float x = 3.14;
+    const char *x_str = "3.14";
+    size_t len;
+
+    char *str = slow5_float_to_str(x, &len);
+    ASSERT(str);
+    ASSERT(strcmp(str, x_str) == 0);
+    ASSERT(len == strlen(x_str));
+
+    free(str);
+
+    float y = 3.00014;
+    const char *y_str = "3.00014";
+
+    str = slow5_float_to_str(y, &len);
+    ASSERT(str);
+    ASSERT(strcmp(str, y_str) == 0);
+    ASSERT(len == strlen(y_str));
+
+    free(str);
+
+    /* 1 at the 6th digit (max float digits) */
+    float z = -0000000000000.000001;
+    const char *z_str = "-0.000001";
+
+    str = slow5_float_to_str(z, &len);
+    ASSERT(str);
+    ASSERT(strcmp(str, z_str) == 0);
+    ASSERT(len == strlen(z_str));
+
+    free(str);
+
+    /*
+     * Doesn't work "1467.609985"
+    float a = 1467.61;
+    const char *a_str = "1467.61";
+
+    str = slow5_float_to_str(a, &len);
+    ASSERT(str);
+    ASSERT(strcmp(str, a_str) == 0);
+    ASSERT(len == strlen(a_str));
+
+    free(str);
+    */
+
+    return EXIT_SUCCESS;
+}
+
 int main(void) {
 
     struct command tests[] = {
@@ -380,6 +491,8 @@ int main(void) {
 
         CMD(version_compatible)
 
+        CMD(double_to_str_valid)
+        CMD(float_to_str_valid)
     };
 
     return RUN_TESTS(tests);
