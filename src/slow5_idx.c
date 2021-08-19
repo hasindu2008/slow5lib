@@ -358,6 +358,7 @@ static int slow5_idx_read(struct slow5_idx *index) {
         }
 
         if (slow5_idx_insert(index, read_id, offset, size) == -1) {
+            SLOW5_ERROR("Inserting '%s' to index failed", read_id);
             // TODO handle error and free
             return -1;
         }
@@ -372,6 +373,7 @@ int slow5_idx_insert(struct slow5_idx *index, char *read_id, uint64_t offset, ui
     khint_t k = kh_put(slow5_s2i, index->hash, read_id, &absent);
     if (absent == -1 || absent == 0) {
         // TODO error if read_id duplicated?
+        SLOW5_ERROR("Read ID '%s' is duplicated", read_id);
         return -1;
     }
 
