@@ -141,6 +141,7 @@ static int slow5_idx_build(struct slow5_idx *index, struct slow5_file *s5p) {
 
             if (slow5_idx_insert(index, read_id, offset, size) == -1) {
                 // TODO handle error and free
+                SLOW5_ERROR("Inserting '%s' to index failed", read_id);
                 return -1;
             }
             offset += buf_len;
@@ -214,6 +215,7 @@ static int slow5_idx_build(struct slow5_idx *index, struct slow5_file *s5p) {
 
             // Insert index record
             if (slow5_idx_insert(index, read_id, offset, size) == -1) {
+                SLOW5_ERROR("Inserting '%s' to index failed", read_id);
                 // TODO handle error and free
                 return -1;
             }
