@@ -6,6 +6,10 @@ except ImportError:
 
 import numpy as np
 
+cmdclass={}
+from Cython.Build import build_ext
+cmdclass['build_ext'] = build_ext
+
 #adapted from https://github.com/lh3/minimap2/blob/master/setup.py
 
 sources=['python/pyslow5.pyx', 'src/slow5.c', 'src/slow5_press.c', 'src/slow5_misc.c', 'src/slow5_idx.c' ]
@@ -43,7 +47,7 @@ setup(
     ext_modules=extensions,
     # requires=['numpy (>=1.3.0)'],
     #packages=packages,
-    #cmdclass=cmdclass,
+    cmdclass=cmdclass,
     python_requires='>=3.4.3',
     install_requires=["numpy"],
     setup_requires=["cython"]
