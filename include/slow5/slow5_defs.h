@@ -70,6 +70,8 @@ extern "C" {
 #define SLOW5_HDR_FILE_VERSION_SEP  "."
 #define SLOW5_HDR_NUM_GROUPS        "num_read_groups"
 #define SLOW5_HDR_NUM_GROUPS_INIT   (1)
+#define SLOW5_HDR_ENUM_LABELS_BEGIN '{'
+#define SLOW5_HDR_ENUM_LABELS_END   '}'
 
 // Order, format string and type of main SLOW5 columns
 // NOTE if this is changed, also edit:
