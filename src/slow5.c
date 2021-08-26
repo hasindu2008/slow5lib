@@ -60,6 +60,7 @@ KSORT_INIT_STR
 /* TODO is this good? Or put to a page length */
 #define SLOW5_HDR_STR_INIT_CAP (1024) /* Initial capacity for converting the header to a string: 2^10 */
 #define SLOW5_AUX_META_CAP_INIT (32) /* Initial capacity for the number of auxiliary fields: 2^5 */
+#define SLOW5_AUX_ENUM_LABELS_CAP_INIT (32) /* Initial capacity for the number of enum labels: 2^5 */
 #define SLOW5_AUX_ARRAY_CAP_INIT (256) /* Initial capacity for parsing auxiliary array: 2^8 */
 #define SLOW5_AUX_ARRAY_STR_CAP_INIT (1024) /* Initial capacity for storing auxiliary array string: 2^10 */
 
@@ -1510,7 +1511,7 @@ struct slow5_aux_meta *slow5_aux_meta_init(FILE *fp, char **bufp, size_t *cap, u
                 }
 
                 uint8_t enum_num_labels;
-                const char **enum_labels = slow5_aux_meta_enum_parse(tok, type, &enum_num_labels);
+                const char **enum_labels = (const char **) slow5_aux_meta_enum_parse(tok, type, &enum_num_labels);
                 if (!enum_labels) {
                     SLOW5_ERROR("Malformed slow5 header. Invalid enum labels '%s', expected 'enum%s{LABEL_0,LABEL_1,...}'.",
                             tok, SLOW5_IS_PTR(type) ? "*" : "");
@@ -1674,10 +1675,13 @@ struct slow5_aux_meta *slow5_aux_meta_init(FILE *fp, char **bufp, size_t *cap, u
 /**
  * parses "enum[*]{LABEL_0,LABEL_1,...}"
  * expects the first enum[*] part to be verified
+ * tok, n cannot be NULL
+ * rules: no spaces anywhere, no empty labels, no duplicate labels
+ * returns the array of labels as strings
  * returns NULL on parsing error
- * TODO test this
+ * free the labels and the array after use
  */
-const char **slow5_aux_meta_enum_parse(char *tok, enum slow5_aux_type type, uint8_t *n) {
+char **slow5_aux_meta_enum_parse(char *tok, enum slow5_aux_type type, uint8_t *n) {
 
     const char *type_str = SLOW5_AUX_TYPE_META[type].type_str;
     const size_t tok_len = strlen(tok);
@@ -1701,29 +1705,71 @@ const char **slow5_aux_meta_enum_parse(char *tok, enum slow5_aux_type type, uint
     tok[tok_len - 1] = '\0'; /* ignore trailing } */
     tok += strlen(type_str) + 1; /* skip "enum[*]{" */
 
-    char *label = slow5_strsep(&tok, SLOW5_SEP_ARRAY);
-    if (strcmp(label, "") == 0) {
-        SLOW5_ERROR("%s", "No enum label was found.");
-        return NULL;
-    }
-
     uint8_t num = 0;
-    uint8_t cap = UINT8_MAX; /* TODO use an initial capacity of 32? */
-    const char **labels = malloc(cap * sizeof *labels);
+    uint16_t cap = SLOW5_AUX_ENUM_LABELS_CAP_INIT;
+    char **labels = malloc(cap * sizeof *labels);
     if (!labels) {
         SLOW5_MALLOC_ERROR();
         return NULL;
     }
 
+    char *label = slow5_strsep(&tok, SLOW5_SEP_ARRAY);
     do {
+        /* check if it's a std c label */
+        int ret;
+        if ((ret = slow5_is_c_label(label)) != 0) {
+
+            if (ret == -1) {
+                SLOW5_ERROR("Enum label for %d is empty.", num);
+            } else if (ret == -2) {
+                SLOW5_ERROR("Enum label '%s' for %d has a character which is not alpha-numeric nor an underscore.", label, num);
+            } else { /* ret == -3 */
+                SLOW5_ERROR("Enum label '%s' for %d starts with a number.", label, num);
+            }
+
+            for (uint16_t i = 0; i < num; ++ i) {
+                free(labels[i]);
+            }
+            free(labels);
+            return NULL;
+        }
+
+        /* very naive algorithm TODO could use hashsets */
+        for (uint16_t i = 0; i < num; ++ i) {
+            if (strcmp(label, labels[i]) == 0) { /* duplicate label */
+                SLOW5_ERROR("Enum label '%s' for %d is a duplicate of label %d.",
+                        label, num, i);
+
+                for (uint16_t i = 0; i < num; ++ i) {
+                    free(labels[i]);
+                }
+                free(labels);
+                return NULL;
+            }
+        }
+
         char *label_cp = strdup(label);
         if (!label_cp) {
             SLOW5_MALLOC_ERROR();
             for (uint16_t i = 0; i < num; ++ i) {
-                free((void *) labels[i]);
+                free(labels[i]);
             }
             free(labels);
             return NULL;
+        }
+
+        if (num >= cap) {
+            cap = cap << 1;
+            char **labels_tmp = realloc(labels, cap * sizeof *labels);
+            if (!labels_tmp) { /* memory allocation error */
+                SLOW5_MALLOC_ERROR();
+                for (uint16_t i = 0; i < num; ++ i) {
+                    free(labels[i]);
+                }
+                free(labels);
+                return NULL;
+            }
+            labels = labels_tmp;
         }
 
         labels[num] = label_cp;

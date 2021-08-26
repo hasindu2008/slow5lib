@@ -41,7 +41,7 @@ struct slow5_aux_meta *slow5_aux_meta_init_empty(void);
 struct slow5_aux_meta *slow5_aux_meta_init(FILE *fp, char **buf, size_t *cap, uint32_t *hdr_len, int *err);
 int slow5_aux_meta_add(struct slow5_aux_meta *aux_meta, const char *attr, enum slow5_aux_type type);
 void slow5_aux_meta_free(struct slow5_aux_meta *aux_meta);
-const char **slow5_aux_meta_enum_parse(char *tok, enum slow5_aux_type type, uint8_t *n);
+char **slow5_aux_meta_enum_parse(char *tok, enum slow5_aux_type type, uint8_t *n);
 
 // slow5 record
 void *slow5_get_mem(const char *read_id, size_t *n, const struct slow5_file *s5p);
