@@ -27,6 +27,24 @@ int slow5_open_valid(void) {
     }
     ASSERT(printf("\n") == 1);
 
+    /* TODO make something like this
+     * struct slow5_rec_aux_data end_reason_data = slow5_rec_get_aux_data(read, s5p->header->aux_meta, "end_reason");
+     * instead of the following
+     * freeing end_reason data before setting */
+    khint_t pos = kh_get(slow5_s2a, read->aux_map, "end_reason");
+    struct slow5_rec_aux_data end_reason_data = kh_val(read->aux_map, pos);
+    free(end_reason_data.data);
+
+    end_reason = 0;
+    ASSERT(slow5_rec_set(read, s5p->header->aux_meta, "end_reason", &end_reason) == 0);
+    end_reason = slow5_aux_get_enum(read, "end_reason", &err);
+    ASSERT(end_reason == 0); // unknown
+    ASSERT(err == 0);
+    ASSERT(strcmp(end_reason_labels[end_reason], "unknown") == 0);
+
+    end_reason = 100;
+    ASSERT(slow5_rec_set(read, s5p->header->aux_meta, "end_reason", &end_reason) == -4);
+
     free(end_reason_labels);
     slow5_rec_free(read);
     ASSERT(slow5_close(s5p) == 0);
@@ -268,6 +286,35 @@ int slow5_enum_parse_duplicate(void) {
     return EXIT_SUCCESS;
 }
 
+int slow5_get_set_enum_array(void) {
+
+    struct slow5_file *s5p = slow5_open("test/data/exp/aux_array/exp_lossless_end_reason.slow5", "r");
+    ASSERT(s5p);
+    ASSERT(slow5_idx_load(s5p) == 0);
+
+    uint8_t enum_array_valid[] = { 0, 1, 2, 3, 4, 5 };
+    uint8_t enum_array_invalid[] = { 0, 1, 2, 3, 4, 5, 6 };
+    const char *enum_labels[] = {"unk","par","mux","unblock","plus","neg"};
+    const char *enum_labels_bad[] = {"unk","par","mux","unblock","+","-"};
+
+    struct slow5_rec *read = NULL;
+    ASSERT(slow5_get("a649a4ae-c43d-492a-b6a1-a5b8b8076be4", &read, s5p) == 0);
+
+    ASSERT(slow5_aux_meta_add_enum(s5p->header->aux_meta, "end_reasons", SLOW5_ENUM_ARRAY, enum_labels_bad, SLOW5_LENGTH(enum_labels_bad)) == -4);
+    ASSERT(slow5_aux_meta_add_enum(s5p->header->aux_meta, "end_reasons", SLOW5_ENUM_ARRAY, enum_labels, SLOW5_LENGTH(enum_labels)) == 0);
+
+    ASSERT(slow5_rec_set_array(read, s5p->header->aux_meta, "end_reasons", enum_array_valid, SLOW5_LENGTH(enum_array_valid)) == 0);
+    slow5_hdr_print(s5p->header, SLOW5_FORMAT_ASCII, SLOW5_COMPRESS_NONE);
+    slow5_rec_print(read, s5p->header->aux_meta, SLOW5_FORMAT_ASCII, NULL);
+
+    ASSERT(slow5_rec_set_array(read, s5p->header->aux_meta, "end_reasons", enum_array_invalid, SLOW5_LENGTH(enum_array_invalid)) == -4);
+
+    slow5_rec_free(read);
+    ASSERT(slow5_close(s5p) == 0);
+
+    return EXIT_SUCCESS;
+}
+
 int main(void) {
 
     slow5_set_log_level(SLOW5_LOG_OFF);
@@ -281,6 +328,7 @@ int main(void) {
         CMD(enum_parse_valid)
         CMD(enum_parse_invalid)
         CMD(slow5_enum_parse_duplicate)
+        CMD(slow5_get_set_enum_array)
     };
 
     return RUN_TESTS(tests);

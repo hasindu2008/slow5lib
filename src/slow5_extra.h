@@ -40,6 +40,7 @@ void slow5_hdr_data_free(struct slow5_hdr *header);
 struct slow5_aux_meta *slow5_aux_meta_init_empty(void);
 struct slow5_aux_meta *slow5_aux_meta_init(FILE *fp, char **buf, size_t *cap, uint32_t *hdr_len, int *err);
 int slow5_aux_meta_add(struct slow5_aux_meta *aux_meta, const char *attr, enum slow5_aux_type type);
+int slow5_aux_meta_add_enum(struct slow5_aux_meta *aux_meta, const char *attr, enum slow5_aux_type type, const char **enum_labels, uint8_t enum_num_labels);
 void slow5_aux_meta_free(struct slow5_aux_meta *aux_meta);
 char **slow5_aux_meta_enum_parse(char *tok, enum slow5_aux_type type, uint8_t *n);
 
