@@ -715,7 +715,7 @@ enum slow5_aux_type *slow5_get_aux_types(const slow5_hdr_t *header,uint64_t *len
 // 0    success
 // -1   input invalid
 // -2   failure
-int slow5_convert(struct slow5_file *from, FILE *to_fp, enum slow5_fmt to_format, slow5_press_method_t to_read_compress, slow5_press_method_t to_signal_compress);
+int slow5_convert(slow5_file_t *from, FILE *to_fp, enum slow5_fmt to_format, slow5_press_method_t to_read_compress, slow5_press_method_t to_signal_compress);
 
 
 //set the log verbosity level. the log is printed to the standard error.
