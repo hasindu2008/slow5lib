@@ -17,6 +17,7 @@ cdef extern from "pyslow5.h":
         SLOW5_FLOAT,
         SLOW5_DOUBLE,
         SLOW5_CHAR,
+        SLOW5_ENUM,
         SLOW5_INT8_T_ARRAY,
         SLOW5_INT16_T_ARRAY,
         SLOW5_INT32_T_ARRAY,
@@ -27,7 +28,8 @@ cdef extern from "pyslow5.h":
         SLOW5_UINT64_T_ARRAY,
         SLOW5_FLOAT_ARRAY,
         SLOW5_DOUBLE_ARRAY,
-        SLOW5_STRING
+        SLOW5_STRING,
+        SLOW5_ENUM_ARRAY
 
 
     ctypedef struct slow5_version:
