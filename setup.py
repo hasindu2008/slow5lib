@@ -34,7 +34,7 @@ extensions = [Extension('pyslow5',
 
 setup(
     name = 'pyslow5',
-    version='0.2.0',
+    version='0.2.0a1',
     url = 'https://github.com/hasindu2008/slow5lib',
     description='slow5lib python bindings',
     long_description='The slow5 python library (pyslow5) allows a user to read slow5 and blow5 files. Visit https://hasindu2008.github.io/slow5lib/pyslow5_api/pyslow5.html',
