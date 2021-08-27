@@ -656,14 +656,16 @@ int slow5_hdr_set(const char *attr, const char *value, uint32_t read_group, slow
  * or format is SLOW5_FORMAT_UNKNOWN
  * or an internal error occurs.
  *
- * @param   header  slow5 header
- * @param   format  slow5 format to write the entry in
- * @param   comp    compression method
+ * @param   header          slow5 header
+ * @param   format          slow5 format to write the entry in
+ * @param   record_comp     record compression method
+ * @param   signal_comp     signal compression method
  * @param   written number of bytes written to the returned buffer
  * @return  malloced memory storing the slow5 header representation,
  *          to use free() on afterwards
  */
-void *slow5_hdr_to_mem(slow5_hdr_t *header, enum slow5_fmt format, slow5_press_method_t comp, size_t *written);
+/* TODO extra signal_comp argument or use slow5_press? */
+void *slow5_hdr_to_mem(slow5_hdr_t *header, enum slow5_fmt format, slow5_press_method_t record_comp, slow5_press_method_t signal_comp, size_t *written);
 
 /**
  * Print the header in the specified format to a file pointer.
@@ -671,14 +673,16 @@ void *slow5_hdr_to_mem(slow5_hdr_t *header, enum slow5_fmt format, slow5_press_m
  * On success, the number of bytes written is returned.
  * On error, -1 is returned.
  *
- * @param   fp      output file pointer
- * @param   header  slow5 header
- * @param   format  slow5 format to write the entry in
+ * @param   fp              output file pointer
+ * @param   header          slow5 header
+ * @param   format          slow5 format to write the entry in
+ * @param   record_comp     record compression method
+ * @param   signal_comp     signal compression method
  * @return  number of bytes written, -1 on error
  */
-int slow5_hdr_fwrite(FILE *fp, slow5_hdr_t *header, enum slow5_fmt format, slow5_press_method_t comp);
-static inline int slow5_hdr_print(slow5_hdr_t *header, enum slow5_fmt format, slow5_press_method_t comp) {
-    return slow5_hdr_fwrite(stdout, header, format, comp);
+int slow5_hdr_fwrite(FILE *fp, slow5_hdr_t *header, enum slow5_fmt format, slow5_press_method_t record_comp, slow5_press_method_t signal_comp);
+static inline int slow5_hdr_print(slow5_hdr_t *header, enum slow5_fmt format, slow5_press_method_t record_comp, slow5_press_method_t signal_comp) {
+    return slow5_hdr_fwrite(stdout, header, format, record_comp, signal_comp);
 }
 
 /**
@@ -711,7 +715,7 @@ enum slow5_aux_type *slow5_get_aux_types(const slow5_hdr_t *header,uint64_t *len
 // 0    success
 // -1   input invalid
 // -2   failure
-int slow5_convert(slow5_file_t *from, FILE *to_fp, enum slow5_fmt to_format, slow5_press_method_t to_compress);
+int slow5_convert(struct slow5_file *from, FILE *to_fp, enum slow5_fmt to_format, slow5_press_method_t to_read_compress, slow5_press_method_t to_signal_compress);
 
 
 //set the log verbosity level. the log is printed to the standard error.

@@ -35,9 +35,9 @@ static void *ptr_compress_zstd(const void *ptr, size_t count, size_t *n);
 static void *ptr_depress_zstd(const void *ptr, size_t count, size_t *n);
 
 /* other */
-static int vfprintf_compress(struct slow5_press *comp, FILE *fp, const char *format, va_list ap);
+static int vfprintf_compress(struct __slow5_press *comp, FILE *fp, const char *format, va_list ap);
 
-/* --- Init / free slow5_press structure --- */
+/* --- Init / free (__)slow5_press structures --- */
 
 /*
  * init slow5_press struct
@@ -47,11 +47,55 @@ static int vfprintf_compress(struct slow5_press *comp, FILE *fp, const char *for
  * SLOW5_ERR_ARG    method is bad
  * SLOW5_ERR_PRESS  (de)compression failure
  */
-struct slow5_press *slow5_press_init(slow5_press_method_t method) {
+struct slow5_press *slow5_press_init(slow5_press_method_t record_method, slow5_press_method_t signal_method) {
 
-    struct slow5_press *comp = NULL;
+    struct __slow5_press *record_comp = __slow5_press_init(record_method);
+    if (!record_comp) {
+        return NULL;
+    }
 
-    comp = (struct slow5_press *) calloc(1, sizeof *comp);
+    struct __slow5_press *signal_comp = __slow5_press_init(signal_method);
+    if (!signal_comp) {
+        __slow5_press_free(record_comp);
+        return NULL;
+    }
+
+    struct slow5_press *comp = (struct slow5_press *) calloc(1, sizeof *comp);
+    if (!comp) {
+        SLOW5_MALLOC_ERROR();
+        __slow5_press_free(record_comp);
+        __slow5_press_free(signal_comp);
+        slow5_errno = SLOW5_ERR_MEM;
+        return NULL;
+    }
+    comp->record_press = record_comp;
+    comp->signal_press = signal_comp;
+
+    return comp;
+}
+
+void slow5_press_free(struct slow5_press *comp) {
+
+    if (comp) {
+        __slow5_press_free(comp->record_press);
+        __slow5_press_free(comp->signal_press);
+        free(comp);
+    }
+}
+
+/*
+ * init __slow5_press struct
+ * returns NULL on error and sets errno
+ * errors
+ * SLOW5_ERR_MEM
+ * SLOW5_ERR_ARG    method is bad
+ * SLOW5_ERR_PRESS  (de)compression failure
+ */
+struct __slow5_press *__slow5_press_init(slow5_press_method_t method) {
+
+    struct __slow5_press *comp = NULL;
+
+    comp = (struct __slow5_press *) calloc(1, sizeof *comp);
     if (!comp) {
         SLOW5_MALLOC_ERROR();
         slow5_errno = SLOW5_ERR_MEM;
@@ -59,7 +103,6 @@ struct slow5_press *slow5_press_init(slow5_press_method_t method) {
     }
     comp->method = method;
 
-    method = SLOW5_PRESS_RECORD_METHOD(method);
     switch (method) {
         case SLOW5_COMPRESS_NONE: break;
         case SLOW5_COMPRESS_ZLIB:
@@ -124,11 +167,11 @@ struct slow5_press *slow5_press_init(slow5_press_method_t method) {
     return comp;
 }
 
-void slow5_press_free(struct slow5_press *comp) {
+void __slow5_press_free(struct __slow5_press *comp) {
 
     if (comp) {
 
-        switch (SLOW5_PRESS_RECORD_METHOD(comp->method)) {
+        switch (comp->method) {
 
             case SLOW5_COMPRESS_NONE: break;
             case SLOW5_COMPRESS_ZLIB:
@@ -188,13 +231,13 @@ void *slow5_ptr_compress_solo(slow5_press_method_t method, const void *ptr, size
 
 /* --- Compress / decompress to some memory --- */
 
-void *slow5_ptr_compress(struct slow5_press *comp, const void *ptr, size_t count, size_t *n) {
+void *slow5_ptr_compress(struct __slow5_press *comp, const void *ptr, size_t count, size_t *n) {
     void *out = NULL;
     size_t n_tmp = 0;
 
     if (comp && ptr) {
 
-        switch (SLOW5_PRESS_RECORD_METHOD(comp->method)) {
+        switch (comp->method) {
 
             case SLOW5_COMPRESS_NONE:
                 out = (void *) malloc(count);
@@ -281,7 +324,7 @@ void *slow5_ptr_depress_solo(slow5_press_method_t method, const void *ptr, size_
  * returns NULL on error and *n set to 0
  * DONE
  */
-void *slow5_ptr_depress(struct slow5_press *comp, const void *ptr, size_t count, size_t *n) {
+void *slow5_ptr_depress(struct __slow5_press *comp, const void *ptr, size_t count, size_t *n) {
     void *out = NULL;
 
     if (!comp || !ptr) {
@@ -298,7 +341,7 @@ void *slow5_ptr_depress(struct slow5_press *comp, const void *ptr, size_t count,
     } else {
         size_t n_tmp = 0;
 
-        switch (SLOW5_PRESS_RECORD_METHOD(comp->method)) {
+        switch (comp->method) {
 
             case SLOW5_COMPRESS_NONE:
                 out = (void *) malloc(count);
@@ -346,13 +389,13 @@ void *slow5_ptr_depress(struct slow5_press *comp, const void *ptr, size_t count,
 /* --- Compress / decompress a ptr to some file --- */
 
 /* return -1 on failure */
-ssize_t slow5_fwrite_compress(struct slow5_press *comp, const void *ptr, size_t size, size_t nmemb, FILE *fp) {
+ssize_t slow5_fwrite_compress(struct __slow5_press *comp, const void *ptr, size_t size, size_t nmemb, FILE *fp) {
     ssize_t bytes = -1;
     size_t bytes_tmp = 0;
     void *out = NULL;
 
     if (comp) {
-        switch (SLOW5_PRESS_RECORD_METHOD(comp->method)) {
+        switch (comp->method) {
 
             case SLOW5_COMPRESS_NONE:
                 bytes = fwrite(ptr, size, nmemb, fp);
@@ -414,7 +457,7 @@ ssize_t slow5_fwrite_compress(struct slow5_press *comp, const void *ptr, size_t 
  * returns NULL on error and *n set to 0
  * DONE
  */
-void *slow5_fread_depress(struct slow5_press *comp, size_t count, FILE *fp, size_t *n) {
+void *slow5_fread_depress(struct __slow5_press *comp, size_t count, FILE *fp, size_t *n) {
     void *raw = (void *) malloc(count);
     SLOW5_MALLOC_CHK(raw);
     if (!raw) {
@@ -451,7 +494,7 @@ static void *fread_depress_solo(slow5_press_method_t method, size_t count, FILE 
     return out;
 }
 */
-void *slow5_pread_depress(struct slow5_press *comp, int fd, size_t count, off_t offset, size_t *n) {
+void *slow5_pread_depress(struct __slow5_press *comp, int fd, size_t count, off_t offset, size_t *n) {
     void *raw = (void *) malloc(count);
     SLOW5_MALLOC_CHK(raw);
 
@@ -498,7 +541,7 @@ void *slow5_pread_depress_solo(slow5_press_method_t method, int fd, size_t count
 
 /* --- Compress with printf to some file --- */
 
-int slow5_fprintf_compress(struct slow5_press *comp, FILE *fp, const char *format, ...) {
+int slow5_fprintf_compress(struct __slow5_press *comp, FILE *fp, const char *format, ...) {
     int ret = -1;
 
     va_list ap;
@@ -511,7 +554,7 @@ int slow5_fprintf_compress(struct slow5_press *comp, FILE *fp, const char *forma
     return ret;
 }
 
-int slow5_printf_compress(struct slow5_press *comp, const char *format, ...) {
+int slow5_printf_compress(struct __slow5_press *comp, const char *format, ...) {
     int ret = -1;
 
     va_list ap;
@@ -524,12 +567,12 @@ int slow5_printf_compress(struct slow5_press *comp, const char *format, ...) {
     return ret;
 }
 
-static int vfprintf_compress(struct slow5_press *comp, FILE *fp, const char *format, va_list ap) {
+static int vfprintf_compress(struct __slow5_press *comp, FILE *fp, const char *format, va_list ap) {
     int ret = -1;
 
     if (comp) {
 
-        if (SLOW5_PRESS_RECORD_METHOD(comp->method) == SLOW5_COMPRESS_NONE) {
+        if (comp->method == SLOW5_COMPRESS_NONE) {
             ret = vfprintf(fp, format, ap);
         } else {
             char *buf;
@@ -547,10 +590,10 @@ static int vfprintf_compress(struct slow5_press *comp, FILE *fp, const char *for
 
 /* --- Write compression footer on immediate next compression call --- */
 
-void slow5_compress_footer_next(struct slow5_press *comp) {
+void slow5_compress_footer_next(struct __slow5_press *comp) {
 
     if (comp && comp->stream) {
-        switch (SLOW5_PRESS_RECORD_METHOD(comp->method)) {
+        switch (comp->method) {
             case SLOW5_COMPRESS_NONE: break;
             case SLOW5_COMPRESS_ZLIB: {
                 struct slow5_zlib_stream *zlib = comp->stream->zlib;

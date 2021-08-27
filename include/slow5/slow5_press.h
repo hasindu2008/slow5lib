@@ -59,9 +59,6 @@ extern "C" {
 
 #define SLOW5_ZSTD_COMPRESS_LEVEL (1)
 
-#define SLOW5_PRESS_RECORD_METHOD(method) (method & 0x0f)
-#define SLOW5_PRESS_SIGNAL_METHOD(method) (method >> 4)
-
 /* (de)compression methods */
 enum slow5_press_method {
     SLOW5_COMPRESS_NONE,
@@ -84,54 +81,61 @@ union slow5_press_stream {
 };
 
 /* (de)compression object */
-typedef struct slow5_press {
+struct __slow5_press {
     slow5_press_method_t method;
     union slow5_press_stream *stream;
+};
+
+typedef struct slow5_press {
+    struct __slow5_press *record_press;
+    struct __slow5_press *signal_press;
 } slow5_press_t;
 
 /* init or free for multiple (de)compress calls */
-struct slow5_press *slow5_press_init(slow5_press_method_t method);
+struct slow5_press *slow5_press_init(slow5_press_method_t record_method, slow5_press_method_t signal_method);
+struct __slow5_press *__slow5_press_init(slow5_press_method_t method);
 void slow5_press_free(struct slow5_press *comp);
+void __slow5_press_free(struct __slow5_press *comp);
 
 /* (de)compress ptr */
-void *slow5_ptr_compress(struct slow5_press *comp, const void *ptr, size_t count, size_t *n);
+void *slow5_ptr_compress(struct __slow5_press *comp, const void *ptr, size_t count, size_t *n);
 void *slow5_ptr_compress_solo(slow5_press_method_t method, const void *ptr, size_t count, size_t *n);
-void *slow5_ptr_depress(struct slow5_press *comp, const void *ptr, size_t count, size_t *n);
+void *slow5_ptr_depress(struct __slow5_press *comp, const void *ptr, size_t count, size_t *n);
 void *slow5_ptr_depress_solo(slow5_press_method_t method, const void *ptr, size_t count, size_t *n);
-static inline void *slow5_str_compress(struct slow5_press *comp, const char *str, size_t *n);
+static inline void *slow5_str_compress(struct __slow5_press *comp, const char *str, size_t *n);
 
 /* (de)compress ptr and write */
-ssize_t slow5_fwrite_compress(struct slow5_press *comp, const void *ptr, size_t size, size_t nmemb, FILE *fp);
-ssize_t slow5_fwrite_depress(struct slow5_press *comp, const void *ptr, size_t size, size_t nmemb, FILE *fp); /* TODO */
-static inline ssize_t slow5_fwrite_str_compress(struct slow5_press *comp, const char *str, FILE *fp);
-static inline ssize_t slow5_print_compress(struct slow5_press *comp, const void *ptr, size_t size, size_t nmemb);
-static inline ssize_t slow5_print_depress(struct slow5_press *comp, const void *ptr, size_t size, size_t nmemb);
-static inline ssize_t slow5_print_str_compress(struct slow5_press *comp, const char *str);
-int slow5_fprintf_compress(struct slow5_press *comp, FILE *fp, const char *format, ...);
-int slow5_printf_compress(struct slow5_press *comp, const char *format, ...);
+ssize_t slow5_fwrite_compress(struct __slow5_press *comp, const void *ptr, size_t size, size_t nmemb, FILE *fp);
+ssize_t slow5_fwrite_depress(struct __slow5_press *comp, const void *ptr, size_t size, size_t nmemb, FILE *fp); /* TODO */
+static inline ssize_t slow5_fwrite_str_compress(struct __slow5_press *comp, const char *str, FILE *fp);
+static inline ssize_t slow5_print_compress(struct __slow5_press *comp, const void *ptr, size_t size, size_t nmemb);
+static inline ssize_t slow5_print_depress(struct __slow5_press *comp, const void *ptr, size_t size, size_t nmemb);
+static inline ssize_t slow5_print_str_compress(struct __slow5_press *comp, const char *str);
+int slow5_fprintf_compress(struct __slow5_press *comp, FILE *fp, const char *format, ...);
+int slow5_printf_compress(struct __slow5_press *comp, const char *format, ...);
 
 /* read and (de)compress */
-void *slow5_fread_depress(struct slow5_press *comp, size_t count, FILE *fp, size_t *n);
-void *slow5_pread_depress(struct slow5_press *comp, int fd, size_t count, off_t offset, size_t *n);
+void *slow5_fread_depress(struct __slow5_press *comp, size_t count, FILE *fp, size_t *n);
+void *slow5_pread_depress(struct __slow5_press *comp, int fd, size_t count, off_t offset, size_t *n);
 void *slow5_pread_depress_solo(slow5_press_method_t method, int fd, size_t count, off_t offset, size_t *n);
 
 /* write compression footer on next compress call */
-void slow5_compress_footer_next(struct slow5_press *comp);
+void slow5_compress_footer_next(struct __slow5_press *comp);
 
 /* static inline function definitions */
-static inline void *slow5_str_compress(struct slow5_press *comp, const char *str, size_t *n) {
+static inline void *slow5_str_compress(struct __slow5_press *comp, const char *str, size_t *n) {
     return slow5_ptr_compress(comp, str, strlen(str) + 1, n); /* include '\0' */
 }
-static inline ssize_t slow5_fwrite_str_compress(struct slow5_press *comp, const char *str, FILE *fp) {
+static inline ssize_t slow5_fwrite_str_compress(struct __slow5_press *comp, const char *str, FILE *fp) {
     return slow5_fwrite_compress(comp, str, sizeof *str, strlen(str), fp); /* don't include '\0' */
 }
-static inline ssize_t slow5_print_compress(struct slow5_press *comp, const void *ptr, size_t size, size_t nmemb) {
+static inline ssize_t slow5_print_compress(struct __slow5_press *comp, const void *ptr, size_t size, size_t nmemb) {
     return slow5_fwrite_compress(comp, ptr, size, nmemb, stdout);
 }
-static inline ssize_t slow5_print_depress(struct slow5_press *comp, const void *ptr, size_t size, size_t nmemb) {
+static inline ssize_t slow5_print_depress(struct __slow5_press *comp, const void *ptr, size_t size, size_t nmemb) {
     return slow5_fwrite_depress(comp, ptr, size, nmemb, stdout);
 }
-static inline ssize_t slow5_print_str_compress(struct slow5_press *comp, const char *str) {
+static inline ssize_t slow5_print_str_compress(struct __slow5_press *comp, const char *str) {
     return slow5_fwrite_str_compress(comp, str, stdout);
 }
 

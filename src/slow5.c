@@ -116,8 +116,9 @@ struct slow5_file *slow5_init(FILE *fp, const char *pathname, enum slow5_fmt for
     }
     // TODO Attempt to determine from magic number
 
-    slow5_press_method_t method;
-    struct slow5_hdr *header = slow5_hdr_init(fp, format, &method);
+    slow5_press_method_t record_method;
+    slow5_press_method_t signal_method;
+    struct slow5_hdr *header = slow5_hdr_init(fp, format, &record_method, &signal_method);
     if (!header) {
         SLOW5_ERROR("Parsing slow5 header of file '%s' failed.", pathname);
         return NULL;
@@ -135,7 +136,7 @@ struct slow5_file *slow5_init(FILE *fp, const char *pathname, enum slow5_fmt for
     s5p->format = format;
     s5p->header = header;
 
-    s5p->compress = slow5_press_init(method);
+    s5p->compress = slow5_press_init(record_method, signal_method);
     if (!s5p->compress) {
         slow5_hdr_free(header);
         free(s5p);
@@ -364,14 +365,18 @@ struct slow5_hdr *slow5_hdr_init_empty(void) {
  * slow5_hdr_data_init errors
  * slow5_aux_meta_init errors
  */
-struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_method_t *method) {
+/* TODO extra argument signal_method or use slow5_press? */
+struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_method_t *record_method, slow5_press_method_t *signal_method) {
 
-    if (!fp || !method) {
+    if (!fp || !record_method || !signal_method) {
         if (!fp) {
             SLOW5_ERROR("Argument '%s' cannot be NULL.", SLOW5_TO_STR(fp));
         }
-        if (!method) {
-            SLOW5_ERROR("Argument '%s' cannot be NULL.", SLOW5_TO_STR(method));
+        if (!record_method) {
+            SLOW5_ERROR("Argument '%s' cannot be NULL.", SLOW5_TO_STR(record_method));
+        }
+        if (!signal_method) {
+            SLOW5_ERROR("Argument '%s' cannot be NULL.", SLOW5_TO_STR(signal_method));
         }
         slow5_errno = SLOW5_ERR_ARG;
         return NULL;
@@ -388,7 +393,8 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
 
     // Parse slow5 header
     if (format == SLOW5_FORMAT_ASCII) {
-        *method = SLOW5_COMPRESS_NONE;
+        *record_method = SLOW5_COMPRESS_NONE;
+        *signal_method = SLOW5_COMPRESS_NONE;
 
         // Buffer for file parsing
         size_t cap = SLOW5_HDR_DATA_BUF_INIT_CAP;
@@ -540,11 +546,14 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
         } else if (fread(&header->version.patch, sizeof header->version.patch, 1, fp) != 1) {
             SLOW5_ERROR("Malformed blow5 header. Failed to read the patch version.%s", feof(fp) ? " EOF reached." : "");
             goto err_fread;
-        } else if (fread(method, sizeof *method, 1, fp) != 1) {
-            SLOW5_ERROR("Malformed blow5 header. Failed to read the compression method.%s", feof(fp) ? " EOF reached." : "");
+        } else if (fread(record_method, sizeof *record_method, 1, fp) != 1) {
+            SLOW5_ERROR("Malformed blow5 header. Failed to read the record compression method.%s", feof(fp) ? " EOF reached." : "");
             goto err_fread;
         } else if (fread(&header->num_read_groups, sizeof header->num_read_groups, 1, fp) != 1) {
             SLOW5_ERROR("Malformed blow5 header. Failed to read the number of read groups.%s", feof(fp) ? " EOF reached." : "");
+            goto err_fread;
+        } else if (fread(signal_method, sizeof *signal_method, 1, fp) != 1) {
+            SLOW5_ERROR("Malformed blow5 header. Failed to read the signal compression method.%s", feof(fp) ? " EOF reached." : "");
             goto err_fread;
         } else if (fseek(fp, SLOW5_BINARY_HDR_SIZE_OFFSET, SEEK_SET) == -1) {
             SLOW5_ERROR("Failed to fseek() to offset %ld: %s.", SLOW5_BINARY_HDR_SIZE_OFFSET, strerror(errno));
@@ -646,9 +655,10 @@ const char **slow5_get_hdr_keys(const slow5_hdr_t *header, uint64_t *len) {
  * or format is SLOW5_FORMAT_UNKNOWN
  * or an internal error occurs.
  *
- * @param   s5p     slow5 file
- * @param   format  slow5 format to write the entry in
- * @param   comp    compression method
+ * @param   header          slow5 header
+ * @param   format          slow5 format to write the entry in
+ * @param   record_comp     record compression method
+ * @param   signal_comp     signal compression method
  * @param   n       number of bytes written to the returned buffer
  * @return  malloced memory storing the slow5 header representation,
  *          to use free() on afterwards
@@ -657,7 +667,7 @@ const char **slow5_get_hdr_keys(const slow5_hdr_t *header, uint64_t *len) {
 
 //  flattened header returned as a void * (incase of BLOW5 magic number is also included)
 
-void *slow5_hdr_to_mem(struct slow5_hdr *header, enum slow5_fmt format, slow5_press_method_t comp, size_t *n) {
+void *slow5_hdr_to_mem(struct slow5_hdr *header, enum slow5_fmt format, slow5_press_method_t record_comp, slow5_press_method_t signal_comp, size_t *n) {
     char *mem = NULL;
 
     if (header == NULL || format == SLOW5_FORMAT_UNKNOWN) {
@@ -702,10 +712,12 @@ void *slow5_hdr_to_mem(struct slow5_hdr *header, enum slow5_fmt format, slow5_pr
         len += sizeof version->minor;
         memcpy(mem + len, &version->patch, sizeof version->patch);
         len += sizeof version->patch;
-        memcpy(mem + len, &comp, sizeof comp);
-        len += sizeof comp;
+        memcpy(mem + len, &record_comp, sizeof record_comp);
+        len += sizeof record_comp;
         memcpy(mem + len, &header->num_read_groups, sizeof header->num_read_groups);
         len += sizeof header->num_read_groups;
+        memcpy(mem + len, &signal_comp, sizeof signal_comp);
+        len += sizeof signal_comp;
 
         memset(mem + len, '\0', SLOW5_BINARY_HDR_SIZE_OFFSET - len);
         len = SLOW5_BINARY_HDR_SIZE_OFFSET;
@@ -949,17 +961,19 @@ char *slow5_hdr_attrs_to_str(struct slow5_aux_meta *aux_meta, size_t *len) {
  * On success, the number of bytes written is returned.
  * On error, -1 is returned.
  *
- * @param   fp      output file pointer
- * @param   s5p     slow5_rec pointer
- * @param   format  slow5 format to write the entry in
+ * @param   fp              output file pointer
+ * @param   header          slow5 header
+ * @param   format          slow5 format to write the entry in
+ * @param   record_comp     record compression method
+ * @param   signal_comp     signal compression method
  * @return  number of bytes written, -1 on error
  */
-int slow5_hdr_fwrite(FILE *fp, struct slow5_hdr *header, enum slow5_fmt format, slow5_press_method_t comp) {
+int slow5_hdr_fwrite(FILE *fp, struct slow5_hdr *header, enum slow5_fmt format, slow5_press_method_t record_comp, slow5_press_method_t signal_comp) {
     int ret;
     void *hdr;
     size_t hdr_size;
 
-    if (fp == NULL || header == NULL || (hdr = slow5_hdr_to_mem(header, format, comp, &hdr_size)) == NULL) {
+    if (fp == NULL || header == NULL || (hdr = slow5_hdr_to_mem(header, format, record_comp, signal_comp, &hdr_size)) == NULL) {
         return -1;
     }
 
@@ -1792,10 +1806,11 @@ int slow5_get(const char *read_id, struct slow5_rec **read, struct slow5_file *s
  */
 int slow5_rec_depress_parse(char **mem, size_t *bytes, const char *read_id, struct slow5_rec **read, struct slow5_file *s5p) {
 
-    if (s5p->compress && s5p->compress->method != SLOW5_COMPRESS_NONE) {
+    /* assuming that if compress is initialised so is record_press */
+    if (s5p->compress && s5p->compress->record_press->method != SLOW5_COMPRESS_NONE) {
         size_t new_bytes;
         char *new_mem;
-        if (!(new_mem = slow5_ptr_depress_solo(SLOW5_PRESS_RECORD_METHOD(s5p->compress->method), *mem, *bytes, &new_bytes)) || new_bytes == 0) {
+        if (!(new_mem = slow5_ptr_depress_solo(s5p->compress->record_press->method, *mem, *bytes, &new_bytes)) || new_bytes == 0) {
             if (read_id) {
                 SLOW5_ERROR("Failed to decompress read with ID '%s' from slow5 file '%s'.",
                         read_id, s5p->meta.pathname);
@@ -1809,7 +1824,12 @@ int slow5_rec_depress_parse(char **mem, size_t *bytes, const char *read_id, stru
         *mem = new_mem;
     }
 
-    if (slow5_rec_parse(*mem, *bytes, read_id, read, s5p->format, s5p->header->aux_meta, s5p->compress->method) == -1) {
+    slow5_press_method_t signal_comp = SLOW5_COMPRESS_NONE;
+    if (s5p->compress) {
+        signal_comp = s5p->compress->signal_press->method;
+    }
+
+    if (slow5_rec_parse(*mem, *bytes, read_id, read, s5p->format, s5p->header->aux_meta, signal_comp) == -1) {
         SLOW5_ERROR("%s", "Record parsing failed.");
         return slow5_errno = SLOW5_ERR_RECPARSE;
     }
@@ -1819,11 +1839,12 @@ int slow5_rec_depress_parse(char **mem, size_t *bytes, const char *read_id, stru
 
 /*
  * parse read_mem with read_size bytes, intended read ID read_id, the given format and auxiliary meta data aux_meta
+ * if read compression is used read_mem should be decompressed beforehand, signal decompression is handled here though
  * populate the read
  * read_mem, read cannot be NULL
  * returns -1 on error, 0 on success
  */
-int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struct slow5_rec **readp, enum slow5_fmt format, struct slow5_aux_meta *aux_meta, slow5_press_method_t method) {
+int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struct slow5_rec **readp, enum slow5_fmt format, struct slow5_aux_meta *aux_meta, slow5_press_method_t signal_method) {
 
     if (!*readp) {
         /* allocate memory for read */
@@ -2084,7 +2105,7 @@ int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struc
                     break;
 
                 case COL_raw_signal: {
-                    if (SLOW5_PRESS_SIGNAL_METHOD(method) == SLOW5_COMPRESS_NONE) {
+                    if (signal_method == SLOW5_COMPRESS_NONE) {
                         size = read->len_raw_signal * sizeof *(read->raw_signal);
                     } else { /* integer encoding */
                         size = read->len_raw_signal;
@@ -2111,9 +2132,9 @@ int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struc
                     memcpy(read->raw_signal, read_mem + offset, size);
                     offset += size;
 
-                    if (SLOW5_PRESS_SIGNAL_METHOD(method) != SLOW5_COMPRESS_NONE) {
+                    if (signal_method != SLOW5_COMPRESS_NONE) {
                         size_t raw_sig_depress_bytes;
-                        int16_t *raw_sig_depress = slow5_ptr_depress_solo(SLOW5_PRESS_SIGNAL_METHOD(method), read->raw_signal, read->len_raw_signal, &raw_sig_depress_bytes);
+                        int16_t *raw_sig_depress = slow5_ptr_depress_solo(signal_method, read->raw_signal, read->len_raw_signal, &raw_sig_depress_bytes);
                         if (!raw_sig_depress) {
                             SLOW5_ERROR("%s", "Decompressing raw signal failed.");
                             ret = -1;
@@ -3020,7 +3041,8 @@ void *slow5_rec_to_mem(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, 
 
         bool compress_to_free = false;
         if (compress == NULL) {
-            compress = slow5_press_init(SLOW5_COMPRESS_NONE);
+            compress = slow5_press_init(SLOW5_COMPRESS_NONE, SLOW5_COMPRESS_NONE);
+            /* TODO error is this fails */
             compress_to_free = true;
         }
 
@@ -3053,10 +3075,10 @@ void *slow5_rec_to_mem(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, 
 
         size_t bytes_raw_sig = read->len_raw_signal * sizeof *read->raw_signal;
 
-        if (SLOW5_PRESS_SIGNAL_METHOD(compress->method) != SLOW5_COMPRESS_NONE) { /* integer encoding */
-            uint8_t *raw_sig_svb = slow5_ptr_compress_solo(SLOW5_PRESS_SIGNAL_METHOD(compress->method), read->raw_signal, read->len_raw_signal * sizeof *read->raw_signal, &bytes_raw_sig);
+        if (compress->signal_press->method != SLOW5_COMPRESS_NONE) { /* signal compression */
+            uint8_t *raw_sig_svb = slow5_ptr_compress_solo(compress->signal_press->method, read->raw_signal, read->len_raw_signal * sizeof *read->raw_signal, &bytes_raw_sig);
             if (!raw_sig_svb) {
-                SLOW5_ERROR("%s", "Compression using streamvbyte failed.");
+                SLOW5_ERROR("%s", "Signal compression failed.");
                 free(mem);
                 if (compress_to_free) {
                     slow5_press_free(compress);
@@ -3112,11 +3134,11 @@ void *slow5_rec_to_mem(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, 
             }
         }
 
-        slow5_compress_footer_next(compress);
+        slow5_compress_footer_next(compress->record_press);
         slow5_rec_size_t record_size;
 
         size_t record_sizet;
-        void *comp_mem = slow5_ptr_compress(compress, mem, curr_len, &record_sizet);
+        void *comp_mem = slow5_ptr_compress(compress->record_press, mem, curr_len, &record_sizet);
         record_size = record_sizet;
         free(mem);
 
@@ -3309,18 +3331,18 @@ char *slow5_get_idx_path(const char *path) {
 // 0    success
 // -1   input invalid
 // -2   failure
-int slow5_convert(struct slow5_file *from, FILE *to_fp, enum slow5_fmt to_format, slow5_press_method_t to_compress) {
+int slow5_convert(struct slow5_file *from, FILE *to_fp, enum slow5_fmt to_format, slow5_press_method_t to_record_compress, slow5_press_method_t to_signal_compress) {
     if (from == NULL || to_fp == NULL || to_format == SLOW5_FORMAT_UNKNOWN) {
         return -1;
     }
 
-    if (slow5_hdr_fwrite(to_fp, from->header, to_format, to_compress) == -1) {
+    if (slow5_hdr_fwrite(to_fp, from->header, to_format, to_record_compress, to_signal_compress) == -1) {
         return -2;
     }
 
     struct slow5_rec *read = NULL;
     int ret;
-    struct slow5_press *press_ptr = slow5_press_init(to_compress);
+    struct slow5_press *press_ptr = slow5_press_init(to_record_compress, to_signal_compress);
     while ((ret = slow5_get_next(&read, from)) == 0) {
         if (slow5_rec_fwrite(to_fp, read, from->header->aux_meta, to_format, press_ptr) == -1) {
             slow5_press_free(press_ptr);

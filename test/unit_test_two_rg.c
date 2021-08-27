@@ -51,7 +51,7 @@ int slow5_to_blow5_uncomp(void) {
     FILE *to = fopen("test/data/out/two_rg/out_default.blow5", "w");
     ASSERT(to != NULL);
 
-    ASSERT(slow5_hdr_fwrite(to, from->header, SLOW5_FORMAT_BINARY, SLOW5_COMPRESS_NONE) != -1);
+    ASSERT(slow5_hdr_fwrite(to, from->header, SLOW5_FORMAT_BINARY, SLOW5_COMPRESS_NONE, SLOW5_COMPRESS_NONE) != -1);
 
     struct slow5_rec *read = NULL;
     int ret;
@@ -76,11 +76,11 @@ int slow5_to_blow5_zlib(void) {
     FILE *to = fopen("test/data/out/two_rg/out_default_gzip.blow5", "w");
     ASSERT(to != NULL);
 
-    ASSERT(slow5_hdr_fwrite(to, from->header, SLOW5_FORMAT_BINARY, SLOW5_COMPRESS_ZLIB) != -1);
+    ASSERT(slow5_hdr_fwrite(to, from->header, SLOW5_FORMAT_BINARY, SLOW5_COMPRESS_ZLIB, SLOW5_COMPRESS_NONE) != -1);
 
     struct slow5_rec *read = NULL;
     int ret;
-    struct slow5_press *zlib = slow5_press_init(SLOW5_COMPRESS_ZLIB);
+    struct slow5_press *zlib = slow5_press_init(SLOW5_COMPRESS_ZLIB, SLOW5_COMPRESS_NONE);
     ASSERT(zlib != NULL);
     while ((ret = slow5_get_next(&read, from)) == 0) {
         ASSERT(slow5_rec_fwrite(to, read, from->header->aux_meta, SLOW5_FORMAT_BINARY, zlib) != -1);
@@ -110,7 +110,7 @@ int slow5_add_rg_data_valid(void) {
 
     ASSERT(s5p->header->num_read_groups == 2);
 
-    slow5_hdr_print(s5p->header, SLOW5_FORMAT_ASCII, SLOW5_COMPRESS_NONE);
+    slow5_hdr_print(s5p->header, SLOW5_FORMAT_ASCII, SLOW5_COMPRESS_NONE, SLOW5_COMPRESS_NONE);
 
     ASSERT(slow5_close(s5p) == 0);
     ASSERT(slow5_close(s5p_two) == 0);
