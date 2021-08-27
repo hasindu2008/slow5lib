@@ -14,6 +14,8 @@ slow5_idx_load - loads the index file for a SLOW5 file
 ## RETURN VALUE
 Upon successful completion, `slow5_idx_load()` returns a non-negative integer. Otherwise, a negative value is returned.
 
+## NOTES
+`slow5_errno` will be set in future to indicate the type of error that occurred.
 
 ## EXAMPLES
 

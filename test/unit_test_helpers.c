@@ -324,6 +324,174 @@ int asprintf_mine_valid(void) {
     return EXIT_SUCCESS;
 }
 
+int version_compatible(void) {
+
+    struct slow5_version file_version;
+    struct slow5_version max_supported;
+
+    //lib version must be >= file version
+
+    file_version.major=0 ; file_version.minor=1 ; file_version.patch=0 ;
+    max_supported.major=0  ; max_supported.minor=1  ; max_supported.patch=0  ;
+    ASSERT(slow5_is_version_compatible(file_version, max_supported)==1);  //file 0.1.0 max_supported 0.1.0
+
+    max_supported.major=0  ; max_supported.minor=1  ; max_supported.patch=1  ;
+    ASSERT(slow5_is_version_compatible(file_version, max_supported)==1);  //file 0.1.0 max_supported 0.1.1
+
+    max_supported.major=1  ; max_supported.minor=0  ; max_supported.patch=0  ;
+    ASSERT(slow5_is_version_compatible(file_version, max_supported)==1);  //file 0.1.0 max_supported 1.0.0
+
+    file_version.major=1 ; file_version.minor=10 ; file_version.patch=10 ;
+    max_supported.major=1  ; max_supported.minor=11  ; max_supported.patch=1  ;
+    ASSERT(slow5_is_version_compatible(file_version, max_supported)==1);  //file 1.10.10 max_supported 1.11.1
+
+    max_supported.major=0  ; max_supported.minor=1  ; max_supported.patch=0  ;
+    file_version.major=0 ; file_version.minor=1 ; file_version.patch=1 ;
+    ASSERT(slow5_is_version_compatible(file_version, max_supported)==0);  //file 0.1.1 max_supported 0.1.0
+
+    file_version.major=1 ; file_version.minor=0 ; file_version.patch=0 ;
+    ASSERT(slow5_is_version_compatible(file_version, max_supported)==0);  //file 1.0.0 max_supported 0.1.0
+
+    max_supported.major=1  ; max_supported.minor=10  ; max_supported.patch=3  ;
+    file_version.major=1 ; file_version.minor=11 ; file_version.patch=1 ;
+    ASSERT(slow5_is_version_compatible(file_version, max_supported)==0);  //file 1.11.1 max_supported 1.10.3
+
+
+
+    return EXIT_SUCCESS;
+
+}
+
+int double_to_str_valid(void) {
+
+    double x = 3.14;
+    const char *x_str = "3.14";
+    size_t len;
+
+    char *str = slow5_double_to_str(x, &len);
+    ASSERT(str);
+    ASSERT(strcmp(str, x_str) == 0);
+    ASSERT(len == strlen(x_str));
+
+    free(str);
+
+    double y = 3.00014;
+    const char *y_str = "3.00014";
+
+    str = slow5_double_to_str(y, &len);
+    ASSERT(str);
+    ASSERT(strcmp(str, y_str) == 0);
+    ASSERT(len == strlen(y_str));
+
+    free(str);
+
+    /* 1 at the 15th digit (max double digits) */
+    /*
+     * Doesn't work "0", since we are using default precision (6 decimals)
+    double z = -0000000000000.00000000000000100000;
+    const char *z_str = "-0.000000000000001";
+
+    str = slow5_double_to_str(z, &len);
+    ASSERT(str);
+    ASSERT(strcmp(str, z_str) == 0);
+    ASSERT(len == strlen(z_str));
+
+    free(str);
+    */
+
+    double a = 1467.61;
+    const char *a_str = "1467.61";
+
+    str = slow5_double_to_str(a, &len);
+    ASSERT(str);
+    ASSERT(strcmp(str, a_str) == 0);
+    ASSERT(len == strlen(a_str));
+
+    free(str);
+
+    double b = -0.001;
+    const char *b_str = "-0.001";
+
+    str = slow5_double_to_str(b, &len);
+    ASSERT(str);
+    ASSERT(strcmp(str, b_str) == 0);
+    ASSERT(len == strlen(b_str));
+
+    free(str);
+
+    /* negative 0 test */
+    double c = -0.00000000000000001;
+    const char *c_str = "0";
+
+    str = slow5_double_to_str(c, &len);
+    ASSERT(str);
+    ASSERT(strcmp(str, c_str) == 0);
+    ASSERT(len == strlen(c_str));
+
+    free(str);
+
+    double d = -0.000;
+    const char *d_str = "0";
+
+    str = slow5_double_to_str(d, &len);
+    ASSERT(str);
+    ASSERT(strcmp(str, d_str) == 0);
+    ASSERT(len == strlen(d_str));
+
+    free(str);
+
+    return EXIT_SUCCESS;
+}
+
+int float_to_str_valid(void) {
+
+    float x = 3.14;
+    const char *x_str = "3.14";
+    size_t len;
+
+    char *str = slow5_float_to_str(x, &len);
+    ASSERT(str);
+    ASSERT(strcmp(str, x_str) == 0);
+    ASSERT(len == strlen(x_str));
+
+    free(str);
+
+    float y = 3.00014;
+    const char *y_str = "3.00014";
+
+    str = slow5_float_to_str(y, &len);
+    ASSERT(str);
+    ASSERT(strcmp(str, y_str) == 0);
+    ASSERT(len == strlen(y_str));
+
+    free(str);
+
+    /* 1 at the 6th digit (max float digits) */
+    float z = -0000000000000.000001;
+    const char *z_str = "-0.000001";
+
+    str = slow5_float_to_str(z, &len);
+    ASSERT(str);
+    ASSERT(strcmp(str, z_str) == 0);
+    ASSERT(len == strlen(z_str));
+
+    free(str);
+
+    /*
+     * Doesn't work "1467.609985"
+    float a = 1467.61;
+    const char *a_str = "1467.61";
+
+    str = slow5_float_to_str(a, &len);
+    ASSERT(str);
+    ASSERT(strcmp(str, a_str) == 0);
+    ASSERT(len == strlen(a_str));
+
+    free(str);
+    */
+
+    return EXIT_SUCCESS;
+}
 
 int main(void) {
 
@@ -340,6 +508,11 @@ int main(void) {
         CMD(fmt_get_name_test)
 
         CMD(asprintf_mine_valid)
+
+        CMD(version_compatible)
+
+        CMD(double_to_str_valid)
+        CMD(float_to_str_valid)
     };
 
     return RUN_TESTS(tests);

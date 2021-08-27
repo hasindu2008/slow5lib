@@ -40,10 +40,10 @@ extern "C" {
 #endif
 
 // library version
-#define SLOW5_LIB_VERSION "0.1.0-dirty"
+#define SLOW5_LIB_VERSION "0.2.0-dirty"
 
-// file version
-// if updating change all 4
+// maximum file version supported by this library - independent of slow5 library version above
+// if updating change all 4 below
 #define SLOW5_VERSION_MAJOR (0)
 #define SLOW5_VERSION_MINOR (1)
 #define SLOW5_VERSION_PATCH (0)
@@ -144,6 +144,7 @@ extern "C" {
 #define SLOW5_ERR_MAGIC         (-14)   // magic number invalid
 #define SLOW5_ERR_VERSION       (-15)   // version incompatible
 #define SLOW5_ERR_HDRPARSE      (-16)   // header parsing error
+#define SLOW5_ERR_TYPE          (-17)   // error relating to slow5 type
 
 
 #ifdef __cplusplus

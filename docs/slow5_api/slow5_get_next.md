@@ -17,17 +17,26 @@ If the allocated *slow5_rec_t* is not large enough to hold the record, `slow5_ge
 The argument *s5p* points to a *slow5_file_t* opened using `slow5_open()`.
 
 ## RETURN VALUE
-Upon successful completion, `slow5_get_next()` returns a non negative integer (>=0). Otherwise, a negative value is returned that indicates the error (including the end of file).
+Upon successful completion, `slow5_get_next()` returns a non negative integer (>=0). Otherwise (including the end of file), a negative value is returned that indicates the error and `slow5_errno` is set to indicate the error.
 
 ## ERRORS
 
-A negative return value indicates an error as follows.
-
- * `SLOW5_ERR_EOF`      &nbsp;&nbsp;&nbsp;&nbsp; End of file reached.
- * `SLOW5_ERR_ARG`      &nbsp;&nbsp;&nbsp;&nbsp; Bad argument - read_id, read or s5p is NULL
- * `SLOW5_ERR_RECPARSE` &nbsp;&nbsp;&nbsp;&nbsp; Record parsing error
- * `SLOW5_ERR_IO`       &nbsp;&nbsp;&nbsp;&nbsp; Other error when reading the slow5 file
-
+* `SLOW5_ERR_EOF`      
+   &nbsp;&nbsp;&nbsp;&nbsp; End of file (EOF) (if blow5, EOF marker was properly found at the end).
+* `SLOW5_ERR_ARG`      
+   &nbsp;&nbsp;&nbsp;&nbsp; Invalid argument - Read or s5p is NULL.
+* `SLOW5_ERR_RECPARSE`  
+   &nbsp;&nbsp;&nbsp;&nbsp; Record parsing error.
+* `SLOW5_ERR_IO`       
+   &nbsp;&nbsp;&nbsp;&nbsp; I/O error (except EOF) when reading the slow5 file, for instance, `getline()` or `fread()` failed.
+* `SLOW5_ERR_MEM`        
+   &nbsp;&nbsp;&nbsp;&nbsp; Memory allocation error.
+* `SLOW5_ERR_PRESS`      
+  &nbsp;&nbsp;&nbsp;&nbsp; Record decompression error.
+* `SLOW5_ERR_TRUNC`      
+  &nbsp;&nbsp;&nbsp;&nbsp; Truncated blow5 file - EOF reached without seeing the blow5 EOF marker. 
+*  `SLOW5_ERR_UNK`        
+  &nbsp;&nbsp;&nbsp;&nbsp; Slow5 format is unknown.
 
 ## NOTES
  `slow5_get_next` does not require an index to be pre-loaded, as opposed to `slow5_get()` which so.

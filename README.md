@@ -62,10 +62,14 @@ For the documentation of the C API visit [here](https://hasindu2008.github.io/sl
 
 Examples are provided under [examples](https://github.com/hasindu2008/slow5lib/tree/master/examples).
 
-*sequential_read.c* demonstrates how to read a slow5/blow5 file, sequentially from start to end.
-*random_read.c* demonstrates how to fetch a given read ID from a slow5/blow5 file.
-*get_hdr_attribute.c* demonstrates how to fetch a header data attribute from a slow5/blow5 file.
-*get_aux_field.c* demonstrates how to fetch a auxiliary field from aslow5/blow5 file.
+- *sequential_read.c* demonstrates how to read a slow5/blow5 file, sequentially from start to end.
+- *random_read.c* demonstrates how to fetch a given read ID from a slow5/blow5 file.
+- *header_attribute.c* demonstrates how to fetch a header data attribute from a slow5/blow5 file.
+- *auxiliary_field.c* demonstrates how to fetch a auxiliary field from aslow5/blow5 file.
+
+
+- *random_read_pthreads.c* demonstrates how to fetch given read IDs in parallel from a slow5/blow5 file using *pthreads*.   
+- *random_read_openmp.c* demonstrates how to fetch given read IDs in parallel from a slow5/blow5 file using openMP.  
 
 You can invoke `examples/build.sh` to compile the example programmes. Have a look at the script to see the commands used for compiling and linking.
 

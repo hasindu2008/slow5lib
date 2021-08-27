@@ -8,4 +8,4 @@ Welcome to the slow5lib documentation.
 
 [pyslow5 API for Python](pyslow5_api/pyslow5.md)
 
-[SLOW5 specification](https://github.com/hasindu2008/slow5specs)
+[SLOW5 specification](https://hasindu2008.github.io/slow5specs)

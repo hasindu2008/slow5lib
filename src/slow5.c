@@ -389,6 +389,7 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
         return NULL;
     }
 
+    struct slow5_version max_supported = SLOW5_VERSION_ARRAY;
     char *buf = NULL;
 
     // Parse slow5 header
@@ -475,7 +476,7 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
             goto err;
         }
 
-        if (slow5_is_version_compatible(header->version) == 0) {
+        if (slow5_is_version_compatible(header->version, max_supported) == 0) {
             SLOW5_ERROR("File version '" SLOW5_VERSION_STRING_FORMAT "' is higher than the max slow5 version '" SLOW5_VERSION_STRING "' supported by this slow5lib! Please use a newer version of slow5lib.",
                     header->version.major, header->version.minor, header->version.patch);
             slow5_errno = SLOW5_ERR_VERSION;
@@ -565,7 +566,7 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
             goto err_fread;
         }
 
-        if (slow5_is_version_compatible(header->version) == 0) {
+        if (slow5_is_version_compatible(header->version, max_supported) == 0) {
             SLOW5_ERROR("File version '" SLOW5_VERSION_STRING_FORMAT "' is higher than the max slow5 version '" SLOW5_VERSION_STRING "' supported by this slow5lib! Please use a newer version of slow5lib.",
                     header->version.major, header->version.minor, header->version.patch);
             free(header);
@@ -732,7 +733,7 @@ void *slow5_hdr_to_mem(struct slow5_hdr *header, enum slow5_fmt format, slow5_pr
         const char **data_attrs = slow5_get_hdr_keys(header,NULL);
 
         // Write header data attributes to string
-        for (size_t i = 0; i < header->data.num_attrs; ++ i) {
+        for (uint32_t i = 0; i < header->data.num_attrs; ++ i) {
             const char *attr = data_attrs[i];
 
             // Realloc if necessary
@@ -1754,7 +1755,7 @@ void *slow5_get_mem(const char *read_id, size_t *n, const struct slow5_file *s5p
  * Require the slow5 index to be loaded beforehand using slow5_idx_load()
  *
  * Return:
- *  >=0   the read was successfully found and stored
+ *  =0   the read was successfully found and stored
  *  <0   error code
  *
  * Errors:
@@ -2444,22 +2445,30 @@ void *slow5_get_next_mem(size_t *n, const struct slow5_file *s5p) {
         mem[-- bytes] = '\0'; /* remove newline for parsing */
 
     } else if (s5p->format == SLOW5_FORMAT_BINARY) {
-        const char eof[] = SLOW5_BINARY_EOF;
-        int is_eof = slow5_is_eof(s5p->fp, eof, sizeof eof);
-        if (is_eof == -1) {
-            goto err;
-        } else if (is_eof == 1) {
-            slow5_errno = SLOW5_ERR_EOF;
-            goto err;
-        }
-
         slow5_rec_size_t bytes_tmp;
-        if (fread(&bytes_tmp, sizeof bytes_tmp, 1, s5p->fp) != 1) {
-            SLOW5_ERROR("Malformed blow5 record. Failed to read the record size.%s", feof(s5p->fp) ? " Missing blow5 end of file marker." : "");
-            if (feof(s5p->fp)) {
-                slow5_errno = SLOW5_ERR_TRUNC;
-            } else {
-                slow5_errno = SLOW5_ERR_IO;
+        size_t bytes_read;
+        /* try to read the record size */
+        if ((bytes_read = fread(&bytes_tmp, 1, sizeof bytes_tmp, s5p->fp)) != sizeof bytes_tmp) {
+            const char eof[] = SLOW5_BINARY_EOF;
+            int is_eof = 0;
+            if (bytes_read == sizeof eof) {
+                /* check if eof */
+                is_eof = slow5_is_eof(s5p->fp, eof, sizeof eof);
+                if (is_eof == -1) { /* io/mem error */
+                    SLOW5_ERROR("%s", "Internal error while checking for blow5 eof marker.");
+                } else if (is_eof == -2) {
+                    SLOW5_ERROR("%s", "Malformed blow5. End of file marker found, but end of file not reached.");
+                } else if (is_eof == 1) {
+                    slow5_errno = SLOW5_ERR_EOF;
+                }
+            }
+            if (!is_eof) { /* catches the case when bytes_read != sizeof eof */
+                SLOW5_ERROR("Malformed blow5 record. Failed to read the record size.%s", feof(s5p->fp) ? " Missing blow5 end of file marker." : "");
+                if (feof(s5p->fp)) {
+                    slow5_errno = SLOW5_ERR_TRUNC;
+                } else {
+                    slow5_errno = SLOW5_ERR_IO;
+                }
             }
             goto err;
         }
@@ -2589,6 +2598,7 @@ int slow5_rec_set(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, const
 
 // For array types
 // Return
+// 0    success
 // -1   input invalid
 // -2   attr not found
 // -3   type is not an array type
@@ -2633,7 +2643,12 @@ static inline void slow5_rec_set_aux_map(khash_t(slow5_s2a) *aux_map, const char
     aux_data->len = len;
     aux_data->bytes = bytes;
     aux_data->type = type;
-    aux_data->data = (uint8_t *) malloc(bytes);
+    if (type == SLOW5_STRING) {
+        aux_data->data = (uint8_t *) malloc(bytes + 1);
+        aux_data->data[bytes] = '\0';
+    } else {
+        aux_data->data = (uint8_t *) malloc(bytes);
+    }
     SLOW5_MALLOC_CHK(aux_data->data);
     memcpy(aux_data->data, data, bytes);
 }
@@ -2661,10 +2676,14 @@ static inline void slow5_rec_set_aux_map(khash_t(slow5_s2a) *aux_map, const char
             struct slow5_rec_aux_data aux_data = kh_value(read->aux_map, pos); \
             if (aux_data.type == prim_type) { \
                 val = *((raw_type*) aux_data.data); \
+            } else { \
+                SLOW5_ERROR_EXIT("Desired type '%s' is different to actual type '%s' of field '%s'.", \
+                        SLOW5_TO_STR(raw_type), SLOW5_AUX_TYPE_META[prim_type].type_str, field); \
+                tmp_err = slow5_errno = SLOW5_ERR_TYPE; \
             } \
         } \
     } \
-    if (err != NULL) { \
+    if (err != NULL) { /* this refers to err in the prototype slow5_aux_get_*_array */ \
         *err = tmp_err; \
     } \
     return val;
@@ -2674,6 +2693,8 @@ static inline void slow5_rec_set_aux_map(khash_t(slow5_s2a) *aux_map, const char
  * SLOW5_ERR_ARG if read or field is NULL
  * SLOW5_ERR_NOAUX if no auxiliary hash map for the record
  * SLOW5_ERR_NOFLD if the field was not found
+ * SLOW5_ERR_TYPE if the desired return type does not match the field's type
+ * returns NULL equivalent of return type on error
  * DONE
  */
 int8_t slow5_aux_get_int8(const struct slow5_rec *read, const char *field, int *err) {
@@ -2735,10 +2756,14 @@ char slow5_aux_get_char(const struct slow5_rec *read, const char *field, int *er
                 if (len != NULL) { \
                     *len = aux_data.len; \
                 } \
+            } else { \
+                SLOW5_ERROR_EXIT("Desired type '%s' is different to actual type '%s' of field '%s'.", \
+                        SLOW5_TO_STR(raw_type), SLOW5_AUX_TYPE_META[SLOW5_TO_PRIM_TYPE(ptr_type)].type_str, field); \
+                tmp_err = slow5_errno = SLOW5_ERR_TYPE; \
             } \
         } \
     } \
-    if (err != NULL) { \
+    if (err != NULL) { /* this refers to err in the prototype slow5_aux_get_*_array */ \
         *err = tmp_err; \
     } \
     return val;
@@ -2748,6 +2773,8 @@ char slow5_aux_get_char(const struct slow5_rec *read, const char *field, int *er
  * SLOW5_ERR_ARG if read or field is NULL
  * SLOW5_ERR_NOAUX if no auxiliary hash map for the record
  * SLOW5_ERR_NOFLD if the field was not found
+ * SLOW5_ERR_TYPE if the desired return type does not match the field's type
+ * return NULL on error
  * DONE
  */
 int8_t *slow5_aux_get_int8_array(const struct slow5_rec *read, const char *field, uint64_t *len, int *err) {
@@ -3641,17 +3668,17 @@ void slow5_set_log_level(enum slow5_log_level_opt log_level) {
     slow5_log_level = log_level;
 }
 
-/* TODO really want to shorten this name */
 /* set the condition of exit (on error, warning, neither) */
 void slow5_set_exit_condition(enum slow5_exit_condition_opt exit_condition) {
     slow5_exit_condition = exit_condition;
 }
 
 /*
- * is slow5 file at end?
+ * is slow5 file at end? seek back, read and find out
  * return 0 if not at end and file pointer left unchanged
  * return 1 if at end
- * return -1 on error
+ * return -1 and set slow5_errno on error
+ * return -2 and set slow5_errno=SLOW5_ERR_TRUNC if eof found but not at end
  **/
 int slow5_is_eof(FILE *fp, const char *eof, size_t n) {
     if (!fp) {
@@ -3663,44 +3690,46 @@ int slow5_is_eof(FILE *fp, const char *eof, size_t n) {
     char *buf_eof = (char *) malloc(sizeof *eof * n);
     if (!buf_eof) {
         SLOW5_MALLOC_ERROR();
+        slow5_errno = SLOW5_ERR_MEM;
+        return -1;
+    }
+
+    /* go back */
+    if (fseek(fp, - sizeof *eof * n, SEEK_CUR) != 0) {
+        SLOW5_ERROR("Seeking back '%zu' bytes failed: %s.",
+                sizeof *eof * n, strerror(errno));
+        free(buf_eof);
         slow5_errno = SLOW5_ERR_IO;
         return -1;
     }
 
     size_t itms_read = fread(buf_eof, sizeof *eof, n, fp);
     if (itms_read == n) {
-        if (memcmp(eof, buf_eof, sizeof *eof * n) == 0) {
+        if (memcmp(eof, buf_eof, sizeof *eof * n) == 0) { /* eof marker found */
+            if (getc(fp) != EOF || !feof(fp)) { /* not actually at end of file */
+                free(buf_eof);
+                slow5_errno = SLOW5_ERR_TRUNC;
+                return -2;
+            }
             free(buf_eof);
             return 1;
-        } else {
-            goto go_back;
         }
-    } else {
-        goto go_back;
     }
 
     free(buf_eof);
     return 0;
-
-    go_back:
-        free(buf_eof);
-        if (fseek(fp, - sizeof *eof * itms_read, SEEK_CUR) != 0) {
-            SLOW5_ERROR("Seeking back '%zu' bytes failed: %s.",
-                    sizeof *eof * itms_read, strerror(errno));
-            slow5_errno = SLOW5_ERR_IO;
-            return -1;
-        }
-        return 0;
 }
 
 /* return 1 if compatible, 0 otherwise */
-int slow5_is_version_compatible(struct slow5_version file_version) {
-    if (file_version.major > SLOW5_VERSION_MAJOR ||
-            (file_version.major == SLOW5_VERSION_MAJOR &&
-             file_version.minor > SLOW5_VERSION_MINOR) ||
-            (file_version.major == SLOW5_VERSION_MAJOR &&
-             file_version.minor == SLOW5_VERSION_MINOR &&
-             file_version.patch > SLOW5_VERSION_PATCH)) {
+// file_version: what is currently in the file
+// max_supported: maximum slow5 version supported by this library
+int slow5_is_version_compatible(struct slow5_version file_version, struct slow5_version max_supported) {
+    if (file_version.major > max_supported.major ||
+            (file_version.major == max_supported.major &&
+             file_version.minor > max_supported.minor) ||
+            (file_version.major == max_supported.major &&
+             file_version.minor == max_supported.minor &&
+             file_version.patch > max_supported.patch)) {
         return 0;
     } else {
         return 1;
