@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <limits.h>
 #include <float.h>
+#include <stdlib.h>
 #include <math.h> /* TODO need this? */
 #include "unit_test.h"
 #include <slow5/slow5.h>

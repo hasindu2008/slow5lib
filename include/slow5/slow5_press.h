@@ -45,8 +45,6 @@ SOFTWARE.
 
 #include <zlib.h>
 #include <stdio.h>
-#include <stdint.h>
-#include <string.h>
 
 #ifdef __cplusplus
 extern "C" {

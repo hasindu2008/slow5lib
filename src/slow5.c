@@ -389,13 +389,16 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
         return NULL;
     }
 
+    *signal_method = SLOW5_COMPRESS_NONE;
+
     struct slow5_version max_supported = SLOW5_VERSION_ARRAY;
+    struct slow5_version signal_press_version = { .major = 0, .minor = 2, .patch = 0 };
+
     char *buf = NULL;
 
     // Parse slow5 header
     if (format == SLOW5_FORMAT_ASCII) {
         *record_method = SLOW5_COMPRESS_NONE;
-        *signal_method = SLOW5_COMPRESS_NONE;
 
         // Buffer for file parsing
         size_t cap = SLOW5_HDR_DATA_BUF_INIT_CAP;
@@ -553,7 +556,7 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
         } else if (fread(&header->num_read_groups, sizeof header->num_read_groups, 1, fp) != 1) {
             SLOW5_ERROR("Malformed blow5 header. Failed to read the number of read groups.%s", feof(fp) ? " EOF reached." : "");
             goto err_fread;
-        } else if (fread(signal_method, sizeof *signal_method, 1, fp) != 1) {
+        } else if (slow5_version_cmp(header->version, signal_press_version) >= 0 && fread(signal_method, sizeof *signal_method, 1, fp) != 1) {
             SLOW5_ERROR("Malformed blow5 header. Failed to read the signal compression method.%s", feof(fp) ? " EOF reached." : "");
             goto err_fread;
         } else if (fseek(fp, SLOW5_BINARY_HDR_SIZE_OFFSET, SEEK_SET) == -1) {
@@ -3720,19 +3723,21 @@ int slow5_is_eof(FILE *fp, const char *eof, size_t n) {
     return 0;
 }
 
-/* return 1 if compatible, 0 otherwise */
-// file_version: what is currently in the file
-// max_supported: maximum slow5 version supported by this library
-int slow5_is_version_compatible(struct slow5_version file_version, struct slow5_version max_supported) {
-    if (file_version.major > max_supported.major ||
-            (file_version.major == max_supported.major &&
-             file_version.minor > max_supported.minor) ||
-            (file_version.major == max_supported.major &&
-             file_version.minor == max_supported.minor &&
-             file_version.patch > max_supported.patch)) {
+/**
+ * compare file versions
+ * return <0 if x < y
+ * return 0 if x == y
+ * return >0 if x > y
+ */
+int slow5_version_cmp(struct slow5_version x, struct slow5_version y) {
+    if (x.major > y.major ||
+            (x.major == y.major && x.minor > y.minor) ||
+            (x.major == y.major && x.minor == y.minor && x.patch > y.patch)) {
+        return 1;
+    } else if (x.major == y.major && x.minor == y.minor && x.patch == y.patch) {
         return 0;
     } else {
-        return 1;
+        return -1;
     }
 }
 

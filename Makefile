@@ -1,13 +1,28 @@
-CC			= gcc
+# zstd compression is not available by default
+# run `make ZSTD=1` to compile with zstd
+# or uncomment the following line
+#ZSTD=1
+
+CC			= cc
 AR			= ar
-CPPFLAGS	+= -I include/ -I streamvbyte/include/
-CFLAGS		+= -g -Wall -O2 -std=c99
-LDFLAGS		+=  -lm -lz -lzstd
+SVB			= thirdparty/streamvbyte-0.4.1
+SVBLIB		= $(SVB)/libstreamvbyte.a
+CPPFLAGS	+= -I include/ -I $(SVB)/include/
+CFLAGS		+= -g -Wall -Werror -Wpedantic -O2 -std=c99
+LDFLAGS		+= -lm -lz
+ifeq ($(ZSTD),1)
+CFLAGS		+= -DSLOW5_USE_ZSTD
+LDFLAGS		+= -lzstd
+endif
 BUILD_DIR	= lib
 
-OBJ_LIB = $(BUILD_DIR)/slow5.o \
-		$(BUILD_DIR)/slow5_idx.o	\
-		$(BUILD_DIR)/slow5_misc.o	\
+STATICLIB	= $(BUILD_DIR)/libslow5.a
+SHAREDLIB	= $(BUILD_DIR)/libslow5.so
+SHAREDLIBV	= $(BUILD_DIR)/libslow5.so.0.2.0-dirty
+
+OBJ = $(BUILD_DIR)/slow5.o \
+		$(BUILD_DIR)/slow5_idx.o \
+		$(BUILD_DIR)/slow5_misc.o \
 		$(BUILD_DIR)/slow5_press.o \
 
 PREFIX = /usr/local
@@ -18,16 +33,20 @@ SLOW5_H = include/slow5/slow5.h include/slow5/klib/khash.h include/slow5/klib/kv
 .PHONY: clean distclean test install uninstall slow5lib
 
 #libslow5
-slow5lib: $(BUILD_DIR)/libslow5.so $(BUILD_DIR)/libslow5.a
+slow5lib: $(SHAREDLIBV) $(STATICLIB)
 
-streamvbyte/libstreamvbyte.so.0.0.1:
-	make -C streamvbyte
+$(STATICLIB): $(OBJ) $(SVBLIB)
+	cp $(SVBLIB) $@
+	$(AR) rcs $@ $(OBJ)
 
-$(BUILD_DIR)/libslow5.so: $(OBJ_LIB)
-	$(CC) $(CFLAGS) -shared $^  -o $@ $(LDFLAGS)
+$(SHAREDLIB): $(SHAREDLIBV)
+	ln -f -s $(SHAREDLIBV) $@
 
-$(BUILD_DIR)/libslow5.a: $(OBJ_LIB)
-	$(AR) rcs $@ $^
+$(SHAREDLIBV): $(OBJ) $(SVBLIB)
+	$(CC) $(CFLAGS) -shared $^ -o $@ $(LDFLAGS)
+
+$(SVBLIB):
+	make -C $(SVB)
 
 $(BUILD_DIR)/slow5.o: src/slow5.c src/slow5_extra.h src/slow5_idx.h src/slow5_misc.h src/klib/ksort.h $(SLOW5_H)
 	$(CC) $(CFLAGS) $(CPPFLAGS) $< -c -fpic -o $@
@@ -38,11 +57,13 @@ $(BUILD_DIR)/slow5_idx.o: src/slow5_idx.c src/slow5_idx.h src/slow5_extra.h src/
 $(BUILD_DIR)/slow5_misc.o: src/slow5_misc.c src/slow5_misc.h include/slow5/slow5_error.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) $< -c -fpic -o $@
 
-$(BUILD_DIR)/slow5_press.o: src/slow5_press.c include/slow5/slow5_press.h src/slow5_misc.h include/slow5/slow5_error.h streamvbyte/libstreamvbyte.so.0.0.1
+$(BUILD_DIR)/slow5_press.o: src/slow5_press.c include/slow5/slow5_press.h src/slow5_misc.h include/slow5/slow5_error.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) $< -c -fpic -o $@
 
 clean:
-	rm -rf $(BUILD_DIR)/*.o $(BUILD_DIR)/libslow5.so $(BUILD_DIR)/libslow5.a
+	rm -rf $(OBJ) $(STATICLIB) $(SHAREDLIB) $(SHAREDLIBV)
+	make -C $(SVB) clean
+	make -C test clean
 
 # Delete all gitignored files (but not directories)
 distclean: clean
@@ -50,6 +71,7 @@ distclean: clean
 	rm -rf $(BUILD_DIR)/* autom4te.cache
 
 test: slow5lib
+	make -C test ZSTD=$(ZSTD)
 	./test/test.sh
 
 pyslow5:
@@ -64,6 +86,7 @@ test-prep: slow5lib
 	./test/bin/make_blow5
 
 valgrind: slow5lib
+	make -C test ZSTD=$(ZSTD)
 	./test/test.sh mem
 
 examples: slow5lib

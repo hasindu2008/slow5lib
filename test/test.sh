@@ -23,11 +23,6 @@ fail() {
     ret=1
 }
 
-not_compiled() {
-    echo 'NOT COMPILED'
-    ret=1
-}
-
 my_diff() {
     if ! diff "$1" "$2" -q; then
         fail
@@ -58,91 +53,52 @@ prep_unit() {
 }
 
 ret=0
-compile='-Wall -g -std=gnu99 lib/libslow5.a -I include/ -I src/ -I streamvbyte/include/ -lm -lz streamvbyte/libstreamvbyte.so.0.0.1 -lzstd'
 
 prep
 
 echo_test 'endian test'
-if gcc test/endian_test.c -o test/bin/endian_test $compile; then
-    ex test/bin/endian_test
-else
-    not_compiled
-fi
-
+ex test/bin/endian_test
 
 prep_unit
 
 echo_test 'unit test helpers'
-if gcc test/unit_test_helpers.c -o test/bin/unit_test_helpers $compile; then
-    if ! ex test/bin/unit_test_helpers; then
-        fail
-    fi
-else
-    not_compiled
+if ! ex test/bin/unit_test_helpers; then
+    fail
 fi
 
 echo_test 'unit test press'
-if gcc test/unit_test_press.c -o test/bin/unit_test_press $compile; then
-    if ! ex test/bin/unit_test_press > test/data/out/unit_test_out_press; then
-        fail
-    fi
-else
-    not_compiled
+if ! ex test/bin/unit_test_press > test/data/out/unit_test_out_press; then
+    fail
 fi
 
 echo_test 'unit test ascii'
-if gcc test/unit_test_ascii.c -o test/bin/unit_test_ascii $compile; then
-    if ! ex test/bin/unit_test_ascii > test/data/out/unit_test_out_ascii; then
-        fail
-    fi
-else
-    not_compiled
+if ! ex test/bin/unit_test_ascii > test/data/out/unit_test_out_ascii; then
+    fail
 fi
 
-
 echo_test 'unit test binary'
-if gcc test/unit_test_binary.c -o test/bin/unit_test_binary $compile; then
-    if ! ex test/bin/unit_test_binary > test/data/out/unit_test_out_binary; then
-        fail
-    fi
-else
-    not_compiled
+if ! ex test/bin/unit_test_binary > test/data/out/unit_test_out_binary; then
+    fail
 fi
 
 echo_test 'slow5 conversion test'
-if gcc test/convert_slow5_test.c -o test/bin/convert_slow5_test $compile; then
-    if ! ex test/bin/convert_slow5_test; then
-        fail
-    fi
-else
-    not_compiled
+if ! ex test/bin/convert_slow5_test; then
+    fail
 fi
 
 echo_test 'unit test two read groups'
-if gcc test/unit_test_two_rg.c -o test/bin/unit_test_two_rg $compile; then
-    if ! ex test/bin/unit_test_two_rg > test/data/out/unit_test_out_two_rg; then
-        fail
-    fi
-else
-    not_compiled
+if ! ex test/bin/unit_test_two_rg > test/data/out/unit_test_out_two_rg; then
+    fail
 fi
 
 echo_test 'unit test lossless'
-if gcc test/unit_test_lossless.c -o test/bin/unit_test_lossless $compile; then
-    if ! ex test/bin/unit_test_lossless > test/data/out/unit_test_out_lossless; then
-        fail
-    fi
-else
-    not_compiled
+if ! ex test/bin/unit_test_lossless > test/data/out/unit_test_out_lossless; then
+    fail
 fi
 
 echo_test 'unit test empty'
-if gcc test/unit_test_empty.c -o test/bin/unit_test_empty $compile; then
-    if ! ex test/bin/unit_test_empty > test/data/out/unit_test_out_empty; then
-        fail
-    fi
-else
-    not_compiled
+if ! ex test/bin/unit_test_empty > test/data/out/unit_test_out_empty; then
+    fail
 fi
 
 echo_test 'diff test'

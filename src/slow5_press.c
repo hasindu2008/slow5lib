@@ -1,6 +1,7 @@
 #define _XOPEN_SOURCE 700
 #include <zlib.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
 #include <slow5/slow5.h>
@@ -9,7 +10,9 @@
 #include <slow5/slow5_defs.h>
 #include <streamvbyte.h>
 #include <streamvbyte_zigzag.h>
+#ifdef SLOW5_USE_ZSTD
 #include <zstd.h>
+#endif /* SLOW5_USE_ZSTD */
 #include "slow5_misc.h"
 
 extern enum slow5_log_level_opt  slow5_log_level;
@@ -30,9 +33,11 @@ static uint8_t *ptr_compress_svb_zd(const int16_t *ptr, size_t count, size_t *n)
 static uint32_t *ptr_depress_svb(const uint8_t *ptr, size_t count, size_t *n);
 static int16_t *ptr_depress_svb_zd(const uint8_t *ptr, size_t count, size_t *n);
 
+#ifdef SLOW5_USE_ZSTD
 /* zstd */
 static void *ptr_compress_zstd(const void *ptr, size_t count, size_t *n);
 static void *ptr_depress_zstd(const void *ptr, size_t count, size_t *n);
+#endif /* SLOW5_USE_ZSTD */
 
 /* other */
 static int vfprintf_compress(struct __slow5_press *comp, FILE *fp, const char *format, va_list ap);
@@ -155,7 +160,9 @@ struct __slow5_press *__slow5_press_init(slow5_press_method_t method) {
             } break;
 
         case SLOW5_COMPRESS_SVB_ZD: break;
+#ifdef SLOW5_USE_ZSTD
         case SLOW5_COMPRESS_ZSTD: break;
+#endif /* SLOW5_USE_ZSTD */
 
         default:
             SLOW5_ERROR("Invalid (de)compression method '%d'.", method);
@@ -181,7 +188,14 @@ void __slow5_press_free(struct __slow5_press *comp) {
                 free(comp->stream);
                 break;
             case SLOW5_COMPRESS_SVB_ZD: break;
+#ifdef SLOW5_USE_ZSTD
             case SLOW5_COMPRESS_ZSTD: break;
+#endif /* SLOW5_USE_ZSTD */
+
+            default:
+                SLOW5_ERROR("Invalid (de)compression method '%d'.", comp->method);
+                slow5_errno = SLOW5_ERR_ARG;
+                break;
         }
 
         free(comp);
@@ -194,6 +208,7 @@ void *slow5_ptr_compress_solo(slow5_press_method_t method, const void *ptr, size
 
     if (!ptr) {
         SLOW5_ERROR("Argument '%s' cannot be NULL.", SLOW5_TO_STR(ptr))
+        slow5_errno = SLOW5_ERR_ARG;
     } else {
         switch (method) {
 
@@ -216,8 +231,15 @@ void *slow5_ptr_compress_solo(slow5_press_method_t method, const void *ptr, size
                 out = ptr_compress_svb_zd(ptr, count, &n_tmp);
                 break;
 
+#ifdef SLOW5_USE_ZSTD
             case SLOW5_COMPRESS_ZSTD:
                 out = ptr_compress_zstd(ptr, count, &n_tmp);
+                break;
+#endif /* SLOW5_USE_ZSTD */
+
+            default:
+                SLOW5_ERROR("Invalid (de)compression method '%d'.", method);
+                slow5_errno = SLOW5_ERR_ARG;
                 break;
         }
     }
@@ -260,8 +282,15 @@ void *slow5_ptr_compress(struct __slow5_press *comp, const void *ptr, size_t cou
                 out = ptr_compress_svb_zd(ptr, count, &n_tmp);
                 break;
 
+#ifdef SLOW5_USE_ZSTD
             case SLOW5_COMPRESS_ZSTD:
                 out = ptr_compress_zstd(ptr, count, &n_tmp);
+                break;
+#endif /* SLOW5_USE_ZSTD */
+
+            default:
+                SLOW5_ERROR("Invalid (de)compression method '%d'.", comp->method);
+                slow5_errno = SLOW5_ERR_ARG;
                 break;
         }
     }
@@ -282,6 +311,7 @@ void *slow5_ptr_depress_solo(slow5_press_method_t method, const void *ptr, size_
 
     if (!ptr) {
         SLOW5_ERROR("Argument '%s' cannot be NULL.", SLOW5_TO_STR(ptr))
+        slow5_errno = SLOW5_ERR_ARG;
     } else {
 
         switch (method) {
@@ -305,8 +335,15 @@ void *slow5_ptr_depress_solo(slow5_press_method_t method, const void *ptr, size_
                 out = ptr_depress_svb_zd(ptr, count, &n_tmp);
                 break;
 
+#ifdef SLOW5_USE_ZSTD
             case SLOW5_COMPRESS_ZSTD:
                 out = ptr_depress_zstd(ptr, count, &n_tmp);
+                break;
+#endif /* SLOW5_USE_ZSTD */
+
+            default:
+                SLOW5_ERROR("Invalid (de)compression method '%d'.", method);
+                slow5_errno = SLOW5_ERR_ARG;
                 break;
         }
     }
@@ -329,14 +366,15 @@ void *slow5_ptr_depress(struct __slow5_press *comp, const void *ptr, size_t coun
 
     if (!comp || !ptr) {
         if (!comp) {
-            SLOW5_ERROR("Argument '%s' cannot be NULL.", SLOW5_TO_STR(comp))
+            SLOW5_ERROR("Argument '%s' cannot be NULL.", SLOW5_TO_STR(comp));
         }
         if (!ptr) {
-            SLOW5_ERROR("Argument '%s' cannot be NULL.", SLOW5_TO_STR(ptr))
+            SLOW5_ERROR("Argument '%s' cannot be NULL.", SLOW5_TO_STR(ptr));
         }
         if (n) {
             *n = 0;
         }
+        slow5_errno = SLOW5_ERR_ARG;
         return NULL;
     } else {
         size_t n_tmp = 0;
@@ -373,8 +411,15 @@ void *slow5_ptr_depress(struct __slow5_press *comp, const void *ptr, size_t coun
                 out = ptr_depress_svb_zd(ptr, count, &n_tmp);
                 break;
 
+#ifdef SLOW5_USE_ZSTD
             case SLOW5_COMPRESS_ZSTD:
                 out = ptr_depress_zstd(ptr, count, &n_tmp);
+                break;
+#endif /* SLOW5_USE_ZSTD */
+
+            default:
+                SLOW5_ERROR("Invalid (de)compression method '%d'.", comp->method);
+                slow5_errno = SLOW5_ERR_ARG;
                 break;
         }
 
@@ -424,12 +469,19 @@ ssize_t slow5_fwrite_compress(struct __slow5_press *comp, const void *ptr, size_
                 }
                 break;
 
+#ifdef SLOW5_USE_ZSTD
             case SLOW5_COMPRESS_ZSTD:
                 out = ptr_compress_zstd(ptr, size * nmemb, &bytes_tmp);
                 if (!out) {
                     return -1;
                 }
                 break;
+#endif /* SLOW5_USE_ZSTD */
+
+            default:
+                SLOW5_ERROR("Invalid (de)compression method '%d'.", comp->method);
+                slow5_errno = SLOW5_ERR_ARG;
+                return -1;
         }
     }
 
@@ -603,7 +655,14 @@ void slow5_compress_footer_next(struct __slow5_press *comp) {
                 }
             } break;
             case SLOW5_COMPRESS_SVB_ZD: break;
+#ifdef SLOW5_USE_ZSTD
             case SLOW5_COMPRESS_ZSTD: break;
+#endif /* SLOW5_USE_ZSTD */
+
+            default:
+                SLOW5_ERROR("Invalid (de)compression method '%d'.", comp->method);
+                slow5_errno = SLOW5_ERR_ARG;
+                break;
         }
     }
 }
@@ -966,6 +1025,7 @@ static int16_t *ptr_depress_svb_zd(const uint8_t *ptr, size_t count, size_t *n) 
 
 
 
+#ifdef SLOW5_USE_ZSTD
 /********
  * ZSTD *
  ********/
@@ -1019,6 +1079,7 @@ static void *ptr_depress_zstd(const void *ptr, size_t count, size_t *n) {
 
     return out;
 }
+#endif /* SLOW5_USE_ZSTD */
 
 
 

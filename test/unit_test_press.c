@@ -173,6 +173,7 @@ int press_svb_exp_valid(void) {
     return EXIT_SUCCESS;
 }
 
+#ifdef SLOW5_USE_ZSTD
 int press_zstd_buf_valid(void) {
 
     const char *str = "1234567890123456789012345678901234567890";
@@ -210,7 +211,7 @@ int slow5_press_valid(void) {
 
     return EXIT_SUCCESS;
 }
-
+#endif /* SLOW5_USE_ZSTD */
 
 int main(void) {
 
@@ -228,9 +229,11 @@ int main(void) {
         CMD(press_svb_big_valid)
         CMD(press_svb_exp_valid)
 
+#ifdef SLOW5_USE_ZSTD
         CMD(press_zstd_buf_valid)
 
         CMD(slow5_press_valid)
+#endif /* SLOW5_USE_ZSTD */
     };
 
     return RUN_TESTS(tests);
