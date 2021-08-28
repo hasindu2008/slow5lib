@@ -1111,7 +1111,6 @@ enum slow5_aux_type *slow5_get_aux_types(const slow5_hdr_t *header, uint64_t *le
 /**
  * get the enum labels for a specific auxiliary field and set the number of labels in *n
  * TODO note *n is max 255, hence the max enum number is 254
- * free the return value but not each string
  * return NULL on error and slow5_errno set to
  * SLOW5_ERR_ARG    if header, field NULL, n can be NULL
  * SLOW5_ERR_NOAUX  if auxiliary header is NULL
@@ -1119,7 +1118,7 @@ enum slow5_aux_type *slow5_get_aux_types(const slow5_hdr_t *header, uint64_t *le
  * SLOW5_ERR_NOFLD  if the auxiliary field was not found
  * SLOW5_ERR_MEM    memory allocation error
  */
-const char **slow5_get_aux_enum_labels(const slow5_hdr_t *header, const char *field, uint8_t *n) {
+char **slow5_get_aux_enum_labels(const slow5_hdr_t *header, const char *field, uint8_t *n) {
     if (!header || !field) {
         if (!header) {
             SLOW5_ERROR_EXIT("Argument '%s' cannot be NULL.", SLOW5_TO_STR(header));
@@ -1160,23 +1159,11 @@ const char **slow5_get_aux_enum_labels(const slow5_hdr_t *header, const char *fi
         return NULL;
     }
 
-    uint8_t num_labels = header->aux_meta->enum_num_labels[i];
-
     if (n) {
-        *n = num_labels;
+        *n = header->aux_meta->enum_num_labels[i];
     }
 
-    const char **labels = malloc(num_labels * sizeof *labels);
-    if (!labels) {
-        SLOW5_MALLOC_ERROR_EXIT();
-        slow5_errno = SLOW5_ERR_MEM;
-        return NULL;
-    }
-    for (uint16_t j = 0; j < num_labels; ++ j) {
-        labels[j] = header->aux_meta->enum_labels[i][j];
-    }
-
-    return labels;
+    return header->aux_meta->enum_labels[i];
 }
 
 /**
@@ -1553,7 +1540,7 @@ struct slow5_aux_meta *slow5_aux_meta_init(FILE *fp, char **bufp, size_t *cap, u
             if (type == SLOW5_ENUM || type == SLOW5_ENUM_ARRAY) {
                 /* if hasn't been allocated yet */
                 if (!aux_meta->enum_labels) {
-                    aux_meta->enum_labels = (const char ***) malloc(aux_meta->cap * sizeof *(aux_meta->enum_labels));
+                    aux_meta->enum_labels = (char ***) malloc(aux_meta->cap * sizeof *(aux_meta->enum_labels));
                     aux_meta->enum_num_labels = (uint8_t *) calloc(aux_meta->cap, sizeof *(aux_meta->enum_num_labels));
                     if (!aux_meta->enum_labels || !aux_meta->enum_num_labels) {
                         SLOW5_MALLOC_ERROR();
@@ -1566,7 +1553,7 @@ struct slow5_aux_meta *slow5_aux_meta_init(FILE *fp, char **bufp, size_t *cap, u
                 }
 
                 uint8_t enum_num_labels;
-                const char **enum_labels = (const char **) slow5_aux_meta_enum_parse(tok, type, &enum_num_labels);
+                char **enum_labels = slow5_aux_meta_enum_parse(tok, type, &enum_num_labels);
                 if (!enum_labels) {
                     SLOW5_ERROR("Malformed slow5 header. Invalid enum labels '%s', expected 'enum%s{LABEL_0,LABEL_1,...}'.",
                             tok, SLOW5_IS_PTR(type) ? "*" : "");
@@ -1599,7 +1586,7 @@ struct slow5_aux_meta *slow5_aux_meta_init(FILE *fp, char **bufp, size_t *cap, u
 
                 /* if enum labels allocated reallocate them as well */
                 if (aux_meta->enum_labels) {
-                    const char ***enum_labels_tmp = (const char ***) realloc(aux_meta->enum_labels, aux_meta->cap * sizeof *(aux_meta->enum_labels));
+                    char ***enum_labels_tmp = (char ***) realloc(aux_meta->enum_labels, aux_meta->cap * sizeof *(aux_meta->enum_labels));
                     uint8_t *enum_num_labels_tmp = (uint8_t *) realloc(aux_meta->enum_num_labels, aux_meta->cap * sizeof *(aux_meta->enum_num_labels));
                     memset(enum_num_labels_tmp + old_cap, 0, aux_meta->cap - old_cap);
                     if (!enum_labels_tmp || !enum_num_labels_tmp) { /* realloc error */
@@ -1945,7 +1932,7 @@ int slow5_aux_meta_add_enum(struct slow5_aux_meta *aux_meta, const char *attr, e
         aux_meta->sizes = (uint8_t *) realloc(aux_meta->sizes, aux_meta->cap * sizeof *(aux_meta->sizes));
         SLOW5_MALLOC_CHK(aux_meta->sizes);
         if (aux_meta->enum_labels) {
-            aux_meta->enum_labels = (const char ***) realloc(aux_meta->enum_labels, aux_meta->cap * sizeof *(aux_meta->enum_labels));
+            aux_meta->enum_labels = (char ***) realloc(aux_meta->enum_labels, aux_meta->cap * sizeof *(aux_meta->enum_labels));
             SLOW5_MALLOC_CHK(aux_meta->enum_labels);
             aux_meta->enum_num_labels = (uint8_t *) realloc(aux_meta->enum_num_labels, aux_meta->cap * sizeof *(aux_meta->enum_num_labels));
             SLOW5_MALLOC_CHK(aux_meta->enum_num_labels);
@@ -1955,7 +1942,7 @@ int slow5_aux_meta_add_enum(struct slow5_aux_meta *aux_meta, const char *attr, e
 
     /* enum labels not allocated yet */
     if (!aux_meta->enum_labels) {
-        aux_meta->enum_labels = (const char ***) malloc(aux_meta->cap * sizeof *(aux_meta->enum_labels));
+        aux_meta->enum_labels = (char ***) malloc(aux_meta->cap * sizeof *(aux_meta->enum_labels));
         aux_meta->enum_num_labels = (uint8_t *) calloc(aux_meta->cap, sizeof *(aux_meta->enum_num_labels));
         if (!aux_meta->enum_labels || !aux_meta->enum_num_labels) {
             SLOW5_MALLOC_ERROR();
@@ -1970,7 +1957,7 @@ int slow5_aux_meta_add_enum(struct slow5_aux_meta *aux_meta, const char *attr, e
     }
 
     aux_meta->attrs[aux_meta->num] = strdup(attr);
-    aux_meta->enum_labels[aux_meta->num] = (const char **) enum_labels_cp;
+    aux_meta->enum_labels[aux_meta->num] = (char **) enum_labels_cp;
     aux_meta->enum_num_labels[aux_meta->num] = enum_num_labels;
 
     int absent;

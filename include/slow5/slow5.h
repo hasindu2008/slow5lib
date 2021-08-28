@@ -208,7 +208,7 @@ typedef struct slow5_aux_meta {
     uint8_t *sizes;                     ///< field datatype sizes, for arrays this stores the size (in bytes) of the corresponding primitive type (TODO: this is probably redundant)
 
     /* the following are NULL if no auxiliary datatype is an enum type */
-    const char ***enum_labels;          ///< array of enum labels stored as strings
+    char ***enum_labels;                ///< array of enum labels stored as strings
     uint8_t *enum_num_labels;           ///< array of number of enum labels (TODO then enum/uint8_t fixed to 0-254)
 } slow5_aux_meta_t;
 
@@ -720,7 +720,6 @@ enum slow5_aux_type *slow5_get_aux_types(const slow5_hdr_t *header,uint64_t *len
 /**
  * get the enum labels for a specific auxiliary field and set the number of labels in *n
  * TODO note *n is max 255, hence the max enum number is 254
- * free the return value but not each string
  * return NULL on error and slow5_errno set to
  * SLOW5_ERR_ARG    if header, field NULL, n can be NULL
  * SLOW5_ERR_NOAUX  if auxiliary header is NULL
@@ -728,7 +727,7 @@ enum slow5_aux_type *slow5_get_aux_types(const slow5_hdr_t *header,uint64_t *len
  * SLOW5_ERR_NOFLD  if the auxiliary field was not found
  * SLOW5_ERR_MEM    memory allocation error
  */
-const char **slow5_get_aux_enum_labels(const slow5_hdr_t *header, const char *field, uint8_t *n);
+char **slow5_get_aux_enum_labels(const slow5_hdr_t *header, const char *field, uint8_t *n);
 
 
 // Return

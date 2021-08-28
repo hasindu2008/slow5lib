@@ -17,7 +17,7 @@ int slow5_open_valid(void) {
     ASSERT(err == 0);
 
     uint8_t n;
-    const char **end_reason_labels = slow5_get_aux_enum_labels(s5p->header, "end_reason", &n); /* TODO this api naming is horrible */
+    char **end_reason_labels = slow5_get_aux_enum_labels(s5p->header, "end_reason", &n); /* TODO this api naming is horrible */
     ASSERT(end_reason_labels);
     ASSERT(n == 6);
     ASSERT(strcmp(end_reason_labels[end_reason], "signal_positive") == 0);
@@ -45,7 +45,6 @@ int slow5_open_valid(void) {
     end_reason = 100;
     ASSERT(slow5_rec_set(read, s5p->header->aux_meta, "end_reason", &end_reason) == -4);
 
-    free(end_reason_labels);
     slow5_rec_free(read);
     ASSERT(slow5_close(s5p) == 0);
 
@@ -58,7 +57,7 @@ int slow5_get_enum_labels_invalid(void) {
     ASSERT(s5p);
 
     uint8_t n;
-    const char **end_reason_labels;
+    char **end_reason_labels;
 
     /* SLOW5_ERR_ARG */
     end_reason_labels = slow5_get_aux_enum_labels(NULL, "end_reason", &n);
@@ -70,7 +69,6 @@ int slow5_get_enum_labels_invalid(void) {
     end_reason_labels = slow5_get_aux_enum_labels(s5p->header, "end_reason", NULL);
     ASSERT(end_reason_labels);
     ASSERT(strcmp(end_reason_labels[4], "signal_positive") == 0);
-    free(end_reason_labels);
 
     /* SLOW5_ERR_TYPE */
     end_reason_labels = slow5_get_aux_enum_labels(s5p->header, "test_array", &n);
@@ -93,7 +91,7 @@ int slow5_get_enum_labels_invalid_noaux(void) {
     ASSERT(s5p);
 
     uint8_t n;
-    const char **end_reason_labels;
+    char **end_reason_labels;
 
     /* SLOW5_ERR_NOAUX */
     end_reason_labels = slow5_get_aux_enum_labels(s5p->header, "end_reason", &n);
@@ -111,7 +109,7 @@ int slow5_get_enum_labels_invalid_noenum(void) {
     ASSERT(s5p);
 
     uint8_t n;
-    const char **end_reason_labels;
+    char **end_reason_labels;
 
     /* SLOW5_ERR_TYPE */
     end_reason_labels = slow5_get_aux_enum_labels(s5p->header, "end_reason", &n);
