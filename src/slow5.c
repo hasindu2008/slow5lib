@@ -1110,7 +1110,6 @@ enum slow5_aux_type *slow5_get_aux_types(const slow5_hdr_t *header, uint64_t *le
 
 /**
  * get the enum labels for a specific auxiliary field and set the number of labels in *n
- * TODO note *n is max 255, hence the max enum number is 254
  * return NULL on error and slow5_errno set to
  * SLOW5_ERR_ARG    if header, field NULL, n can be NULL
  * SLOW5_ERR_NOAUX  if auxiliary header is NULL
@@ -1877,7 +1876,6 @@ int slow5_aux_meta_add(struct slow5_aux_meta *aux_meta, const char *attr, enum s
 // -3   use slow5_aux_meta_add instead if type is not SLOW5_ENUM or SLOW5_ENUM_ARRAY
 // -4   bad enum_labels not good c labels
 /* TODO this error checking is bad */
-/* TODO combine with slow5_aux_meta_add? I added a new function to not break everything for now */
 int slow5_aux_meta_add_enum(struct slow5_aux_meta *aux_meta, const char *attr, enum slow5_aux_type type, const char **enum_labels, uint8_t enum_num_labels) {
     if (!aux_meta || !attr || !enum_labels) {
         return -1;

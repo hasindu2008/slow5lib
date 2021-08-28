@@ -209,7 +209,7 @@ typedef struct slow5_aux_meta {
 
     /* the following are NULL if no auxiliary datatype is an enum type */
     char ***enum_labels;                ///< array of enum labels stored as strings
-    uint8_t *enum_num_labels;           ///< array of number of enum labels (TODO then enum/uint8_t fixed to 0-254)
+    uint8_t *enum_num_labels;           ///< array of number of enum labels
 } slow5_aux_meta_t;
 
 // Header data map: attribute string -> data string
@@ -719,7 +719,6 @@ char **slow5_get_aux_names(const slow5_hdr_t *header,uint64_t *len);
 enum slow5_aux_type *slow5_get_aux_types(const slow5_hdr_t *header,uint64_t *len);
 /**
  * get the enum labels for a specific auxiliary field and set the number of labels in *n
- * TODO note *n is max 255, hence the max enum number is 254
  * return NULL on error and slow5_errno set to
  * SLOW5_ERR_ARG    if header, field NULL, n can be NULL
  * SLOW5_ERR_NOAUX  if auxiliary header is NULL
