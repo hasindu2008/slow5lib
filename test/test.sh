@@ -145,6 +145,15 @@ else
     not_compiled
 fi
 
+echo_test 'unit test enum'
+if gcc test/unit_test_enum.c -o test/bin/unit_test_enum $compile; then
+    if ! ex test/bin/unit_test_enum > test/data/out/unit_test_out_enum; then
+        fail
+    fi
+else
+    not_compiled
+fi
+
 echo_test 'diff test'
 # Unit test output diffs
 my_diff 'test/data/out/unit_test_out_ascii' 'test/data/exp/unit_test_exp_ascii'
@@ -154,6 +163,7 @@ my_diff 'test/data/out/unit_test_out_press' 'test/data/exp/unit_test_exp_press'
 my_diff 'test/data/out/unit_test_out_lossless' 'test/data/exp/unit_test_exp_lossless'
 my_diff 'test/data/out/unit_test_out_empty' 'test/data/exp/unit_test_exp_empty'
 my_diff 'test/data/out/unit_test_out_two_rg' 'test/data/exp/unit_test_exp_two_rg'
+my_diff 'test/data/out/unit_test_out_enum' 'test/data/exp/unit_test_exp_enum'
 # Adding records diffs
 my_diff 'test/data/out/exp_1_default_add_empty.slow5' 'test/data/exp/exp_1_default_add_empty.slow5'
 my_diff 'test/data/out/exp_1_default_add_valid.slow5' 'test/data/exp/exp_1_default_add_valid.slow5'
