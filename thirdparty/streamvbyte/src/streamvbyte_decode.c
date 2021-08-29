@@ -80,7 +80,8 @@ static const uint8_t *svb_decode_scalar(uint32_t *outPtr, const uint8_t *keyPtr,
 
 // Read count 32-bit integers in maskedvbyte format from in, storing the result
 // in out.  Returns the number of bytes read.
-size_t streamvbyte_decode(const uint8_t *in, uint32_t *out, uint32_t count) {
+// NOTE: I am appending __slow5_ here
+size_t __slow5_streamvbyte_decode(const uint8_t *in, uint32_t *out, uint32_t count) {
   if (count == 0)
     return 0;
 

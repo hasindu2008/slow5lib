@@ -923,7 +923,7 @@ static ssize_t fwrite_compress_zlib(struct slow5_zlib_stream *zlib, const void *
 static uint8_t *ptr_compress_svb(const uint32_t *ptr, size_t count, size_t *n) {
     uint32_t length = count / sizeof *ptr;
 
-    size_t max_n = streamvbyte_max_compressedbytes(length);
+    size_t max_n = __slow5_streamvbyte_max_compressedbytes(length);
     uint8_t *out = (uint8_t *) malloc(max_n + sizeof length);
     if (!out) {
         SLOW5_MALLOC_ERROR();
@@ -931,7 +931,7 @@ static uint8_t *ptr_compress_svb(const uint32_t *ptr, size_t count, size_t *n) {
         return NULL;
     }
 
-    *n = streamvbyte_encode(ptr, length, out + sizeof length);
+    *n = __slow5_streamvbyte_encode(ptr, length, out + sizeof length);
     memcpy(out, &length, sizeof length); /* copy original length of ptr (needed for depress) */
     *n = *n + sizeof length;
     fprintf(stderr, "max svb bytes=%zu\nsvb bytes=%zu\n",
@@ -959,7 +959,7 @@ static uint8_t *ptr_compress_svb_zd(const int16_t *ptr, size_t count, size_t *n)
         slow5_errno = SLOW5_ERR_MEM;
         return NULL;
     }
-    zigzag_delta_encode(in, diff, length, 0);
+    __slow5_zigzag_delta_encode(in, diff, length, 0);
 
     fprintf(stderr, "orig bytes=%zu\n", count); /* TESTING */
     uint8_t *out = ptr_compress_svb(diff, length * sizeof *diff, n);
@@ -982,7 +982,7 @@ static uint32_t *ptr_depress_svb(const uint8_t *ptr, size_t count, size_t *n) {
     }
 
     size_t bytes_read;
-    if ((bytes_read = streamvbyte_decode(ptr + sizeof length, out, length)) != count - sizeof length) {
+    if ((bytes_read = __slow5_streamvbyte_decode(ptr + sizeof length, out, length)) != count - sizeof length) {
         SLOW5_ERROR("Expected streamvbyte_decode to read '%zu' bytes, instead read '%zu' bytes.",
                 count - sizeof length, bytes_read);
         slow5_errno = SLOW5_ERR_PRESS;
@@ -1010,7 +1010,7 @@ static int16_t *ptr_depress_svb_zd(const uint8_t *ptr, size_t count, size_t *n) 
         slow5_errno = SLOW5_ERR_MEM;
         return NULL;
     }
-    zigzag_delta_decode(diff, out, length, 0);
+    __slow5_zigzag_delta_decode(diff, out, length, 0);
 
     int16_t *orig = (int16_t *) malloc(length * sizeof *orig);
     for (int64_t i = 0; i < length; ++ i) {

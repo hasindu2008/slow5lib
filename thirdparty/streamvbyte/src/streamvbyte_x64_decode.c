@@ -23,8 +23,8 @@ static inline void _write_avx(uint32_t *out, __m128i Vec) {
 
 
 
-
-const uint8_t *svb_decode_avx_simple(uint32_t *out,
+// Note: I make this static to prevent name collisions
+static const uint8_t *svb_decode_avx_simple(uint32_t *out,
                                      const uint8_t *__restrict__ keyPtr,
                                      const uint8_t *__restrict__ dataPtr,
                                      uint64_t count) {

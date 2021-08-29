@@ -85,9 +85,9 @@ static uint8_t *svb_encode_scalar_d1_init(const uint32_t *in,
 
 
 
+// NOTE: __slow5_ added to prevent namespace collision with original library
 
-
-size_t streamvbyte_delta_encode(const uint32_t *in, uint32_t count, uint8_t *out,
+size_t __slow5_streamvbyte_delta_encode(const uint32_t *in, uint32_t count, uint8_t *out,
                                 uint32_t prev) {
 #ifdef __AVX__
   return streamvbyte_encode_SSSE3_d1_init(in,count,out,prev);

@@ -43,7 +43,8 @@ SOFTWARE.
 #include "slow5_misc.h"
 #include "klib/ksort.h"
 
-KSORT_INIT_STR
+KSORT_INIT(str_slow5, ksstr_t, ks_lt_str)
+
 
 // TODO fail with getline if end of file occurs on a non-empty line
 // TODO (void) cast if ignoring return value
@@ -648,7 +649,7 @@ const char **slow5_get_hdr_keys(const slow5_hdr_t *header, uint64_t *len) {
     }
 
     // Sort header data attributes alphabetically
-    ks_mergesort(str, header->data.num_attrs, data_attrs, 0);
+    ks_mergesort(str_slow5, header->data.num_attrs, data_attrs, 0);
 
     return data_attrs;
 }

@@ -1,4 +1,7 @@
 # minimalist makefile
+# NOTE: This is a modified version of the original Makefile.
+# Only the files required for slow5lib are compiled by this makefile. The rest are commented out or removed.
+
 .SUFFIXES:
 #
 .SUFFIXES: .cpp .o .c .h
@@ -25,25 +28,27 @@ LNLIBNAME=libstreamvbyte.so
 STATICLIB=libstreamvbyte.a
 all:  $(LIBNAME) $(STATICLIB)
 
-HEADERS=./include/streamvbyte.h ./include/streamvbytedelta.h ./include/streamvbyte_zigzag.h
+#HEADERS=./include/streamvbyte.h ./include/streamvbytedelta.h ./include/streamvbyte_zigzag.h
+HEADERS=./include/streamvbyte.h ./include/streamvbyte_zigzag.h
 
-OBJECTS= streamvbyte_decode.o streamvbyte_encode.o streamvbytedelta_decode.o streamvbytedelta_encode.o streamvbyte_0124_encode.o  streamvbyte_0124_decode.o streamvbyte_zigzag.o
+#OBJECTS= streamvbyte_decode.o streamvbyte_encode.o streamvbytedelta_decode.o streamvbytedelta_encode.o streamvbyte_0124_encode.o  streamvbyte_0124_decode.o streamvbyte_zigzag.o
+OBJECTS= streamvbyte_decode.o streamvbyte_encode.o streamvbyte_zigzag.o
 
 streamvbyte_zigzag.o: ./src/streamvbyte_zigzag.c $(HEADERS)
 	$(CC) $(CFLAGS) -c ./src/streamvbyte_zigzag.c -Iinclude
 
 
-streamvbytedelta_encode.o: ./src/streamvbytedelta_encode.c $(HEADERS)
-	$(CC) $(CFLAGS) -c ./src/streamvbytedelta_encode.c -Iinclude
+# streamvbytedelta_encode.o: ./src/streamvbytedelta_encode.c $(HEADERS)
+# 	$(CC) $(CFLAGS) -c ./src/streamvbytedelta_encode.c -Iinclude
 
-streamvbytedelta_decode.o: ./src/streamvbytedelta_decode.c $(HEADERS)
-	$(CC) $(CFLAGS) -c ./src/streamvbytedelta_decode.c -Iinclude
+# streamvbytedelta_decode.o: ./src/streamvbytedelta_decode.c $(HEADERS)
+# 	$(CC) $(CFLAGS) -c ./src/streamvbytedelta_decode.c -Iinclude
 
-streamvbyte_0124_encode.o: ./src/streamvbyte_0124_encode.c $(HEADERS)
-	$(CC) $(CFLAGS) -c ./src/streamvbyte_0124_encode.c -Iinclude
+# streamvbyte_0124_encode.o: ./src/streamvbyte_0124_encode.c $(HEADERS)
+# 	$(CC) $(CFLAGS) -c ./src/streamvbyte_0124_encode.c -Iinclude
 
-streamvbyte_0124_decode.o: ./src/streamvbyte_0124_decode.c $(HEADERS)
-	$(CC) $(CFLAGS) -c ./src/streamvbyte_0124_decode.c -Iinclude
+# streamvbyte_0124_decode.o: ./src/streamvbyte_0124_decode.c $(HEADERS)
+# 	$(CC) $(CFLAGS) -c ./src/streamvbyte_0124_decode.c -Iinclude
 
 streamvbyte_decode.o: ./src/streamvbyte_decode.c $(HEADERS)
 	$(CC) $(CFLAGS) -c ./src/streamvbyte_decode.c -Iinclude
