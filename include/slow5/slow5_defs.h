@@ -45,9 +45,9 @@ extern "C" {
 // maximum file version supported by this library - independent of slow5 library version above
 // if updating change all 4 below
 #define SLOW5_VERSION_MAJOR (0)
-#define SLOW5_VERSION_MINOR (1)
+#define SLOW5_VERSION_MINOR (2)
 #define SLOW5_VERSION_PATCH (0)
-#define SLOW5_VERSION_STRING "0.1.0"
+#define SLOW5_VERSION_STRING "0.2.0"
 
 // file version helpers
 #define SLOW5_VERSION_STRING_FORMAT \
