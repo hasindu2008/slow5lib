@@ -382,7 +382,7 @@ int slow5_set_aux_string(void) {
     ASSERT(slow5_get("a649a4ae-c43d-492a-b6a1-a5b8b8076be4", &read, s5p) == 0);
     ASSERT(read);
 
-    size_t len;
+    uint64_t len;
     char *cn = slow5_aux_get_string(read, "channel_number", &len, NULL);
     ASSERT(cn);
     ASSERT(len == strlen(cn));
