@@ -19,9 +19,9 @@ depends=['python/pyslow5.pxd', 'python/pyslow5.h',
             'src/slow5_extra.h', 'src/slow5_idx.h', 'src/slow5_misc.h', 'src/klib/ksort.h' ]
 extra_compile_args = ['-g', '-Wall', '-O2', '-std=c99']
 
-include_dirs = ['include/', np.get_include(), 'thirdparty/streamvbyte-0.4.1/include']
+include_dirs = ['include/', np.get_include(), 'thirdparty/streamvbyte/include']
 libraries = ['m', 'z', 'streamvbyte']
-library_dirs = ['.','thirdparty/streamvbyte-0.4.1/']
+library_dirs = ['.','thirdparty/streamvbyte/']
 
 extensions = [Extension('pyslow5',
                   sources = sources,

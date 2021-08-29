@@ -5,7 +5,7 @@
 
 CC			= cc
 AR			= ar
-SVB			= thirdparty/streamvbyte-0.4.1
+SVB			= thirdparty/streamvbyte
 SVBLIB		= $(SVB)/libstreamvbyte.a
 CPPFLAGS	+= -I include/ -I $(SVB)/include/
 CFLAGS		+= -g -Wall -Wpedantic -O2 -std=c99
@@ -46,7 +46,7 @@ $(SHAREDLIBV): $(OBJ) $(SVBLIB)
 	$(CC) $(CFLAGS) -shared $^ -o $@ $(LDFLAGS)
 
 $(SVBLIB):
-	make -C $(SVB)
+	make -C $(SVB) libstreamvbyte.a
 
 $(BUILD_DIR)/slow5.o: src/slow5.c src/slow5_extra.h src/slow5_idx.h src/slow5_misc.h src/klib/ksort.h $(SLOW5_H)
 	$(CC) $(CFLAGS) $(CPPFLAGS) $< -c -fpic -o $@
@@ -77,10 +77,10 @@ test: slow5lib
 pyslow5:
 	make clean
 	rm -rf *.so python/pyslow5.cpp build/lib.* build/temp.*
-	make -C thirdparty/streamvbyte-0.4.1
+	make -C $(SVB)
 	python3 setup.py build
 	cp build/lib.*/*.so  ./
-	LD_LIBRAY_PATH=$LD_LIBRAY_PATH/thirdparty/streamvbyte-0.4.1 python3 < python/example.py
+	LD_LIBRAY_PATH=$LD_LIBRAY_PATH:$(SVB) python3 < python/example.py
 
 test-prep: slow5lib
 	gcc test/make_blow5.c -Isrc src/slow5.c src/slow5_press.c -lm -lz src/slow5_idx.c src/slow5_misc.c -o test/bin/make_blow5 -g
