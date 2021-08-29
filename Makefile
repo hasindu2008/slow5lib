@@ -77,9 +77,10 @@ test: slow5lib
 pyslow5:
 	make clean
 	rm -rf *.so python/pyslow5.cpp build/lib.* build/temp.*
+	make -C thirdparty/streamvbyte-0.4.1
 	python3 setup.py build
 	cp build/lib.*/*.so  ./
-	python3 < python/example.py
+	LD_LIBRAY_PATH=$LD_LIBRAY_PATH/thirdparty/streamvbyte-0.4.1 python3 < python/example.py
 
 test-prep: slow5lib
 	gcc test/make_blow5.c -Isrc src/slow5.c src/slow5_press.c -lm -lz src/slow5_idx.c src/slow5_misc.c -o test/bin/make_blow5 -g
