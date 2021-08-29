@@ -60,6 +60,7 @@ KSORT_INIT_STR
 /* TODO is this good? Or put to a page length */
 #define SLOW5_HDR_STR_INIT_CAP (1024) /* Initial capacity for converting the header to a string: 2^10 */
 #define SLOW5_AUX_META_CAP_INIT (32) /* Initial capacity for the number of auxiliary fields: 2^5 */
+#define SLOW5_AUX_ENUM_LABELS_CAP_INIT (32) /* Initial capacity for the number of enum labels: 2^5 */
 #define SLOW5_AUX_ARRAY_CAP_INIT (256) /* Initial capacity for parsing auxiliary array: 2^8 */
 #define SLOW5_AUX_ARRAY_STR_CAP_INIT (1024) /* Initial capacity for storing auxiliary array string: 2^10 */
 
@@ -877,11 +878,11 @@ char *slow5_hdr_types_to_str(struct slow5_aux_meta *aux_meta, size_t *len) {
         memcpy(types, str_to_cp, len_to_cp);
         types_len += len_to_cp;
 
-        for (uint16_t i = 0; i < aux_meta->num; ++ i) {
-            const char *str_to_cp = SLOW5_AUX_TYPE_META[aux_meta->types[i]].type_str;
+        for (uint64_t i = 0; i < aux_meta->num; ++ i) {
+            str_to_cp = SLOW5_AUX_TYPE_META[aux_meta->types[i]].type_str;
             len_to_cp = strlen(str_to_cp);
 
-            if (types_len + len_to_cp + 1 >= types_cap) { // +1 for SLOW5_SEP_COL_CHAR
+            while (types_len + len_to_cp + 1 >= types_cap) { // +1 for SLOW5_SEP_COL_CHAR
                 types_cap *= 2;
                 types = (char *) realloc(types, types_cap);
                 SLOW5_MALLOC_CHK(types);
@@ -890,6 +891,59 @@ char *slow5_hdr_types_to_str(struct slow5_aux_meta *aux_meta, size_t *len) {
             types[types_len ++] = SLOW5_SEP_COL_CHAR;
             memcpy(types + types_len, str_to_cp, len_to_cp);
             types_len += len_to_cp;
+
+            /* add enum labels */
+            if (aux_meta->types[i] == SLOW5_ENUM ||
+                    aux_meta->types[i] == SLOW5_ENUM_ARRAY) {
+
+                if (!aux_meta->enum_num_labels || aux_meta->enum_num_labels[i] == 0) {
+                    /* something went wrong */
+                    return NULL;
+                }
+
+                if (types_len + 1 >= types_cap) { /* +1 for SLOW5_HDR_ENUM_LABELS_BEGIN */
+                    types_cap *= 2;
+                    types = (char *) realloc(types, types_cap);
+                    SLOW5_MALLOC_CHK(types);
+                }
+                types[types_len ++] = SLOW5_HDR_ENUM_LABELS_BEGIN;
+
+                /* copy over first label without comma */
+                str_to_cp = aux_meta->enum_labels[i][0];
+                len_to_cp = strlen(str_to_cp);
+
+                while (types_len + len_to_cp >= types_cap) {
+                    types_cap *= 2;
+                    types = (char *) realloc(types, types_cap);
+                    SLOW5_MALLOC_CHK(types);
+                }
+
+                memcpy(types + types_len, str_to_cp, len_to_cp);
+                types_len += len_to_cp;
+
+                /* copy over rest of the labels with preceding commas */
+                for (uint16_t j = 1; j < aux_meta->enum_num_labels[i]; ++ j) {
+                    str_to_cp = aux_meta->enum_labels[i][j];
+                    len_to_cp = strlen(str_to_cp);
+
+                    while (types_len + len_to_cp + 1 >= types_cap) { // +1 for SLOW5_SEP_ARRAY_CHAR
+                        types_cap *= 2;
+                        types = (char *) realloc(types, types_cap);
+                        SLOW5_MALLOC_CHK(types);
+                    }
+
+                    types[types_len ++] = SLOW5_SEP_ARRAY_CHAR;
+                    memcpy(types + types_len, str_to_cp, len_to_cp);
+                    types_len += len_to_cp;
+                }
+
+                if (types_len + 1 >= types_cap) { /* +1 for SLOW5_HDR_ENUM_LABELS_END */
+                    types_cap *= 2;
+                    types = (char *) realloc(types, types_cap);
+                    SLOW5_MALLOC_CHK(types);
+                }
+                types[types_len ++] = SLOW5_HDR_ENUM_LABELS_END;
+            }
         }
 
         if (types_len + 2 >= types_cap) { // +2 for '\n' and '\0'
@@ -925,11 +979,11 @@ char *slow5_hdr_attrs_to_str(struct slow5_aux_meta *aux_meta, size_t *len) {
         memcpy(attrs, str_to_cp, len_to_cp);
         attrs_len += len_to_cp;
 
-        for (uint16_t i = 0; i < aux_meta->num; ++ i) {
+        for (uint64_t i = 0; i < aux_meta->num; ++ i) {
             str_to_cp = aux_meta->attrs[i];
             len_to_cp = strlen(str_to_cp);
 
-            if (attrs_len + len_to_cp + 1 >= attrs_cap) { // +1 for SLOW5_SEP_COL_CHAR
+            while (attrs_len + len_to_cp + 1 >= attrs_cap) { // +1 for SLOW5_SEP_COL_CHAR
                 attrs_cap *= 2;
                 attrs = (char *) realloc(attrs, attrs_cap);
                 SLOW5_MALLOC_CHK(attrs);
@@ -1069,6 +1123,65 @@ enum slow5_aux_type *slow5_get_aux_types(const slow5_hdr_t *header, uint64_t *le
         return (header->aux_meta->types);
     }
 }
+
+
+/**
+ * get the enum labels for a specific auxiliary field and set the number of labels in *n
+ * return NULL on error and slow5_errno set to
+ * SLOW5_ERR_ARG    if header, field NULL, n can be NULL
+ * SLOW5_ERR_NOAUX  if auxiliary header is NULL
+ * SLOW5_ERR_TYPE   if the enum labels or num_labels array is NULL, or the field type is not an enum type
+ * SLOW5_ERR_NOFLD  if the auxiliary field was not found
+ * SLOW5_ERR_MEM    memory allocation error
+ */
+char **slow5_get_aux_enum_labels(const slow5_hdr_t *header, const char *field, uint8_t *n) {
+    if (!header || !field) {
+        if (!header) {
+            SLOW5_ERROR_EXIT("Argument '%s' cannot be NULL.", SLOW5_TO_STR(header));
+        }
+        if (!field) {
+            SLOW5_ERROR_EXIT("Argument '%s' cannot be NULL.", SLOW5_TO_STR(field));
+        }
+        slow5_errno = SLOW5_ERR_ARG;
+        return NULL;
+    }
+
+    if (!header->aux_meta) {
+        SLOW5_ERROR_EXIT("%s", "Missing auxiliary hash map.");
+        slow5_errno = SLOW5_ERR_NOAUX;
+        return NULL;
+    }
+
+    if (!header->aux_meta->enum_labels || !header->aux_meta->enum_num_labels) {
+        SLOW5_ERROR_EXIT("%s", "No enum auxiliary type exists.");
+        slow5_errno = SLOW5_ERR_TYPE;
+        return NULL;
+    }
+
+    uint32_t i;
+    khint_t pos = kh_get(slow5_s2ui32, header->aux_meta->attr_to_pos, field);
+    if (pos == kh_end(header->aux_meta->attr_to_pos)) {
+        SLOW5_ERROR_EXIT("Field '%s' not found.", field);
+        slow5_errno = SLOW5_ERR_NOFLD;
+        return NULL;
+    } else {
+        i = kh_val(header->aux_meta->attr_to_pos, pos);
+    }
+
+    enum slow5_aux_type type = header->aux_meta->types[i];
+    if (type != SLOW5_ENUM && type != SLOW5_ENUM_ARRAY) {
+        SLOW5_ERROR_EXIT("Field '%s' does not have type enum.", field);
+        slow5_errno = SLOW5_ERR_TYPE;
+        return NULL;
+    }
+
+    if (n) {
+        *n = header->aux_meta->enum_num_labels[i];
+    }
+
+    return header->aux_meta->enum_labels[i];
+}
+
 /**
  * Add a new header data attribute.
  *
@@ -1439,9 +1552,41 @@ struct slow5_aux_meta *slow5_aux_meta_init(FILE *fp, char **bufp, size_t *cap, u
             aux_meta->types[aux_meta->num] = type;
             aux_meta->sizes[aux_meta->num] = SLOW5_AUX_TYPE_META[type].size;
 
+            /* parse enum labels */
+            if (type == SLOW5_ENUM || type == SLOW5_ENUM_ARRAY) {
+                /* if hasn't been allocated yet */
+                if (!aux_meta->enum_labels) {
+                    aux_meta->enum_labels = (char ***) malloc(aux_meta->cap * sizeof *(aux_meta->enum_labels));
+                    aux_meta->enum_num_labels = (uint8_t *) calloc(aux_meta->cap, sizeof *(aux_meta->enum_num_labels));
+                    if (!aux_meta->enum_labels || !aux_meta->enum_num_labels) {
+                        SLOW5_MALLOC_ERROR();
+                        free(aux_meta->enum_labels);
+                        free(aux_meta->enum_num_labels);
+                        slow5_aux_meta_free(aux_meta);
+                        slow5_errno = SLOW5_ERR_MEM;
+                        goto err;
+                    }
+                }
+
+                uint8_t enum_num_labels;
+                char **enum_labels = slow5_aux_meta_enum_parse(tok, type, &enum_num_labels);
+                if (!enum_labels) {
+                    SLOW5_ERROR("Malformed slow5 header. Invalid enum labels '%s', expected 'enum%s{LABEL_0,LABEL_1,...}'.",
+                            tok, SLOW5_IS_PTR(type) ? "*" : "");
+                    slow5_aux_meta_free(aux_meta);
+                    slow5_errno = SLOW5_ERR_HDRPARSE;
+                    goto err;
+                } else {
+                    aux_meta->enum_num_labels[aux_meta->num] = enum_num_labels;
+                    aux_meta->enum_labels[aux_meta->num] = enum_labels;
+                }
+            }
+
             ++ aux_meta->num;
-            if (aux_meta->num > aux_meta->cap) {
+            if (aux_meta->num > aux_meta->cap) { /* resize buffers capacity */
+                size_t old_cap = aux_meta->cap;
                 aux_meta->cap = aux_meta->cap << 1;
+
                 enum slow5_aux_type *types_tmp = (enum slow5_aux_type *) realloc(aux_meta->types, aux_meta->cap * sizeof *(aux_meta->types));
                 uint8_t *sizes_tmp = (uint8_t *) realloc(aux_meta->sizes, aux_meta->cap * sizeof *(aux_meta->sizes));
                 if (!types_tmp || !sizes_tmp) { /* realloc error */
@@ -1454,6 +1599,23 @@ struct slow5_aux_meta *slow5_aux_meta_init(FILE *fp, char **bufp, size_t *cap, u
                 }
                 aux_meta->types = types_tmp;
                 aux_meta->sizes = sizes_tmp;
+
+                /* if enum labels allocated reallocate them as well */
+                if (aux_meta->enum_labels) {
+                    char ***enum_labels_tmp = (char ***) realloc(aux_meta->enum_labels, aux_meta->cap * sizeof *(aux_meta->enum_labels));
+                    uint8_t *enum_num_labels_tmp = (uint8_t *) realloc(aux_meta->enum_num_labels, aux_meta->cap * sizeof *(aux_meta->enum_num_labels));
+                    memset(enum_num_labels_tmp + old_cap, 0, aux_meta->cap - old_cap);
+                    if (!enum_labels_tmp || !enum_num_labels_tmp) { /* realloc error */
+                        SLOW5_MALLOC_ERROR();
+                        free(enum_labels_tmp);
+                        free(enum_num_labels_tmp);
+                        slow5_aux_meta_free(aux_meta);
+                        slow5_errno = SLOW5_ERR_MEM;
+                        goto err;
+                    }
+                    aux_meta->enum_labels = enum_labels_tmp;
+                    aux_meta->enum_num_labels = enum_num_labels_tmp;
+                }
             }
         }
     }
@@ -1568,13 +1730,128 @@ struct slow5_aux_meta *slow5_aux_meta_init(FILE *fp, char **bufp, size_t *cap, u
         return NULL;
 }
 
+/**
+ * parses "enum[*]{LABEL_0,LABEL_1,...}"
+ * expects the first enum[*] part to be verified
+ * tok, n cannot be NULL
+ * rules: no spaces anywhere, no empty labels, no duplicate labels
+ * returns the array of labels as strings
+ * returns NULL on parsing error
+ * free the labels and the array after use
+ */
+char **slow5_aux_meta_enum_parse(char *tok, enum slow5_aux_type type, uint8_t *n) {
+
+    const char *type_str = SLOW5_AUX_TYPE_META[type].type_str;
+    const size_t tok_len = strlen(tok);
+
+    if (tok_len == strlen(type_str)) {
+        SLOW5_ERROR("Expected '%c' after '%s'.",
+                SLOW5_HDR_ENUM_LABELS_BEGIN, type_str);
+        return NULL;
+    }
+    if (tok[strlen(type_str)] != SLOW5_HDR_ENUM_LABELS_BEGIN) {
+        SLOW5_ERROR("Expected '%c' after '%s', instead of '%c'.",
+                SLOW5_HDR_ENUM_LABELS_BEGIN, type_str, tok[strlen(type_str)]);
+        return NULL;
+    }
+    if (tok[tok_len - 1] != SLOW5_HDR_ENUM_LABELS_END) {
+        SLOW5_ERROR("Expected '%c' at the end of '%s'.",
+                SLOW5_HDR_ENUM_LABELS_END, tok);
+        return NULL;
+    }
+
+    tok[tok_len - 1] = '\0'; /* ignore trailing } */
+    tok += strlen(type_str) + 1; /* skip "enum[*]{" */
+
+    uint8_t num = 0;
+    uint16_t cap = SLOW5_AUX_ENUM_LABELS_CAP_INIT;
+    char **labels = malloc(cap * sizeof *labels);
+    if (!labels) {
+        SLOW5_MALLOC_ERROR();
+        return NULL;
+    }
+
+    char *label = slow5_strsep(&tok, SLOW5_SEP_ARRAY);
+    do {
+        /* check if it's a std c label */
+        int ret;
+        if ((ret = slow5_is_c_label(label)) != 0) {
+
+            if (ret == -1) {
+                SLOW5_ERROR("Enum label for %d is empty.", num);
+            } else if (ret == -2) {
+                SLOW5_ERROR("Enum label '%s' for %d has a character which is not alpha-numeric nor an underscore.", label, num);
+            } else { /* ret == -3 */
+                SLOW5_ERROR("Enum label '%s' for %d starts with a number.", label, num);
+            }
+
+            for (uint16_t i = 0; i < num; ++ i) {
+                free(labels[i]);
+            }
+            free(labels);
+            return NULL;
+        }
+
+        /* very naive algorithm TODO could use hashsets */
+        for (uint16_t i = 0; i < num; ++ i) {
+            if (strcmp(label, labels[i]) == 0) { /* duplicate label */
+                SLOW5_ERROR("Enum label '%s' for %d is a duplicate of label %d.",
+                        label, num, i);
+
+                for (uint16_t i = 0; i < num; ++ i) {
+                    free(labels[i]);
+                }
+                free(labels);
+                return NULL;
+            }
+        }
+
+        char *label_cp = strdup(label);
+        if (!label_cp) {
+            SLOW5_MALLOC_ERROR();
+            for (uint16_t i = 0; i < num; ++ i) {
+                free(labels[i]);
+            }
+            free(labels);
+            return NULL;
+        }
+
+        if (num >= cap) {
+            cap = cap << 1;
+            char **labels_tmp = realloc(labels, cap * sizeof *labels);
+            if (!labels_tmp) { /* memory allocation error */
+                SLOW5_MALLOC_ERROR();
+                for (uint16_t i = 0; i < num; ++ i) {
+                    free(labels[i]);
+                }
+                free(labels);
+                return NULL;
+            }
+            labels = labels_tmp;
+        }
+
+        labels[num] = label_cp;
+        ++ num;
+    } while ((label = slow5_strsep(&tok, SLOW5_SEP_ARRAY)) != NULL);
+
+    *n = num; /* n better not be NULL */
+
+    return labels;
+}
+
 // Return
 // 0    success
 // -1   null input
 // -2   other failure
+// -3   use slow5_aux_meta_add_enum instead if type is SLOW5_ENUM or SLOW5_ENUM_ARRAY
+/* TODO this error checking is bad */
 int slow5_aux_meta_add(struct slow5_aux_meta *aux_meta, const char *attr, enum slow5_aux_type type) {
     if (aux_meta == NULL || attr == NULL) {
         return -1;
+    }
+
+    if (type == SLOW5_ENUM || type == SLOW5_ENUM_ARRAY) {
+        return -3;
     }
 
     if (aux_meta->attr_to_pos == NULL) {
@@ -1595,8 +1872,117 @@ int slow5_aux_meta_add(struct slow5_aux_meta *aux_meta, const char *attr, enum s
 
     int absent;
     khint_t pos = kh_put(slow5_s2ui32, aux_meta->attr_to_pos, aux_meta->attrs[aux_meta->num], &absent);
-    if (absent == -1 || absent == -2) { // TODO bad == -2 !!
+    if (absent == -1 || absent == 0) {
         free(aux_meta->attrs[aux_meta->num]);
+        return -2;
+    }
+    kh_value(aux_meta->attr_to_pos, pos) = aux_meta->num;
+
+    aux_meta->types[aux_meta->num] = type;
+    aux_meta->sizes[aux_meta->num] = SLOW5_AUX_TYPE_META[type].size;
+
+    ++ aux_meta->num;
+
+    return 0;
+}
+
+// Return
+// 0    success
+// -1   null input
+// -2   other failure
+// -3   use slow5_aux_meta_add instead if type is not SLOW5_ENUM or SLOW5_ENUM_ARRAY
+// -4   bad enum_labels not good c labels
+/* TODO this error checking is bad */
+int slow5_aux_meta_add_enum(struct slow5_aux_meta *aux_meta, const char *attr, enum slow5_aux_type type, const char **enum_labels, uint8_t enum_num_labels) {
+    if (!aux_meta || !attr || !enum_labels) {
+        return -1;
+    }
+
+    if (type != SLOW5_ENUM && type != SLOW5_ENUM_ARRAY) {
+        return -3;
+    }
+
+    if (aux_meta->attr_to_pos == NULL) {
+        aux_meta->attr_to_pos = kh_init(slow5_s2ui32);
+    }
+
+    /* hard copy enum_labels */
+    char **enum_labels_cp = malloc(enum_num_labels * sizeof *enum_labels_cp);
+    if (!enum_labels_cp) { /* mem allocation error */
+        SLOW5_MALLOC_ERROR();
+        return -2;
+    }
+    for (uint16_t i = 0; i < enum_num_labels; ++ i) {
+        /* check enum label is valid */
+        if (slow5_is_c_label(enum_labels[i]) != 0) {
+            SLOW5_ERROR("Bad enum label '%s' for %d", enum_labels[i], i);
+            for (uint16_t j = 0; j < i; ++ j) {
+                free(enum_labels_cp[j]);
+            }
+            free(enum_labels_cp);
+            return -4;
+        }
+
+        enum_labels_cp[i] = strdup(enum_labels[i]);
+
+        if (!enum_labels_cp[i]) { /* mem allocation error */
+            SLOW5_MALLOC_ERROR();
+            for (uint16_t j = 0; j < i; ++ j) {
+                free(enum_labels_cp[j]);
+            }
+            free(enum_labels_cp);
+            return -2;
+        }
+    }
+
+    if (aux_meta->num == aux_meta->cap) {
+        size_t old_cap = aux_meta->cap;
+        aux_meta->cap = old_cap << 1;
+
+        /* TODO this reallocing is bad */
+        aux_meta->attrs = (char **) realloc(aux_meta->attrs, aux_meta->cap * sizeof *(aux_meta->attrs));
+        SLOW5_MALLOC_CHK(aux_meta->attrs);
+        aux_meta->types = (enum slow5_aux_type *) realloc(aux_meta->types, aux_meta->cap * sizeof *(aux_meta->types));
+        SLOW5_MALLOC_CHK(aux_meta->types);
+        aux_meta->sizes = (uint8_t *) realloc(aux_meta->sizes, aux_meta->cap * sizeof *(aux_meta->sizes));
+        SLOW5_MALLOC_CHK(aux_meta->sizes);
+        if (aux_meta->enum_labels) {
+            aux_meta->enum_labels = (char ***) realloc(aux_meta->enum_labels, aux_meta->cap * sizeof *(aux_meta->enum_labels));
+            SLOW5_MALLOC_CHK(aux_meta->enum_labels);
+            aux_meta->enum_num_labels = (uint8_t *) realloc(aux_meta->enum_num_labels, aux_meta->cap * sizeof *(aux_meta->enum_num_labels));
+            SLOW5_MALLOC_CHK(aux_meta->enum_num_labels);
+            memset(aux_meta->enum_num_labels + old_cap, 0, aux_meta->cap - old_cap);
+        }
+    }
+
+    /* enum labels not allocated yet */
+    if (!aux_meta->enum_labels) {
+        aux_meta->enum_labels = (char ***) malloc(aux_meta->cap * sizeof *(aux_meta->enum_labels));
+        aux_meta->enum_num_labels = (uint8_t *) calloc(aux_meta->cap, sizeof *(aux_meta->enum_num_labels));
+        if (!aux_meta->enum_labels || !aux_meta->enum_num_labels) {
+            SLOW5_MALLOC_ERROR();
+            free(aux_meta->enum_labels);
+            free(aux_meta->enum_num_labels);
+            for (uint16_t i = 0; i < enum_num_labels; ++ i) {
+                free(enum_labels_cp[i]);
+            }
+            free(enum_labels_cp);
+            return -2;
+        }
+    }
+
+    aux_meta->attrs[aux_meta->num] = strdup(attr);
+    aux_meta->enum_labels[aux_meta->num] = (char **) enum_labels_cp;
+    aux_meta->enum_num_labels[aux_meta->num] = enum_num_labels;
+
+    int absent;
+    khint_t pos = kh_put(slow5_s2ui32, aux_meta->attr_to_pos, aux_meta->attrs[aux_meta->num], &absent);
+    if (absent == -1 || absent == 0) {
+        free(aux_meta->attrs[aux_meta->num]);
+        for (uint16_t i = 0; i < enum_num_labels; ++ i) {
+            free(enum_labels_cp[i]);
+        }
+        free(enum_labels_cp);
         return -2;
     }
     kh_value(aux_meta->attr_to_pos, pos) = aux_meta->num;
@@ -1620,6 +2006,20 @@ void slow5_aux_meta_free(struct slow5_aux_meta *aux_meta) {
         kh_destroy(slow5_s2ui32, aux_meta->attr_to_pos);
         free(aux_meta->types);
         free(aux_meta->sizes);
+        if (aux_meta->enum_labels) {
+            for (uint64_t i = 0; i < aux_meta->num; ++ i) {
+                for (uint16_t j = 0; j < aux_meta->enum_num_labels[i]; ++ j) {
+                    free((void *) aux_meta->enum_labels[i][j]);
+                }
+
+                if (aux_meta->enum_num_labels[i] > 0) {
+                    free(aux_meta->enum_labels[i]);
+                }
+            }
+
+            free(aux_meta->enum_labels);
+            free(aux_meta->enum_num_labels);
+        }
         free(aux_meta);
     }
 }
@@ -2572,6 +2972,7 @@ int slow5_get_next(struct slow5_rec **read, struct slow5_file *s5p) {
 // -1   input invalid
 // -2   attr not found
 // -3   type is an array type
+// -4   data is invalid (eg enum out of range)
 // TODO add setting a non-aux?
 int slow5_rec_set(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, const char *attr, const void *data) {
     if (read == NULL || aux_meta == NULL || aux_meta->num == 0 || attr == NULL || data == NULL) {
@@ -2591,10 +2992,20 @@ int slow5_rec_set(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, const
 
     // TODO warning if setting null attribute here
 
+    uint8_t *data_cast = (uint8_t *) data;
+    if (aux_meta->types[i] == SLOW5_ENUM) {
+        if (!aux_meta->enum_labels) {
+            return -1;
+        } else if (*data_cast >= aux_meta->enum_num_labels[i]) {
+            /* check if enum number is out of bounds */
+            return -4;
+        }
+    }
+
     if (read->aux_map == NULL) {
         read->aux_map = kh_init(slow5_s2a);
     }
-    slow5_rec_set_aux_map(read->aux_map, attr, (uint8_t *) data, 1, aux_meta->sizes[i], aux_meta->types[i]);
+    slow5_rec_set_aux_map(read->aux_map, attr, data_cast, 1, aux_meta->sizes[i], aux_meta->types[i]);
 
     return 0;
 }
@@ -2605,6 +3016,7 @@ int slow5_rec_set(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, const
 // -1   input invalid
 // -2   attr not found
 // -3   type is not an array type
+// -4   a data value is invalid (eg enum out of range)
 int slow5_rec_set_array(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, const char *attr, const void *data, size_t len) {
     if (read == NULL || aux_meta == NULL || aux_meta->num == 0 || attr == NULL || data == NULL) {
         return -1;
@@ -2621,10 +3033,26 @@ int slow5_rec_set_array(struct slow5_rec *read, struct slow5_aux_meta *aux_meta,
         return -3;
     }
 
+    // TODO warning if setting null attribute here
+
+    uint8_t *data_cast = (uint8_t *) data;
+    if (aux_meta->types[i] == SLOW5_ENUM_ARRAY) {
+        if (!aux_meta->enum_labels) {
+            return -1;
+        } else {
+            /* check if an enum number is out of bounds */
+            for (uint16_t j = 0; j < len; ++ j) {
+                if (data_cast[j] >= aux_meta->enum_num_labels[i]) {
+                    return -4;
+                }
+            }
+        }
+    }
+
     if (read->aux_map == NULL) {
         read->aux_map = kh_init(slow5_s2a);
     }
-    slow5_rec_set_aux_map(read->aux_map, attr, (uint8_t *) data, len, aux_meta->sizes[i] * len, aux_meta->types[i]);
+    slow5_rec_set_aux_map(read->aux_map, attr, data_cast, len, aux_meta->sizes[i] * len, aux_meta->types[i]);
 
     return 0;
 }
@@ -2733,6 +3161,10 @@ double slow5_aux_get_double(const struct slow5_rec *read, const char *field, int
 char slow5_aux_get_char(const struct slow5_rec *read, const char *field, int *err) {
     SLOW5_AUX_GET(read, field, char, SLOW5_CHAR_NULL, SLOW5_CHAR)
 }
+uint8_t slow5_aux_get_enum(const struct slow5_rec *read, const char *field, int *err) {
+    SLOW5_AUX_GET(read, field, uint8_t, SLOW5_ENUM_NULL, SLOW5_ENUM)
+}
+
 #define SLOW5_AUX_GET_ARRAY(read, field, len, raw_type, ptr_type) \
     int tmp_err = 0; \
     raw_type val = NULL; \
@@ -2812,6 +3244,9 @@ double *slow5_aux_get_double_array(const struct slow5_rec *read, const char *fie
 }
 char *slow5_aux_get_string(const struct slow5_rec *read, const char *field, uint64_t *len, int *err) {
     SLOW5_AUX_GET_ARRAY(read, field, len, char*, SLOW5_STRING)
+}
+uint8_t *slow5_aux_get_enum_array(const struct slow5_rec *read, const char *field, uint64_t *len, int *err) {
+    SLOW5_AUX_GET_ARRAY(read, field, len, uint8_t*, SLOW5_ENUM_ARRAY)
 }
 
 /**
@@ -3022,7 +3457,7 @@ void *slow5_rec_to_mem(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, 
         // Auxiliary fields
         size_t cap = max_len;
         if (read->aux_map != NULL && aux_meta != NULL) {
-            for (uint16_t i = 0; i < aux_meta->num; ++ i) {
+            for (uint64_t i = 0; i < aux_meta->num; ++ i) {
 
                 // Realloc if necessary
                 if (curr_len + 1 >= cap) { // +1 for '\t'
@@ -3127,7 +3562,7 @@ void *slow5_rec_to_mem(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, 
 
         // Auxiliary fields
         if (read->aux_map != NULL && aux_meta != NULL) { // TODO error if one is NULL but not another
-            for (uint16_t i = 0; i < aux_meta->num; ++ i) {
+            for (uint64_t i = 0; i < aux_meta->num; ++ i) {
                 struct slow5_rec_aux_data aux_data = { 0 };
 
                 khint_t pos = kh_get(slow5_s2a, read->aux_map, aux_meta->attrs[i]);
@@ -3403,6 +3838,13 @@ int slow5_convert(struct slow5_file *from, FILE *to_fp, enum slow5_fmt to_format
         } else if (len == sizeof (# raw_type) && str[len - 1] == '*') { \
             type = ptr_type; \
             *err = 0; \
+        } else if (prim_type == SLOW5_ENUM) { /* allow extra characters for enum type */ \
+            if (str[sizeof (# raw_type) - 1] != '*') { \
+                type = prim_type; \
+            } else { \
+                type = ptr_type; \
+            } \
+            *err = 0; \
         } else { \
             *err = -1; \
         } \
@@ -3429,6 +3871,7 @@ enum slow5_aux_type slow5_str_to_aux_type(const char *str, int *err) {
     else if STR_TO_AUX_TYPE(str, err, type, len,    float,      SLOW5_FLOAT,    SLOW5_FLOAT_ARRAY)
     else if STR_TO_AUX_TYPE(str, err, type, len,    double,     SLOW5_DOUBLE,   SLOW5_DOUBLE_ARRAY)
     else if STR_TO_AUX_TYPE(str, err, type, len,    char,       SLOW5_CHAR,     SLOW5_STRING)
+    else if STR_TO_AUX_TYPE(str, err, type, len,    enum,       SLOW5_ENUM,     SLOW5_ENUM_ARRAY)
     else {
         *err = -1;
     }
@@ -3471,7 +3914,7 @@ int slow5_memcpy_type_from_str(uint8_t *data, const char *value, enum slow5_aux_
         err = 0;
         char value_conv = value[0];
         memcpy(data, &value_conv, sizeof value_conv);
-    }
+    } else if MEMCPY_TYPE_FROM_STR(data, value, type, err,  uint8_t,    SLOW5_ENUM,     slow5_ato_uint8)
 
     return err;
 }
@@ -3500,6 +3943,7 @@ void slow5_memcpy_null_type(uint8_t *data, enum slow5_aux_type type) {
     else if MEMCPY_NULL_TYPE(data, type,    float,      SLOW5_FLOAT,    SLOW5_FLOAT_NULL)
     else if MEMCPY_NULL_TYPE(data, type,    double,     SLOW5_DOUBLE,   SLOW5_DOUBLE_NULL)
     else if MEMCPY_NULL_TYPE(data, type,    char,       SLOW5_CHAR,     SLOW5_CHAR_NULL)
+    else if MEMCPY_NULL_TYPE(data, type,    uint8_t,    SLOW5_ENUM,     SLOW5_ENUM_NULL)
 }
 
 
@@ -3529,6 +3973,7 @@ static char *get_missing_str(size_t *len) {
  * data, str_len cannot be NULL
  * undefined behaviour if type doesn't match or ptr_len is too long for data given the type is a pointer
  * sets str_len to -1 on error and returns NULL
+ * TODO use macro to clean up
  */
 char *slow5_data_to_str(uint8_t *data, enum slow5_aux_type type, uint64_t ptr_len, size_t *str_len) {
     char *str = NULL;
@@ -3608,6 +4053,12 @@ char *slow5_data_to_str(uint8_t *data, enum slow5_aux_type type, uint64_t ptr_le
                 *str_len = sizeof (char);
                 str[0] = *(char *) data;
             }
+        }
+    } else if (type == SLOW5_ENUM) {
+        if (*(uint8_t *) data == SLOW5_ENUM_NULL) {
+            str = get_missing_str(str_len);
+        } else {
+            *str_len = slow5_asprintf(&str, "%" PRIu8, *(uint8_t *) data);
         }
     } else if (type == SLOW5_STRING) {
         if (ptr_len == 0) {
