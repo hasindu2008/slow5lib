@@ -102,13 +102,10 @@ if ! ex test/bin/unit_test_empty > test/data/out/unit_test_out_empty; then
 fi
 
 echo_test 'unit test enum'
-if gcc test/unit_test_enum.c -o test/bin/unit_test_enum $compile; then
-    if ! ex test/bin/unit_test_enum > test/data/out/unit_test_out_enum; then
-        fail
-    fi
-else
-    not_compiled
+if ! ex test/bin/unit_test_enum > test/data/out/unit_test_out_enum; then
+    fail
 fi
+
 
 echo_test 'diff test'
 # Unit test output diffs

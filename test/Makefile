@@ -19,7 +19,8 @@ TESTS = $(BIN_DIR)/endian_test \
 	$(BIN_DIR)/convert_slow5_test \
 	$(BIN_DIR)/unit_test_two_rg \
 	$(BIN_DIR)/unit_test_lossless \
-	$(BIN_DIR)/unit_test_empty
+	$(BIN_DIR)/unit_test_empty \
+	$(BIN_DIR)/unit_test_enum
 
 all: $(BIN_DIR) $(TESTS)
 
@@ -51,6 +52,9 @@ $(BIN_DIR)/unit_test_lossless: unit_test_lossless.c $(BIN_DIR) unit_test.h $(LIB
 	$(CC) $(CFLAGS) $(CPPFLAGS) $< -o $@ $(LDFLAGS)
 
 $(BIN_DIR)/unit_test_empty: unit_test_empty.c $(BIN_DIR) unit_test.h $(LIB)/libslow5.a $(SRC)/slow5_extra.h
+	$(CC) $(CFLAGS) $(CPPFLAGS) $< -o $@ $(LDFLAGS)
+
+$(BIN_DIR)/unit_test_enum: unit_test_enum.c $(BIN_DIR) unit_test.h $(LIB)/libslow5.a $(SRC)/slow5_extra.h $(SRC)/slow5_misc.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) $< -o $@ $(LDFLAGS)
 
 clean:
