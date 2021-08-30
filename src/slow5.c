@@ -366,10 +366,9 @@ struct slow5_hdr *slow5_hdr_init_empty(void) {
  * slow5_hdr_data_init errors
  * slow5_aux_meta_init errors
  */
-/* TODO extra argument signal_method or use slow5_press? */
 struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_method_t *method) {
 
-    if (!fp || !method ) {
+    if (!fp || !method) {
         if (!fp) {
             SLOW5_ERROR("Argument '%s' cannot be NULL.", SLOW5_TO_STR(fp));
         }
@@ -395,7 +394,6 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
 
     // Parse slow5 header
     if (format == SLOW5_FORMAT_ASCII) {
-
         method->record_method = SLOW5_COMPRESS_NONE;
 
         // Buffer for file parsing
@@ -663,9 +661,9 @@ const char **slow5_get_hdr_keys(const slow5_hdr_t *header, uint64_t *len) {
  * or format is SLOW5_FORMAT_UNKNOWN
  * or an internal error occurs.
  *
- * @param   header          slow5 header
- * @param   format          slow5 format to write the entry in
- * @param   comp compression method
+ * @param   header  slow5 header
+ * @param   format  slow5 format to write the entry in
+ * @param   comp    compression method
  * @param   n       number of bytes written to the returned buffer
  * @return  malloced memory storing the slow5 header representation,
  *          to use free() on afterwards

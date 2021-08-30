@@ -670,13 +670,11 @@ int slow5_hdr_set(const char *attr, const char *value, uint32_t read_group, slow
  *
  * @param   header          slow5 header
  * @param   format          slow5 format to write the entry in
- * @param   record_comp     record compression method
- * @param   signal_comp     signal compression method
+ * @param   comp            compression method
  * @param   written number of bytes written to the returned buffer
  * @return  malloced memory storing the slow5 header representation,
  *          to use free() on afterwards
  */
-/* TODO extra signal_comp argument or use slow5_press? */
 void *slow5_hdr_to_mem(slow5_hdr_t *header, enum slow5_fmt format, slow5_press_method_t comp, size_t *written);
 
 /**
@@ -688,8 +686,7 @@ void *slow5_hdr_to_mem(slow5_hdr_t *header, enum slow5_fmt format, slow5_press_m
  * @param   fp              output file pointer
  * @param   header          slow5 header
  * @param   format          slow5 format to write the entry in
- * @param   record_comp     record compression method
- * @param   signal_comp     signal compression method
+ * @param   comp            compression method
  * @return  number of bytes written, -1 on error
  */
 int slow5_hdr_fwrite(FILE *fp, slow5_hdr_t *header, enum slow5_fmt format, slow5_press_method_t comp);
