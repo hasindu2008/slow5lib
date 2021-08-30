@@ -64,7 +64,10 @@ enum slow5_press_method {
     SLOW5_COMPRESS_SVB_ZD, /* streamvbyte zigzag delta */
     SLOW5_COMPRESS_ZSTD,
 };
-typedef uint8_t slow5_press_method_t;
+typedef struct{
+    enum slow5_press_method record_method;
+    enum slow5_press_method signal_method;
+} slow5_press_method_t;
 
 /* zlib stream */
 struct slow5_zlib_stream {
@@ -80,7 +83,7 @@ union slow5_press_stream {
 
 /* (de)compression object */
 struct __slow5_press {
-    slow5_press_method_t method;
+    enum slow5_press_method method;
     union slow5_press_stream *stream;
 };
 
@@ -90,16 +93,16 @@ typedef struct slow5_press {
 } slow5_press_t;
 
 /* init or free for multiple (de)compress calls */
-struct slow5_press *slow5_press_init(slow5_press_method_t record_method, slow5_press_method_t signal_method);
-struct __slow5_press *__slow5_press_init(slow5_press_method_t method);
+struct slow5_press *slow5_press_init(slow5_press_method_t method);
+struct __slow5_press *__slow5_press_init(enum slow5_press_method method);
 void slow5_press_free(struct slow5_press *comp);
 void __slow5_press_free(struct __slow5_press *comp);
 
 /* (de)compress ptr */
 void *slow5_ptr_compress(struct __slow5_press *comp, const void *ptr, size_t count, size_t *n);
-void *slow5_ptr_compress_solo(slow5_press_method_t method, const void *ptr, size_t count, size_t *n);
+void *slow5_ptr_compress_solo(enum slow5_press_method method, const void *ptr, size_t count, size_t *n);
 void *slow5_ptr_depress(struct __slow5_press *comp, const void *ptr, size_t count, size_t *n);
-void *slow5_ptr_depress_solo(slow5_press_method_t method, const void *ptr, size_t count, size_t *n);
+void *slow5_ptr_depress_solo(enum slow5_press_method method, const void *ptr, size_t count, size_t *n);
 static inline void *slow5_str_compress(struct __slow5_press *comp, const char *str, size_t *n);
 
 /* (de)compress ptr and write */
@@ -115,7 +118,7 @@ int slow5_printf_compress(struct __slow5_press *comp, const char *format, ...);
 /* read and (de)compress */
 void *slow5_fread_depress(struct __slow5_press *comp, size_t count, FILE *fp, size_t *n);
 void *slow5_pread_depress(struct __slow5_press *comp, int fd, size_t count, off_t offset, size_t *n);
-void *slow5_pread_depress_solo(slow5_press_method_t method, int fd, size_t count, off_t offset, size_t *n);
+void *slow5_pread_depress_solo(enum slow5_press_method method, int fd, size_t count, off_t offset, size_t *n);
 
 /* write compression footer on next compress call */
 void slow5_compress_footer_next(struct __slow5_press *comp);

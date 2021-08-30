@@ -52,14 +52,14 @@ static int vfprintf_compress(struct __slow5_press *comp, FILE *fp, const char *f
  * SLOW5_ERR_ARG    method is bad
  * SLOW5_ERR_PRESS  (de)compression failure
  */
-struct slow5_press *slow5_press_init(slow5_press_method_t record_method, slow5_press_method_t signal_method) {
+struct slow5_press *slow5_press_init(slow5_press_method_t method) {
 
-    struct __slow5_press *record_comp = __slow5_press_init(record_method);
+    struct __slow5_press *record_comp = __slow5_press_init(method.record_method);
     if (!record_comp) {
         return NULL;
     }
 
-    struct __slow5_press *signal_comp = __slow5_press_init(signal_method);
+    struct __slow5_press *signal_comp = __slow5_press_init(method.signal_method);
     if (!signal_comp) {
         __slow5_press_free(record_comp);
         return NULL;
@@ -96,7 +96,7 @@ void slow5_press_free(struct slow5_press *comp) {
  * SLOW5_ERR_ARG    method is bad
  * SLOW5_ERR_PRESS  (de)compression failure
  */
-struct __slow5_press *__slow5_press_init(slow5_press_method_t method) {
+struct __slow5_press *__slow5_press_init(enum slow5_press_method method) {
 
     struct __slow5_press *comp = NULL;
 
@@ -202,7 +202,7 @@ void __slow5_press_free(struct __slow5_press *comp) {
     }
 }
 
-void *slow5_ptr_compress_solo(slow5_press_method_t method, const void *ptr, size_t count, size_t *n) {
+void *slow5_ptr_compress_solo(enum slow5_press_method method, const void *ptr, size_t count, size_t *n) {
     void *out = NULL;
     size_t n_tmp = 0;
 
@@ -305,7 +305,7 @@ void *slow5_ptr_compress(struct __slow5_press *comp, const void *ptr, size_t cou
 /*
  * ptr cannot be NULL
  */
-void *slow5_ptr_depress_solo(slow5_press_method_t method, const void *ptr, size_t count, size_t *n) {
+void *slow5_ptr_depress_solo(enum slow5_press_method method, const void *ptr, size_t count, size_t *n) {
     void *out = NULL;
     size_t n_tmp = 0;
 
@@ -564,7 +564,7 @@ void *slow5_pread_depress(struct __slow5_press *comp, int fd, size_t count, off_
 /*
  * pread size bytes from offset then decompress the data according to the method
  */
-void *slow5_pread_depress_solo(slow5_press_method_t method, int fd, size_t count, off_t offset, size_t *n) {
+void *slow5_pread_depress_solo(enum slow5_press_method method, int fd, size_t count, off_t offset, size_t *n) {
     void *raw = (void *) malloc(count);
     SLOW5_MALLOC_CHK(raw);
     if (!raw) {

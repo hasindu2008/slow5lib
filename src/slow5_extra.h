@@ -25,7 +25,7 @@ int slow5_is_eof(FILE *fp, const char *eof, size_t n);
 
 // slow5 header
 struct slow5_hdr *slow5_hdr_init_empty(void);
-struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_method_t *record_method, slow5_press_method_t *signal_method);
+struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_method_t *method);
 void slow5_hdr_free(struct slow5_hdr *header);
 int slow5_version_cmp(struct slow5_version x, struct slow5_version y);
 /* return 1 if compatible, 0 otherwise */
@@ -62,7 +62,7 @@ int slow5_rec_set_array(struct slow5_rec *read, struct slow5_aux_meta *aux_meta,
 static inline int slow5_rec_set_string(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, const char *attr, const char *data) {
     return slow5_rec_set_array(read, aux_meta, attr, data, strlen(data));
 }
-int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struct slow5_rec **read, enum slow5_fmt format, struct slow5_aux_meta *aux_meta, slow5_press_method_t signal_method);
+int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struct slow5_rec **read, enum slow5_fmt format, struct slow5_aux_meta *aux_meta, enum slow5_press_method signal_method);
 int slow5_rec_depress_parse(char **mem, size_t *bytes, const char *read_id, struct slow5_rec **read, struct slow5_file *s5p);
 void slow5_rec_aux_free(khash_t(slow5_s2a) *aux_map);
 
