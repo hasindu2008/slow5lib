@@ -61,6 +61,7 @@ uint8_t slow5_encode_record_press(enum slow5_press_method method){
             ret = 2;
             break;
         case SLOW5_COMPRESS_SVB_ZD:  //hidden feature hack for devs
+            SLOW5_WARNING("You are using a hidden dev features (record compression in %s). Output files may be useless.","svb-zd");
             ret = 250;
             break;
         default:  //todo: Proper error?
@@ -106,9 +107,11 @@ uint8_t slow5_encode_signal_press(enum slow5_press_method method){
             ret = 1;
             break;
         case SLOW5_COMPRESS_ZLIB: //hidden feature hack for devs
+            SLOW5_WARNING("You are using a hidden dev features (signal compression in %s). Output files may be useless.", "zlib");
             ret = 250;
             break;
         case SLOW5_COMPRESS_ZSTD: //hidden feature hack for devs
+            SLOW5_WARNING("You are using a hidden dev features (signal compression in %s). Output files may be useless.","zstd");
             ret = 251;
             break;
         default:    //todo: Proper error?
