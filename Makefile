@@ -8,7 +8,7 @@ AR			= ar
 SVB			= thirdparty/streamvbyte
 SVBLIB		= $(SVB)/libstreamvbyte.a
 CPPFLAGS	+= -I include/ -I $(SVB)/include/
-CFLAGS		+= -g -Wall -Wpedantic -O2 -std=c99
+CFLAGS		+= -g -Wall -O2 -std=c99
 LDFLAGS		+= -lm -lz
 ifeq ($(ZSTD),1)
 CFLAGS		+= -DSLOW5_USE_ZSTD
@@ -18,7 +18,6 @@ BUILD_DIR	= lib
 
 STATICLIB	= $(BUILD_DIR)/libslow5.a
 SHAREDLIB	= $(BUILD_DIR)/libslow5.so
-SHAREDLIBV	= $(BUILD_DIR)/libslow5.so.0.2.0-dirty
 
 OBJ = $(BUILD_DIR)/slow5.o \
 		$(BUILD_DIR)/slow5_idx.o \
@@ -33,16 +32,13 @@ SLOW5_H = include/slow5/slow5.h include/slow5/klib/khash.h include/slow5/klib/kv
 .PHONY: clean distclean test install uninstall slow5lib
 
 #libslow5
-slow5lib: $(SHAREDLIBV) $(STATICLIB)
+slow5lib: $(SHAREDLIB) $(STATICLIB)
 
 $(STATICLIB): $(OBJ) $(SVBLIB)
 	cp $(SVBLIB) $@
 	$(AR) rcs $@ $(OBJ)
 
-$(SHAREDLIB): $(SHAREDLIBV)
-	ln -f -s $(SHAREDLIBV) $@
-
-$(SHAREDLIBV): $(OBJ) $(SVBLIB)
+$(SHAREDLIB): $(OBJ) $(SVBLIB)
 	$(CC) $(CFLAGS) -shared $^ -o $@ $(LDFLAGS)
 
 $(SVBLIB):
