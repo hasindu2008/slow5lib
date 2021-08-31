@@ -198,7 +198,8 @@ int press_zstd_buf_valid(void) {
 
 int slow5_press_valid(void) {
 
-    struct slow5_press *comp = slow5_press_init(SLOW5_COMPRESS_ZSTD, SLOW5_COMPRESS_SVB_ZD);
+    slow5_press_method_t method = {SLOW5_COMPRESS_ZSTD, SLOW5_COMPRESS_SVB_ZD};
+    struct slow5_press *comp = slow5_press_init(method);
     ASSERT(comp);
     ASSERT(comp->record_press);
     ASSERT(comp->record_press->method == SLOW5_COMPRESS_ZSTD);
