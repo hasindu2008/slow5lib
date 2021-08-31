@@ -302,7 +302,8 @@ int slow5_get_set_enum_array(void) {
     ASSERT(slow5_aux_meta_add_enum(s5p->header->aux_meta, "end_reasons", SLOW5_ENUM_ARRAY, enum_labels, SLOW5_LENGTH(enum_labels)) == 0);
 
     ASSERT(slow5_rec_set_array(read, s5p->header->aux_meta, "end_reasons", enum_array_valid, SLOW5_LENGTH(enum_array_valid)) == 0);
-    slow5_hdr_print(s5p->header, SLOW5_FORMAT_ASCII, SLOW5_COMPRESS_NONE);
+    slow5_press_method_t method = {SLOW5_COMPRESS_NONE, SLOW5_COMPRESS_NONE};
+    slow5_hdr_print(s5p->header, SLOW5_FORMAT_ASCII, method);
     slow5_rec_print(read, s5p->header->aux_meta, SLOW5_FORMAT_ASCII, NULL);
 
     ASSERT(slow5_rec_set_array(read, s5p->header->aux_meta, "end_reasons", enum_array_invalid, SLOW5_LENGTH(enum_array_invalid)) == -4);

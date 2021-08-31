@@ -668,9 +668,9 @@ int slow5_hdr_set(const char *attr, const char *value, uint32_t read_group, slow
  * or format is SLOW5_FORMAT_UNKNOWN
  * or an internal error occurs.
  *
- * @param   header  slow5 header
- * @param   format  slow5 format to write the entry in
- * @param   comp    compression method
+ * @param   header          slow5 header
+ * @param   format          slow5 format to write the entry in
+ * @param   comp            compression method
  * @param   written number of bytes written to the returned buffer
  * @return  malloced memory storing the slow5 header representation,
  *          to use free() on afterwards
@@ -683,9 +683,10 @@ void *slow5_hdr_to_mem(slow5_hdr_t *header, enum slow5_fmt format, slow5_press_m
  * On success, the number of bytes written is returned.
  * On error, -1 is returned.
  *
- * @param   fp      output file pointer
- * @param   header  slow5 header
- * @param   format  slow5 format to write the entry in
+ * @param   fp              output file pointer
+ * @param   header          slow5 header
+ * @param   format          slow5 format to write the entry in
+ * @param   comp            compression method
  * @return  number of bytes written, -1 on error
  */
 int slow5_hdr_fwrite(FILE *fp, slow5_hdr_t *header, enum slow5_fmt format, slow5_press_method_t comp);

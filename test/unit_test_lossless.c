@@ -228,7 +228,8 @@ int slow5_duplicate(void) {
     struct slow5_file *s5p = slow5_open("test/data/exp/one_fast5/exp_1_lossless.slow5", "r");
     ASSERT(s5p != NULL);
 
-    ASSERT(slow5_hdr_print(s5p->header, SLOW5_FORMAT_ASCII, SLOW5_COMPRESS_NONE) != -1);
+    slow5_press_method_t method = {SLOW5_COMPRESS_NONE, SLOW5_COMPRESS_NONE};
+    ASSERT(slow5_hdr_print(s5p->header, SLOW5_FORMAT_ASCII, method) != -1);
 
     struct slow5_rec *read = NULL;
     ASSERT(slow5_get_next(&read, s5p) == 0);
@@ -244,7 +245,8 @@ int slow5_to_blow5_uncomp(void) {
     struct slow5_file *s5p = slow5_open("test/data/exp/one_fast5/exp_1_lossless.slow5", "r");
     ASSERT(s5p != NULL);
 
-    ASSERT(slow5_hdr_print(s5p->header, SLOW5_FORMAT_BINARY, SLOW5_COMPRESS_NONE) != -1);
+    slow5_press_method_t method = {SLOW5_COMPRESS_NONE, SLOW5_COMPRESS_NONE};
+    ASSERT(slow5_hdr_print(s5p->header, SLOW5_FORMAT_BINARY, method) != -1);
 
     struct slow5_rec *read = NULL;
     ASSERT(slow5_get_next(&read, s5p) == 0);
@@ -382,7 +384,7 @@ int slow5_set_aux_string(void) {
     ASSERT(slow5_get("a649a4ae-c43d-492a-b6a1-a5b8b8076be4", &read, s5p) == 0);
     ASSERT(read);
 
-    size_t len;
+    uint64_t len;
     char *cn = slow5_aux_get_string(read, "channel_number", &len, NULL);
     ASSERT(cn);
     ASSERT(len == strlen(cn));
