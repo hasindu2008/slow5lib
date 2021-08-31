@@ -529,8 +529,8 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
         char buf_magic[sizeof magic + 1];
         uint32_t header_size;
 
-        uint8_t record_method;
-        uint8_t signal_method = SLOW5_COMPRESS_NONE;
+        uint8_t record_method = 0;
+        uint8_t signal_method = 0;
 
         if (fread(buf_magic, sizeof *magic, sizeof magic, fp) != sizeof magic) {
             SLOW5_ERROR("Malformed blow5 header. Failed to read the magic number.%s", feof(fp) ? " EOF reached." : "");
@@ -567,9 +567,6 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
             SLOW5_ERROR("Malformed blow5 header. Failed to read the ascii header size.%s", feof(fp) ? " EOF reached." : "");
             goto err_fread;
         }
-        method->record_method = record_method;
-        method->signal_method = signal_method;
-
 
         if (slow5_is_version_compatible(header->version, max_supported) == 0) {
             SLOW5_ERROR("File version '" SLOW5_VERSION_STRING_FORMAT "' is higher than the max slow5 version '" SLOW5_VERSION_STRING "' supported by this slow5lib! Please use a newer version of slow5lib.",
@@ -578,6 +575,9 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
             slow5_errno = SLOW5_ERR_VERSION;
             return NULL;
         }
+
+        method->record_method = slow5_decode_record_press(record_method);
+        method->signal_method = slow5_decode_signal_press(signal_method);
 
         size_t cap = SLOW5_HDR_DATA_BUF_INIT_CAP;
         buf = (char *) malloc(cap * sizeof *buf);
@@ -705,8 +705,8 @@ void *slow5_hdr_to_mem(struct slow5_hdr *header, enum slow5_fmt format, slow5_pr
     } else if (format == SLOW5_FORMAT_BINARY) {
 
         struct slow5_version *version = &header->version;
-        uint8_t record_comp = comp.record_method;
-        uint8_t signal_comp = comp.signal_method;
+        uint8_t record_comp = slow5_encode_record_press(comp.record_method);
+        uint8_t signal_comp = slow5_encode_signal_press(comp.signal_method);
 
         // Relies on SLOW5_HDR_DATA_BUF_INIT_CAP
         // being at least 68 + 1 (for '\0') bytes

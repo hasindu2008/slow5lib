@@ -140,6 +140,11 @@ static inline ssize_t slow5_print_str_compress(struct __slow5_press *comp, const
     return slow5_fwrite_str_compress(comp, str, stdout);
 }
 
+uint8_t slow5_encode_record_press(enum slow5_press_method method);
+enum slow5_press_method slow5_decode_record_press(uint8_t method);
+uint8_t slow5_encode_signal_press(enum slow5_press_method method);
+enum slow5_press_method slow5_decode_signal_press(uint8_t method);
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

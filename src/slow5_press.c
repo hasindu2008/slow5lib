@@ -42,6 +42,108 @@ static void *ptr_depress_zstd(const void *ptr, size_t count, size_t *n);
 /* other */
 static int vfprintf_compress(struct __slow5_press *comp, FILE *fp, const char *format, va_list ap);
 
+
+/* Convert the press method back an forth from the library format to spec format
+   Implementation is horrible, but for now.
+ */
+
+// convert the record compression method from library format to the spec format
+uint8_t slow5_encode_record_press(enum slow5_press_method method){
+    uint8_t ret = 0;
+    switch(method){
+        case SLOW5_COMPRESS_NONE:
+            ret = 0;
+            break;
+        case SLOW5_COMPRESS_ZLIB:
+            ret = 1;
+            break;
+        case SLOW5_COMPRESS_ZSTD:
+            ret = 2;
+            break;
+        case SLOW5_COMPRESS_SVB_ZD:  //hidden feature hack for devs
+            ret = 250;
+            break;
+        default:  //todo: Proper error?
+            ret = 255;
+            SLOW5_WARNING("Unknown record compression method %d",method);
+            break;
+    }
+    return ret;
+}
+
+// convert the record compression method from spec format to the library format
+enum slow5_press_method slow5_decode_record_press(uint8_t method){
+    enum slow5_press_method ret = SLOW5_COMPRESS_NONE;
+    switch(method){
+        case 0:
+            ret = SLOW5_COMPRESS_NONE;
+            break;
+        case 1:
+            ret = SLOW5_COMPRESS_ZLIB;
+            break;
+        case 2:
+            ret = SLOW5_COMPRESS_ZSTD;
+            break;
+        case 250:  //hidden feature hack for devs
+            ret = SLOW5_COMPRESS_SVB_ZD;
+            break;
+        default:    //todo Proper error
+            ret = 255;
+            SLOW5_WARNING("Unknown record compression method %d",method);
+            break;
+    }
+    return ret;
+}
+
+// convert the signal compression from library format to the spec format
+uint8_t slow5_encode_signal_press(enum slow5_press_method method){
+    uint8_t ret = 0;
+    switch(method){
+        case SLOW5_COMPRESS_NONE:
+            ret = 0;
+            break;
+        case SLOW5_COMPRESS_SVB_ZD:
+            ret = 1;
+            break;
+        case SLOW5_COMPRESS_ZLIB: //hidden feature hack for devs
+            ret = 250;
+            break;
+        case SLOW5_COMPRESS_ZSTD: //hidden feature hack for devs
+            ret = 251;
+            break;
+        default:    //todo: Proper error?
+            ret = 255;
+            SLOW5_WARNING("Unknown signal compression method %d",method);
+            break;
+    }
+    return ret;
+}
+
+// convert the signal compression from spec format to library format
+enum slow5_press_method slow5_decode_signal_press(uint8_t method){
+    enum slow5_press_method ret = 0;
+    switch(method){
+        case 0:
+            ret = SLOW5_COMPRESS_NONE;
+            break;
+        case 1:
+            ret = SLOW5_COMPRESS_SVB_ZD;
+            break;
+        case 250: //hidden feature hack for devs
+            ret = SLOW5_COMPRESS_ZLIB;
+            break;
+        case 251: //hidden feature hack for devs
+            ret = SLOW5_COMPRESS_ZSTD;
+            break;
+        default: //todo: Proper error?
+            ret = 255;
+            SLOW5_WARNING("Unknown signal compression method %d",method);
+            break;
+    }
+    return ret;
+}
+
+
 /* --- Init / free (__)slow5_press structures --- */
 
 /*
