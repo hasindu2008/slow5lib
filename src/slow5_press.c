@@ -1039,7 +1039,7 @@ static uint8_t *ptr_compress_svb(const uint32_t *ptr, size_t count, size_t *n) {
     *n = __slow5_streamvbyte_encode(ptr, length, out + sizeof length);
     memcpy(out, &length, sizeof length); /* copy original length of ptr (needed for depress) */
     *n = *n + sizeof length;
-    fprintf(stderr, "max svb bytes=%zu\nsvb bytes=%zu\n",
+    SLOW5_LOG_DEBUG("max svb bytes=%zu\nsvb bytes=%zu\n",
             max_n, *n); /* TESTING */
     return out;
 }
@@ -1066,7 +1066,8 @@ static uint8_t *ptr_compress_svb_zd(const int16_t *ptr, size_t count, size_t *n)
     }
     __slow5_zigzag_delta_encode(in, diff, length, 0);
 
-    fprintf(stderr, "orig bytes=%zu\n", count); /* TESTING */
+
+    SLOW5_LOG_DEBUG("orig bytes=%zu\n", count); /* TESTING */
     uint8_t *out = ptr_compress_svb(diff, length * sizeof *diff, n);
 
     free(in);
