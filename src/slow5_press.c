@@ -265,8 +265,14 @@ struct __slow5_press *__slow5_press_init(enum slow5_press_method method) {
             } break;
 
         case SLOW5_COMPRESS_SVB_ZD: break;
+        case SLOW5_COMPRESS_ZSTD:
 #ifdef SLOW5_USE_ZSTD
-        case SLOW5_COMPRESS_ZSTD: break;
+            break;
+#else
+            SLOW5_ERROR("%s","slow5lib has not been compiled with zstd support to read/write zstd compressed BLOW5 files.");
+            free(comp);
+            slow5_errno = SLOW5_ERR_ARG;
+            return NULL;
 #endif /* SLOW5_USE_ZSTD */
 
         default:
