@@ -388,7 +388,6 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
 
     method->signal_method = SLOW5_COMPRESS_NONE;
     struct slow5_version max_supported = SLOW5_VERSION_ARRAY;
-    struct slow5_version signal_press_version = { .major = 0, .minor = 2, .patch = 0 };
 
     char *buf = NULL;
 
@@ -555,7 +554,7 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
         } else if (fread(&header->num_read_groups, sizeof header->num_read_groups, 1, fp) != 1) {
             SLOW5_ERROR("Malformed blow5 header. Failed to read the number of read groups.%s", feof(fp) ? " EOF reached." : "");
             goto err_fread;
-        } else if (slow5_version_cmp(header->version, signal_press_version) >= 0 && fread(&signal_method, sizeof signal_method, 1, fp) != 1) {
+        } else if (slow5_signal_press_version_cmp(header->version) >= 0 && fread(&signal_method, sizeof signal_method, 1, fp) != 1) {
             SLOW5_ERROR("Malformed blow5 header. Failed to read the signal compression method.%s", feof(fp) ? " EOF reached." : "");
             goto err_fread;
         } else if (fseek(fp, SLOW5_BINARY_HDR_SIZE_OFFSET, SEEK_SET) == -1) {
@@ -704,7 +703,9 @@ void *slow5_hdr_to_mem(struct slow5_hdr *header, enum slow5_fmt format, slow5_pr
 
     } else if (format == SLOW5_FORMAT_BINARY) {
 
-        struct slow5_version *version = &header->version;
+        struct slow5_version version_tmp = slow5_press_version_bump(header->version,comp);
+        struct slow5_version *version = &version_tmp;
+
         uint8_t record_comp = slow5_encode_record_press(comp.record_method);
         uint8_t signal_comp = slow5_encode_signal_press(comp.signal_method);
 
@@ -4176,6 +4177,7 @@ int slow5_is_eof(FILE *fp, const char *eof, size_t n) {
     return 0;
 }
 
+/* following can be moved to version.c file later when it gows out of control */
 /**
  * compare file versions
  * return <0 if x < y
@@ -4194,6 +4196,30 @@ int slow5_version_cmp(struct slow5_version x, struct slow5_version y) {
     }
 }
 
+// if the slow5 version >= 0.2.0 where signal_press was introduced
+int slow5_signal_press_version_cmp(struct slow5_version current){
+    struct slow5_version signal_press_version = { .major = 0, .minor = 2, .patch = 0 }; //signal_press related flag in blow5 header was introduced in version 0.2.0
+    return slow5_version_cmp(current,signal_press_version);
+}
+
+//bump the slow5 file version to a newer version if a compression method unavailable in the current file version was requested
+struct slow5_version slow5_press_version_bump(struct slow5_version current, slow5_press_method_t method){
+
+    struct slow5_version signal_press_version = { .major = 0, .minor = 2, .patch = 0 };
+    if(slow5_version_cmp(current,signal_press_version) < 0 &&
+        (method.record_method == SLOW5_COMPRESS_SVB_ZD || method.record_method == SLOW5_COMPRESS_ZSTD ||
+         method.signal_method == SLOW5_COMPRESS_SVB_ZD || method.signal_method == SLOW5_COMPRESS_ZSTD )
+    ){
+        SLOW5_INFO("SLOW5 version updated to %d.%d.%d as the requested compression option is unavailable in the current fileversion %d.%d.%d",
+            signal_press_version.major, signal_press_version.minor, signal_press_version.patch,
+            current.major, current.minor, current.patch);
+        return signal_press_version;
+    }
+    else{
+        return current;
+    }
+
+}
 
 //int main(void) {
 
