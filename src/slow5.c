@@ -2422,7 +2422,7 @@ int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struc
 
         if (i < SLOW5_COLS_NUM) {
             /* Not all main columns parsed */
-            SLOW5_ERROR("%" PRIu8 "/%" PRIu8 " slow5 main columns were parsed.", i, SLOW5_COLS_NUM);
+            SLOW5_ERROR("%" PRIu8 "/%" PRIu32 " slow5 main columns were parsed.", i, SLOW5_COLS_NUM);
             ret = -1;
         } else if (!more_to_parse && aux_meta != NULL) {
             SLOW5_ERROR("%s", "Missing auxiliary fields in record, but present in header.");
@@ -2719,7 +2719,7 @@ static int slow5_rec_aux_parse(char *tok, char *read_mem, uint64_t offset, size_
 
         for (int64_t i = 0; i < aux_meta->num; ++ i) {
             if (offset >= read_size) {
-                SLOW5_ERROR("Auxiliary field '%s' is missing in record. At offset '%ld' and record size is '%ld'.", aux_meta->attrs[i], offset, read_size);
+                SLOW5_ERROR("Auxiliary field '%s' is missing in record. At offset '%" PRIu64 "' and record size is '%" PRIu64 "'.", aux_meta->attrs[i], offset, read_size);
                 slow5_rec_aux_free(aux_map);
                 return -1;
             }
