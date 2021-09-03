@@ -24,7 +24,7 @@
 #include <string.h> // for memcpy
 #include "streamvbyte_shuffle_tables_encode.h"
 
-#ifdef __AVX__
+#ifdef STREAMVBYTE_SSE4
 #include "streamvbyte_x64_encode.c"
 #else
 
@@ -90,7 +90,7 @@ static uint8_t *svb_encode_scalar(const uint32_t *in,
 // Returns the number of bytes written.
 // Note: I am appending a __slow5_ to prevent any name collision with the original library
 size_t __slow5_streamvbyte_encode(const uint32_t *in, uint32_t count, uint8_t *out) {
-#ifdef __AVX__
+#ifdef STREAMVBYTE_SSE4
 return streamvbyte_encode_SSSE3(in,count,out);
 #else
   uint8_t *keyPtr = out;

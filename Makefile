@@ -1,7 +1,7 @@
 # zstd compression is not available by default
-# run `make ZSTD=1` to compile with zstd
+# run `make zstd=1` to compile with zstd
 # or uncomment the following line
-#ZSTD=1
+#zstd=1
 
 CC			= cc
 AR			= ar
@@ -10,7 +10,7 @@ SVBLIB		= $(SVB)/libstreamvbyte.a
 CPPFLAGS	+= -I include/ -I $(SVB)/include/
 CFLAGS		+= -g -Wall -O2 -std=c99
 LDFLAGS		+= -lm -lz
-ifeq ($(ZSTD),1)
+ifeq ($(zstd),1)
 CFLAGS		+= -DSLOW5_USE_ZSTD
 LDFLAGS		+= -lzstd
 endif
@@ -67,7 +67,7 @@ distclean: clean
 	rm -rf $(BUILD_DIR)/* autom4te.cache
 
 test: slow5lib
-	make -C test ZSTD=$(ZSTD)
+	make -C test zstd=$(zstd)
 	./test/test.sh
 
 pyslow5:
@@ -83,7 +83,7 @@ test-prep: slow5lib
 	./test/bin/make_blow5
 
 valgrind: slow5lib
-	make -C test ZSTD=$(ZSTD)
+	make -C test zstd=$(zstd)
 	./test/test.sh mem
 
 examples: slow5lib

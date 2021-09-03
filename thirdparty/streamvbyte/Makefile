@@ -15,12 +15,9 @@ else ifeq ($(PROCESSOR), armv7l)
 # for 32-bit ARM processors
 CFLAGS = -fPIC -std=c99 -O3 -Wall -Wextra -pedantic -Wshadow
 else ifeq ($(PROCESSOR), x86_64)
-# Here we expect x64
-# Formally speaking, we only need SSE4, at best, but code checks for AVX
-# since MSVC only allows to check for AVX and nothing finer like just SSE4
-CFLAGS = -fPIC -march=native -std=c99 -O3 -Wall -Wextra -pedantic -Wshadow
+CFLAGS = -fPIC -std=c99 -O3 -Wall -Wextra -pedantic -Wshadow -DSTREAMVBYTE_SSE4=1 -msse4
 else
-CFLAGS = -fPIC -mtune=native -std=c99 -O3 -Wall -Wextra -pedantic -Wshadow
+CFLAGS = -fPIC -std=c99 -O3 -Wall -Wextra -pedantic -Wshadow
 endif
 LDFLAGS = -shared
 LIBNAME=libstreamvbyte.so.0.0.1
