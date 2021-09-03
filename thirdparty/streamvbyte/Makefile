@@ -8,22 +8,29 @@
 
 PROCESSOR:=$(shell uname -m)
 
+ifeq ($(no_simd),1) #if no_simd is set
+CFLAGS = -fPIC -std=c99 -O3 -Wall -Wextra -pedantic -Wshadow
+else
 ifeq ($(PROCESSOR), aarch64)
 # for 64-bit ARM processors
 CFLAGS = -fPIC -std=c99 -O3 -Wall -Wextra -pedantic -Wshadow -D__ARM_NEON__
 else ifeq ($(PROCESSOR), armv7l)
 # for 32-bit ARM processors
-CFLAGS = -fPIC -std=c99 -O3 -Wall -Wextra -pedantic -Wshadow
+CFLAGS = -fPIC -std=c99 -O3 -Wall -Wextra -pedantic -Wshadow -mfpu=neon
 else ifeq ($(PROCESSOR), x86_64)
 CFLAGS = -fPIC -std=c99 -O3 -Wall -Wextra -pedantic -Wshadow -DSTREAMVBYTE_SSE4=1 -msse4
 else
 CFLAGS = -fPIC -std=c99 -O3 -Wall -Wextra -pedantic -Wshadow
 endif
+endif
+
+
 LDFLAGS = -shared
 LIBNAME=libstreamvbyte.so.0.0.1
 LNLIBNAME=libstreamvbyte.so
 STATICLIB=libstreamvbyte.a
 all:  $(LIBNAME) $(STATICLIB)
+
 
 #HEADERS=./include/streamvbyte.h ./include/streamvbytedelta.h ./include/streamvbyte_zigzag.h
 HEADERS=./include/streamvbyte.h ./include/streamvbyte_zigzag.h
