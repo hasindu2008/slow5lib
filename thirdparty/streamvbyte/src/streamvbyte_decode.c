@@ -29,9 +29,9 @@
 #include "streamvbyte_arm_decode.c"
 #endif
 
-#ifdef STREAMVBYTE_SSE4
+#ifdef STREAMVBYTE_SSSE3
 #include "streamvbyte_x64_decode.c"
-#endif // STREAMVBYTE_SSE4
+#endif // STREAMVBYTE_SSSE3
 
 static inline uint32_t _decode_data(const uint8_t **dataPtrPtr, uint8_t code) {
   const uint8_t *dataPtr = *dataPtrPtr;
@@ -88,7 +88,7 @@ size_t __slow5_streamvbyte_decode(const uint8_t *in, uint32_t *out, uint32_t cou
   uint32_t keyLen = ((count + 3) / 4);      // 2-bits per key (rounded up)
   const uint8_t *dataPtr = keyPtr + keyLen; // data starts at end of keys
 
-#ifdef STREAMVBYTE_SSE4
+#ifdef STREAMVBYTE_SSSE3
   dataPtr = svb_decode_avx_simple(out, keyPtr, dataPtr, count);
   out += count & ~ 31;
   keyPtr += (count/4) & ~ 7;

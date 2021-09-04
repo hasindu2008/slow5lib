@@ -1,5 +1,6 @@
 graft python
 graft src
 graft include
+graft thirdparty
 include Makefile
 include README.md

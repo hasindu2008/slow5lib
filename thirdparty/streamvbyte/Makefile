@@ -18,7 +18,7 @@ else ifeq ($(PROCESSOR), armv7l)
 # for 32-bit ARM processors
 CFLAGS = -fPIC -std=c99 -O3 -Wall -Wextra -pedantic -Wshadow -mfpu=neon
 else ifeq ($(PROCESSOR), x86_64)
-CFLAGS = -fPIC -std=c99 -O3 -Wall -Wextra -pedantic -Wshadow -DSTREAMVBYTE_SSE4=1 -msse4
+CFLAGS = -fPIC -std=c99 -O3 -Wall -Wextra -pedantic -Wshadow -DSTREAMVBYTE_SSSE3=1 -mssse3
 else
 CFLAGS = -fPIC -std=c99 -O3 -Wall -Wextra -pedantic -Wshadow
 endif
