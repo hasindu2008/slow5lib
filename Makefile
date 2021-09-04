@@ -42,7 +42,7 @@ $(SHAREDLIB): $(OBJ) $(SVBLIB)
 	$(CC) $(CFLAGS) -shared $^ -o $@ $(LDFLAGS)
 
 $(SVBLIB):
-	make -C $(SVB) libstreamvbyte.a non_simd=$(no_simd)
+	make -C $(SVB) no_simd=$(no_simd) libstreamvbyte.a
 
 $(BUILD_DIR)/slow5.o: src/slow5.c src/slow5_extra.h src/slow5_idx.h src/slow5_misc.h src/klib/ksort.h $(SLOW5_H)
 	$(CC) $(CFLAGS) $(CPPFLAGS) $< -c -fpic -o $@
