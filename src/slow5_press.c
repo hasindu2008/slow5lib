@@ -276,7 +276,7 @@ struct __slow5_press *__slow5_press_init(enum slow5_press_method method) {
 #endif /* SLOW5_USE_ZSTD */
 
         default:
-            SLOW5_ERROR("Invalid (de)compression method '%d'.", method);
+            SLOW5_ERROR("Invalid or unsupported (de)compression method '%d'.", method);
             free(comp);
             slow5_errno = SLOW5_ERR_ARG;
             return NULL;
@@ -304,7 +304,7 @@ void __slow5_press_free(struct __slow5_press *comp) {
 #endif /* SLOW5_USE_ZSTD */
 
             default:
-                SLOW5_ERROR("Invalid (de)compression method '%d'.", comp->method);
+                SLOW5_ERROR("Invalid or unsupported (de)compression method '%d'.", comp->method);
                 slow5_errno = SLOW5_ERR_ARG;
                 break;
         }
@@ -349,7 +349,7 @@ void *slow5_ptr_compress_solo(enum slow5_press_method method, const void *ptr, s
 #endif /* SLOW5_USE_ZSTD */
 
             default:
-                SLOW5_ERROR("Invalid (de)compression method '%d'.", method);
+                SLOW5_ERROR("Invalid or unsupported (de)compression method '%d'.", method);
                 slow5_errno = SLOW5_ERR_ARG;
                 break;
         }
@@ -400,7 +400,7 @@ void *slow5_ptr_compress(struct __slow5_press *comp, const void *ptr, size_t cou
 #endif /* SLOW5_USE_ZSTD */
 
             default:
-                SLOW5_ERROR("Invalid (de)compression method '%d'.", comp->method);
+                SLOW5_ERROR("Invalid or unsupported (de)compression method '%d'.", comp->method);
                 slow5_errno = SLOW5_ERR_ARG;
                 break;
         }
@@ -453,7 +453,7 @@ void *slow5_ptr_depress_solo(enum slow5_press_method method, const void *ptr, si
 #endif /* SLOW5_USE_ZSTD */
 
             default:
-                SLOW5_ERROR("Invalid (de)compression method '%d'.", method);
+                SLOW5_ERROR("Invalid or unsupported (de)compression method '%d'.", method);
                 slow5_errno = SLOW5_ERR_ARG;
                 break;
         }
@@ -529,7 +529,7 @@ void *slow5_ptr_depress(struct __slow5_press *comp, const void *ptr, size_t coun
 #endif /* SLOW5_USE_ZSTD */
 
             default:
-                SLOW5_ERROR("Invalid (de)compression method '%d'.", comp->method);
+                SLOW5_ERROR("Invalid or unsupported (de)compression method '%d'.", comp->method);
                 slow5_errno = SLOW5_ERR_ARG;
                 break;
         }
@@ -590,7 +590,7 @@ ssize_t slow5_fwrite_compress(struct __slow5_press *comp, const void *ptr, size_
 #endif /* SLOW5_USE_ZSTD */
 
             default:
-                SLOW5_ERROR("Invalid (de)compression method '%d'.", comp->method);
+                SLOW5_ERROR("Invalid or unsupported (de)compression method '%d'.", comp->method);
                 slow5_errno = SLOW5_ERR_ARG;
                 return -1;
         }
@@ -771,7 +771,7 @@ void slow5_compress_footer_next(struct __slow5_press *comp) {
 #endif /* SLOW5_USE_ZSTD */
 
             default:
-                SLOW5_ERROR("Invalid (de)compression method '%d'.", comp->method);
+                SLOW5_ERROR("Invalid or unsupported (de)compression method '%d'.", comp->method);
                 slow5_errno = SLOW5_ERR_ARG;
                 break;
         }

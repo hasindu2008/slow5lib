@@ -71,6 +71,7 @@ static inline khash_t(slow5_s2a) *slow5_rec_aux_init(void);
 static inline void slow5_rec_set_aux_map(khash_t(slow5_s2a) *aux_map, const char *field, const uint8_t *data, size_t len, uint64_t bytes, enum slow5_aux_type type);
 static char *get_missing_str(size_t *len);
 static int slow5_version_sanity(struct slow5_hdr *hdr);
+static struct slow5_version slow5_press_version_bump(struct slow5_version current, slow5_press_method_t method);
 
 enum slow5_log_level_opt slow5_log_level = SLOW5_LOG_INFO;
 enum slow5_exit_condition_opt slow5_exit_condition = SLOW5_EXIT_OFF;
@@ -682,6 +683,12 @@ void *slow5_hdr_to_mem(struct slow5_hdr *header, enum slow5_fmt format, slow5_pr
     if (header == NULL || format == SLOW5_FORMAT_UNKNOWN) {
         return mem;
     }
+
+    if(slow5_version_sanity(header)!=0){ //TODO is this proper? -hasindu
+        SLOW5_ERROR("%s","Version sanity check of the SLOW5 file failed, which means that it does not conform to specification");
+        return mem;
+    }
+
 
     size_t len = 0;
     size_t cap = SLOW5_HDR_STR_INIT_CAP;

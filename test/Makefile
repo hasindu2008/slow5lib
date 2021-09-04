@@ -5,7 +5,7 @@ CPPFLAGS	+= -I ../include/ -I $(SRC)/
 #CFLAGS		+= -g -Wall -Werror -Wpedantic -std=c99
 CFLAGS		+= -g -Wall -Werror -std=gnu99
 LDFLAGS		+= $(LIB)/libslow5.a -lm -lz
-ifeq ($(ZSTD),1)
+ifeq ($(zstd),1)
 CFLAGS		+= -DSLOW5_USE_ZSTD
 LDFLAGS		+= -lzstd
 endif

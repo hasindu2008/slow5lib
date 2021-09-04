@@ -56,6 +56,15 @@ jobs:
           packages:
             - zlib1g-dev
       script: make && make test
+    - name: "arm64=zstd"
+      arch: arm64
+      os: linux
+      addons:
+        apt:
+          packages:
+            - zlib1g-dev
+            - libzstd-dev
+      script: make zstd=1 && make test zstd=1
     - name: "IBM Power CPUs"
       arch: ppc64le
       os: linux

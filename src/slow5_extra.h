@@ -39,7 +39,6 @@ static inline int slow5_is_version_compatible(struct slow5_version file_version,
     }
 }
 int slow5_signal_press_version_cmp(struct slow5_version current);
-struct slow5_version slow5_press_version_bump(struct slow5_version current, slow5_press_method_t method);
 
 // slow5 header data
 int slow5_hdr_data_init(FILE *fp, char **buf, size_t *cap, struct slow5_hdr *header, uint32_t *hdr_len);
