@@ -53,7 +53,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: install packages
-      run: sudo apt-get update && sudo apt-get install -y zlib1g-dev libzstd-dev valgrind
+      run: sudo apt-get update && sudo apt-get install -y zlib1g-dev libzstd1-dev valgrind
     - name: build
       run:  make -j8 zstd=1
     - name: test
