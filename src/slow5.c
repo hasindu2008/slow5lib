@@ -70,7 +70,7 @@ static int slow5_rec_aux_parse(char *tok, char *read_mem, uint64_t offset, size_
 static inline khash_t(slow5_s2a) *slow5_rec_aux_init(void);
 static inline void slow5_rec_set_aux_map(khash_t(slow5_s2a) *aux_map, const char *field, const uint8_t *data, size_t len, uint64_t bytes, enum slow5_aux_type type);
 static char *get_missing_str(size_t *len);
-
+static int slow5_version_sanity(struct slow5_hdr *hdr);
 
 enum slow5_log_level_opt slow5_log_level = SLOW5_LOG_INFO;
 enum slow5_exit_condition_opt slow5_exit_condition = SLOW5_EXIT_OFF;
@@ -609,6 +609,11 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
             slow5_errno = SLOW5_ERR_HDRPARSE;
             return NULL;
         }
+    }
+
+    //TODO some sanity checks - could be made errors later - hasindu
+    if(slow5_version_sanity(header) != 0){
+        SLOW5_WARNING("%s","Version sanity check of the SLOW5 file failed, which means that it does not conform to specification");
     }
 
     free(buf);
@@ -1556,6 +1561,7 @@ struct slow5_aux_meta *slow5_aux_meta_init(FILE *fp, char **bufp, size_t *cap, u
 
             /* parse enum labels */
             if (type == SLOW5_ENUM || type == SLOW5_ENUM_ARRAY) {
+
                 /* if hasn't been allocated yet */
                 if (!aux_meta->enum_labels) {
                     aux_meta->enum_labels = (char ***) malloc(aux_meta->cap * sizeof *(aux_meta->enum_labels));
@@ -3510,7 +3516,12 @@ void *slow5_rec_to_mem(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, 
         if (compress == NULL) {
             slow5_press_method_t method = {SLOW5_COMPRESS_NONE,SLOW5_COMPRESS_NONE};
             compress = slow5_press_init(method);
-            /* TODO error is this fails */
+            /* TODO error if this fails */
+            // I added a quick fix below to prevent a dangerous situation, but error codes and cleaning up must be propoerly done - hasindu
+            if(compress==NULL){
+                return NULL;
+            }
+
             compress_to_free = true;
         }
 
@@ -3811,6 +3822,9 @@ int slow5_convert(struct slow5_file *from, FILE *to_fp, enum slow5_fmt to_format
     struct slow5_rec *read = NULL;
     int ret;
     struct slow5_press *press_ptr = slow5_press_init(to_compress);
+    if (press_ptr == NULL) {
+        return -2;
+    }
     while ((ret = slow5_get_next(&read, from)) == 0) {
         if (slow5_rec_fwrite(to_fp, read, from->header->aux_meta, to_format, press_ptr) == -1) {
             slow5_press_free(press_ptr);
@@ -4200,6 +4214,20 @@ int slow5_version_cmp(struct slow5_version x, struct slow5_version y) {
 int slow5_signal_press_version_cmp(struct slow5_version current){
     struct slow5_version signal_press_version = { .major = 0, .minor = 2, .patch = 0 }; //signal_press related flag in blow5 header was introduced in version 0.2.0
     return slow5_version_cmp(current,signal_press_version);
+}
+
+int slow5_version_sanity(struct slow5_hdr *hdr){
+    struct slow5_version current = hdr->version;
+    struct slow5_version enum_version = { .major = 0, .minor = 2, .patch = 0 }; //enums were introduced in version 0.2.0
+    if(slow5_version_cmp(current, enum_version) < 0 && hdr->aux_meta &&
+        (hdr->aux_meta->enum_labels != NULL || hdr->aux_meta->enum_num_labels != NULL))
+    {
+        SLOW5_WARNING("You file version %d.%d.%d has an enum datatype which was only introduced in version %d.%d.%d",
+                      current.major, current.minor, current.patch, enum_version.major, enum_version.minor, enum_version.patch);
+        return 1;
+
+    }
+    return 0;
 }
 
 //bump the slow5 file version to a newer version if a compression method unavailable in the current file version was requested
