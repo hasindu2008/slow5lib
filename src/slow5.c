@@ -4229,7 +4229,7 @@ int slow5_version_sanity(struct slow5_hdr *hdr){
     if(slow5_version_cmp(current, enum_version) < 0 && hdr->aux_meta &&
         (hdr->aux_meta->enum_labels != NULL || hdr->aux_meta->enum_num_labels != NULL))
     {
-        SLOW5_WARNING("You file version %d.%d.%d has an enum datatype which was only introduced in version %d.%d.%d",
+        SLOW5_WARNING("You file version '" SLOW5_VERSION_STRING_FORMAT "' has an enum datatype which was only introduced in version '" SLOW5_VERSION_STRING_FORMAT "'",
                       current.major, current.minor, current.patch, enum_version.major, enum_version.minor, enum_version.patch);
         return 1;
 
@@ -4245,7 +4245,7 @@ struct slow5_version slow5_press_version_bump(struct slow5_version current, slow
         (method.record_method == SLOW5_COMPRESS_SVB_ZD || method.record_method == SLOW5_COMPRESS_ZSTD ||
          method.signal_method == SLOW5_COMPRESS_SVB_ZD || method.signal_method == SLOW5_COMPRESS_ZSTD )
     ){
-        SLOW5_INFO("SLOW5 version updated to %d.%d.%d as the requested compression option is unavailable in the current fileversion %d.%d.%d",
+        SLOW5_INFO("SLOW5 version updated to '" SLOW5_VERSION_STRING_FORMAT "' as the requested compression option is unavailable in the current fileversion '" SLOW5_VERSION_STRING_FORMAT "'",
             signal_press_version.major, signal_press_version.minor, signal_press_version.patch,
             current.major, current.minor, current.patch);
         return signal_press_version;
