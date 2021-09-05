@@ -851,7 +851,7 @@ static void *ptr_compress_zlib_solo(const void *ptr, size_t count, size_t *n) {
     size_t n_cur = 0;
 
     z_stream strm_local;
-    zlib_init_inflate(&strm_local);
+    zlib_init_deflate(&strm_local);
     z_stream *strm = &strm_local;
 
     strm->avail_in = count;
