@@ -806,15 +806,27 @@ void *slow5_hdr_to_mem(struct slow5_hdr *header, enum slow5_fmt format, slow5_pr
                         }
                         len += len_to_cp;
                     }
+                    else{
+                        // I added this here - hasindu
+                        // Realloc if necessary
+                        if (len + 1 >= cap) { // +1 for "."
+                            cap *= 2;
+                            mem = (char *) realloc(mem, cap * sizeof *mem);
+                            SLOW5_MALLOC_CHK(mem);
+                        }
+                        mem[len] = '.';
+                        ++ len;
+                    }
                 } else {
                     // Realloc if necessary
-                    if (len + 1 >= cap) { // +1 for SLOW5_SEP_COL_CHAR
+                    if (len + 2 >= cap) { // +2 for . and SLOW5_SEP_COL_CHAR
                         cap *= 2;
                         mem = (char *) realloc(mem, cap * sizeof *mem);
                         SLOW5_MALLOC_CHK(mem);
                     }
-
                     mem[len] = SLOW5_SEP_COL_CHAR;
+                    ++ len;
+                    mem[len] = '.';
                     ++ len;
                 }
             }

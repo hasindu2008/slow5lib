@@ -136,7 +136,7 @@ lol	0	8192	23	1467.61	4000	59676	1039,588,588,593,586,574,570,585,588,586,578,58
 @hostname	DEAMERNANOPORE
 @installation_type	map
 @local_firmware_file	0
-@new_attr	
+@new_attr	.
 @operating_system	Windows 6.2
 @protocol_run_id	a4429838-103c-497f-a824-7dffa72cfd81
 @protocols_version	1.1.20
@@ -318,7 +318,7 @@ lol	0	8192	23	1467.61	4000	59676	1039,588,588,593,586,574,570,585,588,586,578,58
 @hostname	DEAMERNANOPORE
 @installation_type	map
 @local_firmware_file	0
-@new_attr	
+@new_attr	.
 @operating_system	Windows 6.2
 @protocol_run_id	a4429838-103c-497f-a824-7dffa72cfd81
 @protocols_version	1.1.20
