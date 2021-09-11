@@ -80,7 +80,7 @@ You can invoke `examples/build.sh` to compile the example programmes. Have a loo
 
 ### Pyslow5
 
-Python wrapper for slow5lib or (*pyslow5*) can be installed using conda as `conda install -c bioconda -c conda-forge` or pypi as `pip install pyslow5`.
+Python wrapper for slow5lib or (*pyslow5*) can be installed using conda as `conda install pyslow5 -c bioconda -c conda-forge` or pypi as `pip install pyslow5`.
 To instructions to build *pyslow5* and the usage instructions are [here](https://hasindu2008.github.io/slow5lib/pyslow5_api/pyslow5.html).
 
 
