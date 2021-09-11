@@ -64,7 +64,6 @@ $(BUILD_DIR)/slow5_press.o: src/slow5_press.c include/slow5/slow5_press.h src/sl
 clean:
 	rm -rf $(OBJ) $(STATICLIB) $(SHAREDLIB) $(SHAREDLIBV)
 	make -C $(SVB) clean
-	make -C test clean
 
 # Delete all gitignored files (but not directories)
 distclean: clean
@@ -72,6 +71,7 @@ distclean: clean
 	rm -rf $(BUILD_DIR)/* autom4te.cache
 
 test: slow5lib
+	make -C test clean
 	make -C test zstd=$(zstd)
 	./test/test.sh
 
