@@ -14,6 +14,11 @@ ifeq ($(zstd),1)
 CFLAGS		+= -DSLOW5_USE_ZSTD
 LDFLAGS		+= -lzstd
 endif
+ifeq ($(zstd_local),)
+else
+CFLAGS		+= -DSLOW5_USE_ZSTD
+CPPFLAGS += -I $(zstd_local)
+endif
 BUILD_DIR	= lib
 
 STATICLIB	= $(BUILD_DIR)/libslow5.a
