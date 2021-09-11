@@ -1,4 +1,4 @@
-name: SLOW5 C/C++ CI Github
+name: C/C++ CI
 
 on:
   push:
@@ -97,13 +97,13 @@ jobs:
         source /opt/intel/oneapi/setvars.sh
         printenv >> $GITHUB_ENV
     - name: build
-      run: make CC=icc CXX=icpc -j8
+      run: make CC=icc -j8
     - name: test
-      run: make test
+      run: make test CC=icc
     - name: build zstd
-      run: make clean && make CC=icc CXX=icpc -j8 zstd=1
+      run: make clean && make CC=icc -j8 zstd=1
     - name: test zstd
-      run: make test zstd=1
+      run: make test zstd=1 CC=icc
   os_x_10:
     name: OSX 10
     runs-on: macos-10.15

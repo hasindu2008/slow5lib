@@ -1,4 +1,4 @@
-name: SLOW5 Python CI Github
+name: Python CI
 
 on:
   push:
