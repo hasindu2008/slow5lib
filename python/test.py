@@ -3,9 +3,15 @@ import pyslow5 as slow5
 import time
 import numpy as np
 
+"""
+    Run from root dir of repo after making pyslow5
+
+    python3 -m unittest -v python/test.py
+
+"""
 
 #globals
-debug = 0
+debug = 0 #TODO: make this an argument with -v
 
 class TestBase(unittest.TestCase):
     def setUp(self):
@@ -40,14 +46,6 @@ class TestBase(unittest.TestCase):
         self.assertEqual(sum(self.read['signal'][:10]), sum([1039,588,588,593,586,574,570,585,588,586]))
 
 
-
-    # def test_bad_type(self):
-    #     data = "banana"
-    #     with self.assertRaises(TypeError):
-    #         result = sum(data)
-
-
-
 class TestRandomAccess(unittest.TestCase):
     """
     Get data for ANOTHER ONE individual read, random access, check memory
@@ -77,14 +75,69 @@ class TestRandomAccess(unittest.TestCase):
         self.assertEqual(sum(self.read['signal'][:10]), sum([190.26, 108.92, 109.46, 109.1, 107.67, 108.39, 108.75, 109.1, 111.07, 108.39]))
 
 
-
 class TestAUX(unittest.TestCase):
     def setUp(self):
-        debug = 0
+        self.s5 = slow5.Open('examples/example2.slow5','r', DEBUG=debug)
+        self.read = self.s5.get_read("r1", aux=["read_number", "start_mux", "noExistTest"])
+
+    def test_read_id(self):
+        self.assertEqual(self.read['read_id'], "r1")
+    def test_read_number(self):
+        self.assertEqual(self.read['read_number'], 2287)
+    def test_start_mux(self):
+        self.assertEqual(self.read['start_mux'], 2)
+    def test_nonExistant_aux(self):
+        self.assertIs(self.read['noExistTest'], None)
+
+class TestSequentialRead(unittest.TestCase):
+    def setUp(self):
+        self.s5 = slow5.Open('examples/example2.slow5','r', DEBUG=debug)
+        self.reads = self.s5.seq_reads()
+
+    def test_seq_reads(self):
+        results = ['r0', 'r1', 'r2', 'r3', 'r4', 'r5', '0a238451-b9ed-446d-a152-badd074006c4', '0d624d4b-671f-40b8-9798-84f2ccc4d7fc']
+        for i, read in enumerate(self.reads):
+            with self.subTest(i=i, read=read['read_id']):
+                self.assertEqual(read['read_id'], results[i])
+
+
+class TestYieldRead(unittest.TestCase):
+    def setUp(self):
         self.s5 = slow5.Open('examples/example.slow5','r', DEBUG=debug)
-        self.read = self.s5.get_read("r1")
 
+    def test_base_reads(self):
+        read_list = ["r1", "r3", "r5", "r2", "r1"]
+        results = ["r1", "r3", "r5", "r2", "r1"]
+        selected_reads = self.s5.get_read_list(read_list)
+        for i, read in enumerate(selected_reads):
+            if read is None:
+                sate = None
+            else:
+                state = read['read_id']
+            with self.subTest(i=i, read=state):
+                if read is None:
+                    self.assertEqual(read, results[i])
+                else:
+                    self.assertEqual(read['read_id'], results[i])
+    def test_reads_with_no_exist(self):
+        read_list = ["r1", "r3", "null_read", "r5", "r2", "r1"]
+        results = ["r1", "r3", None, "r5", "r2", "r1"]
+        selected_reads = self.s5.get_read_list(read_list)
+        for i, read in enumerate(selected_reads):
+            if read is None:
+                sate = None
+            else:
+                state = read['read_id']
+            with self.subTest(i=i, read=state):
+                if read is None:
+                    self.assertEqual(read, results[i])
+                else:
+                    self.assertEqual(read['read_id'], results[i])
 
+# def test_bad_type(self):
+#     data = "banana"
+#     with self.assertRaises(TypeError):
+#         result = sum(data)
 
 if __name__ == '__main__':
     unittest.main()
