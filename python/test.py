@@ -19,8 +19,8 @@ class TestBase(unittest.TestCase):
         self.read = self.s5.get_read("r1")
 
     def test_class_methods(self):
-        result = dir(self.s5)
-        self.assertEqual(result, ['__class__', '__delattr__', '__dir__', '__doc__', '__eq__', '__format__', '__ge__', '__getattribute__', '__gt__', '__hash__', '__init__', '__init_subclass__', '__le__', '__lt__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__setattr__', '__setstate__', '__sizeof__', '__str__', '__subclasshook__', '_convert_to_pA', '_get_read', '_get_read_aux', '_get_seq_read_aux', 'get_all_headers', 'get_aux_names', 'get_aux_types', 'get_header_names', 'get_header_value', 'get_read', 'get_read_list', 'seq_reads'])
+        result = type(self.s5)
+        self.assertEqual(str(result), "<class 'pyslow5.Open'>")
     def test_read_type(self):
         self.assertEqual(str(type(self.read)), "<class 'dict'>")
     def test_read_id(self):
