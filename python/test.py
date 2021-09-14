@@ -134,6 +134,68 @@ class TestYieldRead(unittest.TestCase):
                 else:
                     self.assertEqual(read['read_id'], results[i])
 
+class testHeaders(unittest.TestCase):
+    def setUp(self):
+        self.s5 = slow5.Open('examples/example.slow5','r', DEBUG=debug)
+
+    def test_get_header_names(self):
+        results = ['asic_id', 'asic_id_eeprom', 'asic_temp', 'auto_update', 'auto_update_source',
+                   'bream_core_version', 'bream_is_standard', 'bream_map_version', 'bream_ont_version',
+                   'bream_prod_version', 'bream_rnd_version', 'device_id', 'exp_script_name', 'exp_script_purpose',
+                   'exp_start_time', 'experiment_kit', 'experiment_type', 'file_version', 'filename', 'flow_cell_id',
+                   'heatsink_temp', 'hostname', 'installation_type', 'local_firmware_file', 'operating_system',
+                   'protocol_run_id', 'protocols_version', 'run_id', 'sample_frequency', 'usb_config',
+                   'user_filename_input', 'version']
+        names = self.s5.get_header_names()
+        self.assertEqual(names, results)
+
+    def test_get_all_headers(self):
+        results = ['asic_id', 'asic_id_eeprom', 'asic_temp', 'auto_update', 'auto_update_source',
+                   'bream_core_version', 'bream_is_standard', 'bream_map_version', 'bream_ont_version',
+                   'bream_prod_version', 'bream_rnd_version', 'device_id', 'exp_script_name', 'exp_script_purpose',
+                   'exp_start_time', 'experiment_kit', 'experiment_type', 'file_version', 'filename', 'flow_cell_id',
+                   'heatsink_temp', 'hostname', 'installation_type', 'local_firmware_file', 'operating_system',
+                   'protocol_run_id', 'protocols_version', 'run_id', 'sample_frequency', 'usb_config',
+                   'user_filename_input', 'version']
+        headers = self.s5.get_all_headers()
+        self.assertEqual(list(headers.keys()), results)
+
+    def test_get_all_headers(self):
+        attr = "flow_cell_id"
+        result = ""
+        val = self.s5.get_header_value(attr)
+        self.assertEqual(val, results)
+
+    def test_get_all_headers(self):
+        attr = "exp_start_time"
+        result = ""
+        val = self.s5.get_header_value(attr)
+        self.assertEqual(val, results)
+
+    def test_get_all_headers(self):
+        attr = "heatsink_temp"
+        result = ""
+        val = self.s5.get_header_value(attr)
+        self.assertEqual(val, results)
+
+    def test_get_all_headers(self):
+        results = ["3574887596", "0", "29.2145729", "1", "https://mirror.oxfordnanoportal.com/software/MinKNOW/", "1.1.20.1",
+                   "1", "1.1.20.1", "1.1.20.1", "1.1.20.1", "0.1.1", "MN16450", "python/recipes/nc/NC_48Hr_Sequencing_Run_FLO-MIN106_SQK-LSK108.py",
+                   "sequencing_run", "1479433093", "genomic_dna", "customer_qc", "1", "deamernanopore_20161117_fnfab43577_mn16450_sequencing_run_ma_821_r9_4_na12878_11_17_16_88738",
+                   "FAB43577", "33.9921875", "DEAMERNANOPORE", "map", "0", "Windows 6.2", "a4429838-103c-497f-a824-7dffa72cfd81",
+                   "1.1.20", "d6e473a6d513ec6bfc150c60fd4556d72f0e6d18", "4000", "1.0.11_ONT#MinION_fpga_1.0.1#ctrl#Auto",
+                   "ma_821_r9.4_na12878_11_17_16", "1.1.20"]
+        names = self.s5.get_header_names()
+        for i, attr in enumerate(names):
+            with self.subTest(i=i, attr=attr):
+                val = self.s5.get_header_value(attr)
+                self.assertEqual(val, results[i])
+
+
+
+
+
+
 # def test_bad_type(self):
 #     data = "banana"
 #     with self.assertRaises(TypeError):
