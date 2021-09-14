@@ -18,14 +18,11 @@ class TestBase(unittest.TestCase):
         self.s5 = slow5.Open('examples/example.slow5','r', DEBUG=debug)
         self.read = self.s5.get_read("r1")
 
-    def test_class(self):
-        """
-        Test pyslow5 class methods
-        First set up the class with sample data
-        """
+    def test_class_methods(self):
         result = dir(self.s5)
         self.assertEqual(result, ['__class__', '__delattr__', '__dir__', '__doc__', '__eq__', '__format__', '__ge__', '__getattribute__', '__gt__', '__hash__', '__init__', '__init_subclass__', '__le__', '__lt__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__setattr__', '__setstate__', '__sizeof__', '__str__', '__subclasshook__', '_convert_to_pA', '_get_read', '_get_read_aux', '_get_seq_read_aux', 'get_all_headers', 'get_aux_names', 'get_aux_types', 'get_header_names', 'get_header_value', 'get_read', 'get_read_list', 'seq_reads'])
-
+    def test_read_type(self):
+        self.assertEqual(str(type(self.read)), "<class 'dict'>")
     def test_read_id(self):
         self.assertEqual(self.read['read_id'], "r1")
     def test_read_group(self):
@@ -148,7 +145,6 @@ class testHeaders(unittest.TestCase):
                    'user_filename_input', 'version']
         names = self.s5.get_header_names()
         self.assertEqual(names, results)
-
     def test_get_all_headers(self):
         results = ['asic_id', 'asic_id_eeprom', 'asic_temp', 'auto_update', 'auto_update_source',
                    'bream_core_version', 'bream_is_standard', 'bream_map_version', 'bream_ont_version',
@@ -159,25 +155,21 @@ class testHeaders(unittest.TestCase):
                    'user_filename_input', 'version']
         headers = self.s5.get_all_headers()
         self.assertEqual(list(headers.keys()), results)
-
     def test_get_all_headers(self):
         attr = "flow_cell_id"
         result = ""
         val = self.s5.get_header_value(attr)
-        self.assertEqual(val, results)
-
+        self.assertEqual(val, result)
     def test_get_all_headers(self):
         attr = "exp_start_time"
         result = ""
         val = self.s5.get_header_value(attr)
-        self.assertEqual(val, results)
-
+        self.assertEqual(val, result)
     def test_get_all_headers(self):
         attr = "heatsink_temp"
         result = ""
         val = self.s5.get_header_value(attr)
-        self.assertEqual(val, results)
-
+        self.assertEqual(val, result)
     def test_get_all_headers(self):
         results = ["3574887596", "0", "29.2145729", "1", "https://mirror.oxfordnanoportal.com/software/MinKNOW/", "1.1.20.1",
                    "1", "1.1.20.1", "1.1.20.1", "1.1.20.1", "0.1.1", "MN16450", "python/recipes/nc/NC_48Hr_Sequencing_Run_FLO-MIN106_SQK-LSK108.py",
@@ -191,7 +183,40 @@ class testHeaders(unittest.TestCase):
                 val = self.s5.get_header_value(attr)
                 self.assertEqual(val, results[i])
 
-
+class testAuxAll(unittest.TestCase):
+    def setUp(self):
+        self.s5 = slow5.Open('examples/example2.slow5','r', DEBUG=debug)
+    def test_get_aux_names(self):
+        result = ['channel_number', 'median_before', 'read_number', 'start_mux', 'start_time']
+        aux_names = self.s5.get_aux_names()
+        self.assertEqual(aux_names, result)
+    def test_get_aux_types(self):
+        result = [22, 9, 2, 4, 7]
+        aux_types = self.s5.get_aux_types()
+        aux_names = self.s5.get_aux_names()
+        self.assertEqual(aux_types, result)
+    def test_get_read_all_aux(self):
+        results = ['391', 260.557264, 2287, 2, 36886851]
+        read = self.s5.get_read("0d624d4b-671f-40b8-9798-84f2ccc4d7fc", aux="all")
+        aux_names = self.s5.get_aux_names()
+        for i, name in enumerate(aux_names):
+            with self.subTest(i=i, attr=name):
+                self.assertEqual(read[name], results[i])
+    def test_seq_reads_pA_aux_all(self):
+        results = [['r0', 1106.3899999999999, 78470500],
+                   ['r1', 1585.4299999999998, 36886851],
+                   ['r2', 1106.3899999999999, 78470500],
+                   ['r3', 1585.4299999999998, 36886851],
+                   ['r4', 1106.3899999999999, 78470500],
+                   ['r5', 1585.4299999999998, 36886851],
+                   ['0a238451-b9ed-446d-a152-badd074006c4', 1106.3899999999999, 78470500],
+                   ['0d624d4b-671f-40b8-9798-84f2ccc4d7fc', 1585.4299999999998, 36886851]]
+        reads = self.s5.seq_reads(pA=True, aux='all')
+        for i, read in enumerate(reads):
+            with self.subTest(i=i, attr=read['read_id']):
+                self.assertEqual(read['read_id'], results[i][0])
+                self.assertEqual(sum(read['signal'][:10]), results[i][1])
+                self.assertEqual(read['start_time'] ,results[i][2])
 
 
 
