@@ -446,9 +446,11 @@ cdef class Open:
                 self.e22 = slow5_aux_get_string(self.rec, a_name, &self.aux_get_len, &self.aux_get_err)
                 if self.aux_get_err == 0:
                     l = []
+                    s = ""
                     for i in range(self.aux_get_len):
-                        l.append(self.e22[i])
-                    dic[name] = l
+                        l.append(chr(self.e22[i]))
+                        s = "".join(l)
+                    dic[name] = s
                 else:
                     self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
                     dic[name] = None
@@ -651,9 +653,11 @@ cdef class Open:
                 self.e22 = slow5_aux_get_string(self.read, a_name, &self.aux_get_len, &self.aux_get_err)
                 if self.aux_get_err == 0:
                     l = []
+                    s = ""
                     for i in range(self.aux_get_len):
-                        l.append(self.e22[i])
-                    dic[name] = l
+                        l.append(chr(self.e22[i]))
+                        s = "".join(l)
+                    dic[name] = s
                 else:
                     self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
                     dic[name] = None
