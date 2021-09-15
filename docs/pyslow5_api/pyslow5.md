@@ -69,6 +69,8 @@ python3 -m pip install <file>
 
 ### Building and installing the python library from source
 
+#### Use this method for zstd compatibility
+
 ```bash
 # Create python virtual environment
 python3 -m venv /path/to/slow5libvenv
@@ -81,7 +83,16 @@ python3 -m pip install setuptools cython numpy wheel
 # Download the repository and build the slow5 C library
 git clone git@github.com:hasindu2008/slow5lib.git
 cd slow5lib
-make
+# CHOOSE A OR B:
+# |=======================================================================|
+# |A. Default build of slow5lib without zstd                              |
+    make
+# |=======================================================================|
+# |B. Or build with zstd. zstd must be present on system.                 |
+# |   See slow5 docs for further information                              |
+    make zstd=1
+# |=======================================================================|
+
 
 # Build and install pyslow5
 # CHOOSE A OR B:
