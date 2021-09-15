@@ -21,49 +21,89 @@ sudo add-apt-repository ppa:deadsnakes/ppa
 sudo apt-get update
 sudo apt install python3.7 python3.7-dev python3.7-venv
 
+# =========================================================
 
-# get zlib1g-dev
+# get zlib1g-dev for zlib headers
 sudo apt-get update && sudo apt-get install -y zlib1g-dev
 
-# Chekc with
+# check python version is above 3.4.2
 python3 --version
 
-# You will also need the python headers if you don't already have them installed.
-
+# =========================================================
+# If you are using an already installed version of python
+# you will need to ensure the python headers are installed
+# =========================================================
 sudo apt-get install python3-dev
 ```
 
-Building and installing the python library.
+### Install using PyPi/pip
 
 ```bash
+# Create python virtual environment
 python3 -m venv /path/to/slow5libvenv
 source /path/to/slow5libvenv/bin/activate
+
+# Update pip and install required libraries
 python3 -m pip install --upgrade pip
 python3 -m pip install setuptools cython numpy wheel
 
+python3 -m pip install pyslow5
+```
+
+### Install using github release
+
+```bash
+# Create python virtual environment
+python3 -m venv /path/to/slow5libvenv
+source /path/to/slow5libvenv/bin/activate
+
+# Update pip and install required libraries
+python3 -m pip install --upgrade pip
+python3 -m pip install setuptools cython numpy wheel
+
+wget <link>
+
+python3 -m pip install <file>
+
+```
+
+### Building and installing the python library from source
+
+```bash
+# Create python virtual environment
+python3 -m venv /path/to/slow5libvenv
+source /path/to/slow5libvenv/bin/activate
+
+# Update pip and install required libraries
+python3 -m pip install --upgrade pip
+python3 -m pip install setuptools cython numpy wheel
+
+# Download the repository and build the slow5 C library
 git clone git@github.com:hasindu2008/slow5lib.git
 cd slow5lib
 make
 
+# Build and install pyslow5
 # CHOOSE A OR B:
 # |=======================================================================|
 # |A. Install with pip if wheel is present, otherwise it uses setuptools  |
     python3 -m pip install . --use-feature=in-tree-build
 # |=======================================================================|
 # |B. Or build and install manually with setup.py                         |
-# |build the package                                                      |
-    python3 setup.py build
-# |If all went well, install the package                                  |
+# |build and install the package                                          |
     python3 setup.py install
 # |=======================================================================|
 
-# This should not require sudo if using a python virtual environment/venv
+# Ensure slow5 library is working by running the basic tests
+python3 -m unittest -v python/test.py
+
+```
+
+### Confirm pyslow5, or Uninstall pyslow5
+
+```bash
 # confirm installation, and find pyslow5==<version>
 python3 -m pip freeze
-
-# Ensure slow5 library is working by running the basic tests
-python3 ./python/example.py
-
 
 # To Remove the library
 python3 -m pip uninstall pyslow5
