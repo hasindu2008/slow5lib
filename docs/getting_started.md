@@ -16,6 +16,7 @@ To build the C/C++ library :
 ```sh
 sudo apt-get install zlib1g-dev   #install zlib development libraries
 git clone https://github.com/hasindu2008/slow5lib
+cd slow5lib
 make
 ```
 
@@ -28,9 +29,9 @@ On Fedora/CentOS : sudo dnf/yum install zlib-devel
 On OS X : brew install zlib
 ```
 
-You can optionally enable [*zstd* compression](https://facebook.github.io/zstd) support when building *slow5lib* by invoking `make zstd=1`. This requires __zstd 1.3 or higher development libraries__ installed on your system (*libzstd1-dev* package for *apt*, *libzstd-devel* for *yum/dnf* and *zstd* for *homebrew*). SLOW5 files compressed with *zstd* offer slightly smaller file size and better performance compared to the default *zlib*. However, *zlib* runtime library is available by default on almost all distributions unlike *zstd* and thus files compressed with *zlib* will be more 'portable'. 
+You can optionally enable [*zstd* compression](https://facebook.github.io/zstd) support when building *slow5lib* by invoking `make zstd=1`. This requires __zstd 1.3 or higher development libraries__ installed on your system (*libzstd1-dev* package for *apt*, *libzstd-devel* for *yum/dnf* and *zstd* for *homebrew*). SLOW5 files compressed with *zstd* offer slightly smaller file size and better performance compared to the default *zlib*. However, *zlib* runtime library is available by default on almost all distributions unlike *zstd* and thus files compressed with *zlib* will be more 'portable'.
 
-*slow5lib* from version 0.3.0 onwards uses code from [StreamVByte](https://github.com/lemire/streamvbyte) and by default requires vector instructions (SSSE3 or higher for Intel/AMD and neon for ARM). If your processor is an ancient processor with no such vector instructions, invoke make as `make no_simd=1`. 
+*slow5lib* from version 0.3.0 onwards uses code from [StreamVByte](https://github.com/lemire/streamvbyte) and by default requires vector instructions (SSSE3 or higher for Intel/AMD and neon for ARM). If your processor is an ancient processor with no such vector instructions, invoke make as `make no_simd=1`.
 
 
 ## Usage
@@ -58,7 +59,7 @@ Examples are provided under [examples](https://github.com/hasindu2008/slow5lib/t
 - *sequential_read.c* demonstrates how to read a slow5/blow5 file, sequentially from start to end.
 - *random_read.c* demonstrates how to fetch a given read ID from a slow5/blow5 file.
 - *header_attribute.c* demonstrates how to fetch a header data attribute from a slow5/blow5 file.
-- *auxiliary_field.c* demonstrates how to fetch a auxiliary field from aslow5/blow5 file.
+- *auxiliary_field.c* demonstrates how to fetch a auxiliary field from a slow5/blow5 file.
 
 - *random_read_pthreads.c* demonstrates how to fetch given read IDs in parallel from a slow5/blow5 file using *pthreads*.   
 - *random_read_openmp.c* demonstrates how to fetch given read IDs in parallel from a slow5/blow5 file using openMP.  
@@ -66,7 +67,7 @@ Examples are provided under [examples](https://github.com/hasindu2008/slow5lib/t
 You can invoke `examples/build.sh` to compile the example programmes. Have a look at the script to see the commands used for compiling and linking. If you compiled *slow5lib* with *zstd* support enabled, make sure you append `-lzstd` to the compilation commands.
 
 
-### Pyslow5
+### pyslow5
 
 Python wrapper for slow5lib or *pyslow5* can be installed using conda as `conda install pyslow5 -c bioconda -c conda-forge` or pypi as `pip install pyslow5`.
 To instructions to build *pyslow5* and the usage instructions are [here](https://hasindu2008.github.io/slow5lib/pyslow5_api/pyslow5.html).
@@ -74,7 +75,7 @@ To instructions to build *pyslow5* and the usage instructions are [here](https:/
 
 ### Notes
 
-*slow5lib* from version 0.3.0 onwards has built in [StreamVByte](https://github.com/lemire/streamvbyte) compression support to enable even smaller file sizes, which is applied to the raw signal by default when producing BLOW5 files.  *zlib* compression is then applied by default to each SLOW5 record. If *zstd* is used instead of *zlib* on top of *StreamVByte*, it is similar to ONT's latest [vbz](https://github.com/nanoporetech/vbz_compression) compression. BLOW5 files with *zstd+StreamVByte* are still about 25% smaller than vbz compressed FAST5 files. 
+*slow5lib* from version 0.3.0 onwards has built in [StreamVByte](https://github.com/lemire/streamvbyte) compression support to enable even smaller file sizes, which is applied to the raw signal by default when producing BLOW5 files.  *zlib* compression is then applied by default to each SLOW5 record. If *zstd* is used instead of *zlib* on top of *StreamVByte*, it is similar to ONT's latest [vbz](https://github.com/nanoporetech/vbz_compression) compression. BLOW5 files with *zstd+StreamVByte* are still about 25% smaller than vbz compressed FAST5 files.
 
 
 ## Acknowledgement
