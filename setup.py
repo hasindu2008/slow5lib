@@ -87,6 +87,7 @@ setup(
     url = 'https://github.com/hasindu2008/slow5lib',
     description='slow5lib python bindings',
     long_description=readme(),
+    long_description_content_type='text/markdown',
     author='Hasindu Gamaarachchi, Sasha Jenner, James Ferguson',
     author_email='hasindu2008@gmail.com',
     maintainer='Hasindu Gamaarachchi',
