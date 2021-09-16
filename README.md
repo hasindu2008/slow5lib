@@ -23,6 +23,7 @@ To build the C/C++ library :
 ```sh
 sudo apt-get install zlib1g-dev   #install zlib development libraries
 git clone https://github.com/hasindu2008/slow5lib
+cd slow5lib
 make
 ```
 

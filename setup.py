@@ -6,7 +6,6 @@ except ImportError:
     from distutils.core import setup
     from distutils.extension import Extension
 
-#import subprocess
 import sys
 import platform
 
@@ -34,15 +33,6 @@ except ImportError:
 
 # from Cython.Build import build_ext
 
-# class CustomInstall(install):
-#     def run(self):
-#         command = ["make"]
-#         print("running make command!!!!")
-#         if subprocess.call(command) != 0:
-#             sys.exit(-1)
-#         install.run(self)
-
-
 #adapted from https://github.com/lh3/minimap2/blob/master/setup.py
 
 sources=['python/pyslow5.pyx', 'src/slow5.c', 'src/slow5_press.c', 'src/slow5_misc.c', 'src/slow5_idx.c',
@@ -60,7 +50,7 @@ if arch in ["aarch64", "arm64"]:
 elif arch in ["aarch64"]:
 	extra_compile_args.append('-mfpu=neon')
 elif arch in ["x86_64"]:
-    extra_compile_args.extend(['-DSTREAMVBYTE_SSSE3=1', '-mssse3'])   # WARNING: ancient x86_64 CPUs don't have SSE4
+    extra_compile_args.extend(['-DSTREAMVBYTE_SSSE3=1', '-mssse3'])   # WARNING: ancient x86_64 CPUs don't have SSSE3
 
 
 # include_dirs = ['include/', np.get_include(), 'thirdparty/streamvbyte/include']
@@ -83,7 +73,7 @@ def readme():
 
 setup(
     name = 'pyslow5',
-    version='0.3.0a1',
+    version='0.3.0',
     url = 'https://github.com/hasindu2008/slow5lib',
     description='slow5lib python bindings',
     long_description=readme(),

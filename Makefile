@@ -78,10 +78,8 @@ test: slow5lib
 pyslow5:
 	make clean
 	rm -rf *.so python/pyslow5.cpp build/lib.* build/temp.* sdist
-#	make -C $(SVB)
 	python3 setup.py build
 	cp build/lib.*/*.so  ./
-#	LD_LIBRAY_PATH=$LD_LIBRAY_PATH:$(SVB) python3 < python/example.py
 	python3 < python/example.py
 	python3 setup.py sdist
 
