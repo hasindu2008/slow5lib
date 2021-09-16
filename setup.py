@@ -93,6 +93,6 @@ setup(
         'Intended Audience :: Science/Research',
         'Topic :: Scientific/Engineering :: Bio-Informatics'],
     python_requires='>=3.4.3',
-    install_requires=["numpy==1.15.0"],
-    setup_requires=["Cython", "numpy==1.15.0"]
+    install_requires=["numpy<=1.15.0"],
+    setup_requires=["Cython", "numpy<=1.15.0"]
     )
