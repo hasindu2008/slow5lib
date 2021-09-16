@@ -81,7 +81,7 @@ python3 -m pip install --upgrade pip
 python3 -m pip install setuptools cython numpy wheel
 
 # Download the repository and build the slow5 C library
-git clone git@github.com:hasindu2008/slow5lib.git
+git clone https://github.com/hasindu2008/slow5lib.git
 cd slow5lib
 # CHOOSE A OR B:
 # |=======================================================================|
