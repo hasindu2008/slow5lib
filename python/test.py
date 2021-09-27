@@ -69,7 +69,7 @@ class TestRandomAccess(unittest.TestCase):
     def test_pylen_signal(self):
         self.assertEqual(len(self.read['signal']), 59670)
     def test_signal(self):
-        self.assertEqual(sum(self.read['signal'][:10]), sum([190.26, 108.92, 109.46, 109.1, 107.67, 108.39, 108.75, 109.1, 111.07, 108.39]))
+        self.assertEqual(int(sum([round(i, 2) for i in self.read['signal'][:10]])), int(sum([190.26, 108.92, 109.46, 109.1, 107.67, 108.39, 108.75, 109.1, 111.07, 108.39])))
 
 
 class TestAUX(unittest.TestCase):
@@ -215,7 +215,7 @@ class testAuxAll(unittest.TestCase):
         for i, read in enumerate(reads):
             with self.subTest(i=i, attr=read['read_id']):
                 self.assertEqual(read['read_id'], results[i][0])
-                self.assertEqual(sum(read['signal'][:10]), results[i][1])
+                self.assertEqual(int(sum([round(i, 2) for i in read['signal'][:10]])), int(results[i][1]))
                 self.assertEqual(read['start_time'] ,results[i][2])
 
 
