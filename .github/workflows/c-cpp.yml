@@ -24,11 +24,11 @@ jobs:
   ubuntu_16:
     name: Ubuntu 16
     runs-on: ubuntu-18.04
-    container: ubuntu-16.04
+    container: ubuntu:16.04
     steps:
     - uses: actions/checkout@v2
     - name: install packages
-      run: sudo apt-get update && sudo apt-get install -y zlib1g-dev
+      run: apt-get update && apt-get install -y zlib1g-dev gcc g++ autoconf automake make
     - name: build
       run: make -j8
     - name: test
