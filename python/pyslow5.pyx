@@ -159,10 +159,11 @@ cdef class Open:
         range = d['range']
         offset = d['offset']
         raw_unit = range / digitisation
-        new_raw = []
-        for i in d['signal']:
-            j = (i + offset) * raw_unit
-            new_raw.append(float("{0:.2f}".format(round(j,2))))
+        # new_raw = []
+        # for i in d['signal']:
+        #     j = (i + offset) * raw_unit
+        #     new_raw.append(float("{0:.2f}".format(round(j,2))))
+        new_raw = np.array(raw_unit * (d['signal'] + offset), dtype=np.float32)
         return new_raw
 
 
