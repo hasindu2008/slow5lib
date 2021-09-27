@@ -28,7 +28,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: install packages
-      run: apt-get update && apt-get install -y zlib1g-dev python3-pip python3-setuptools && pip3 install cython "numpy>=1.14.5,<1.19.0"
+      run: apt-get update && apt-get install -y lsb-release zlib1g-dev python3-pip python3-setuptools && pip3 install cython "numpy>=1.14.5,<1.19.0"
     - name: env
       run: lsb_release -a &&  ldd --version && gcc --version && g++ --version  && python3 --version
     - name: build
