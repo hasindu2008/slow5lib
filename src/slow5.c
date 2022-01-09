@@ -3596,6 +3596,8 @@ void *slow5_rec_to_mem(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, 
             for (uint64_t i = 0; i < aux_meta->num; ++ i) {
                 struct slow5_rec_aux_data aux_data = { 0 };
 
+                bool malloc_flag = false;
+
                 khint_t pos = kh_get(slow5_s2a, read->aux_map, aux_meta->attrs[i]);
                 if (pos != kh_end(read->aux_map)) {
                     aux_data = kh_value(read->aux_map, pos);
@@ -3603,6 +3605,7 @@ void *slow5_rec_to_mem(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, 
                     aux_data.len = 1;
                     aux_data.bytes = SLOW5_AUX_TYPE_META[aux_meta->types[i]].size;
                     aux_data.data = (uint8_t *) malloc(aux_data.bytes);
+                    malloc_flag = true;
                     slow5_memcpy_null_type(aux_data.data, aux_meta->types[i]);
                 }
 
@@ -3627,6 +3630,10 @@ void *slow5_rec_to_mem(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, 
                     memcpy(mem + curr_len, aux_data.data, aux_data.bytes);
                 }
                 curr_len += aux_data.bytes;
+
+                if (malloc_flag) {
+                    free(aux_data.data);
+                }
             }
         }
 

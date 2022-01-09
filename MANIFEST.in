@@ -2,5 +2,7 @@ graft python
 graft src
 graft include
 graft thirdparty
+graft docs
+recursive-include lib .gitignore
 include Makefile
 include README.md
