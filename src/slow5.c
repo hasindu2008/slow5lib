@@ -787,9 +787,10 @@ void *slow5_hdr_to_mem(struct slow5_hdr *header, enum slow5_fmt format, slow5_pr
                     if (value != NULL) {
                         len_to_cp = strlen(value);
 
-                        //special case for "."
-                        if (strlen(value)==0) {
-                            len_to_cp++;
+                        // special case for SLOW5_ASCII_MISSING_CHAR
+                        bool is_empty = (len_to_cp == 0);
+                        if (is_empty) {
+                            len_to_cp ++;
                         }
 
                         // Realloc if necessary
@@ -799,35 +800,32 @@ void *slow5_hdr_to_mem(struct slow5_hdr *header, enum slow5_fmt format, slow5_pr
                             SLOW5_MALLOC_CHK(mem);
                         }
 
-                        if (strlen(value)==0) { //special case for "."
-                            memcpy(mem + len, ".", len_to_cp);
+                        if (is_empty) { // special case for SLOW5_ASCII_MISSING_CHAR
+                            mem[len] = SLOW5_ASCII_MISSING_CHAR;
                         } else {
                             memcpy(mem + len, value, len_to_cp);
                         }
                         len += len_to_cp;
-                    }
-                    else{
-                        // I added this here - hasindu
+                    } else {
                         // Realloc if necessary
-                        if (len + 1 >= cap) { // +1 for "."
+                        if (len + 1 >= cap) { // +1 for SLOW5_ASCII_MISSING_CHAR
                             cap *= 2;
                             mem = (char *) realloc(mem, cap * sizeof *mem);
                             SLOW5_MALLOC_CHK(mem);
                         }
-                        mem[len] = '.';
+                        mem[len] = SLOW5_ASCII_MISSING_CHAR;
                         ++ len;
                     }
                 } else {
                     // Realloc if necessary
-                    if (len + 2 >= cap) { // +2 for . and SLOW5_SEP_COL_CHAR
+                    if (len + 2 >= cap) { // +2 for SLOW5_ASCII_MISSING_CHAR and SLOW5_SEP_COL_CHAR
                         cap *= 2;
                         mem = (char *) realloc(mem, cap * sizeof *mem);
                         SLOW5_MALLOC_CHK(mem);
                     }
                     mem[len] = SLOW5_SEP_COL_CHAR;
-                    ++ len;
-                    mem[len] = '.';
-                    ++ len;
+                    mem[len + 1] = SLOW5_ASCII_MISSING_CHAR;
+                    len += 2;
                 }
             }
 
