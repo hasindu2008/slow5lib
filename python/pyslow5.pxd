@@ -46,11 +46,21 @@ cdef extern from "pyslow5.h":
     ctypedef struct slow5_idx_t:
         pass
     ctypedef enum slow5_fmt:
-        pass
+        SLOW5_FORMAT_UNKNOWN,
+        SLOW5_FORMAT_ASCII,
+        SLOW5_FORMAT_BINARY
     ctypedef struct slow5_file_meta_t:
         pass
 
     ctypedef struct slow5_file_t:
+        FILE *fp
+        slow5_fmt format
+        slow5_press_t *compress
+        slow5_hdr_t *header
+        slow5_idx_t *index
+        slow5_file_meta_t meta
+
+    ctypedef struct slow5_file:
         FILE *fp
         slow5_fmt format
         slow5_press_t *compress
@@ -70,6 +80,16 @@ cdef extern from "pyslow5.h":
         int16_t* raw_signal
         pass
 
+    ctypedef struct slow5_aux_meta
+        uint32_t num
+        size_t cap
+        khash_t(slow5_s2ui32) *attr_to_pos
+        char **attrs
+        slow5_aux_type *types
+        uint8_t *sizes
+        char ***enum_labels
+        uint8_t *enum_num_labels
+
 
     # Error handling
     int *slow5_errno_location(void);
@@ -78,6 +98,7 @@ cdef extern from "pyslow5.h":
     slow5_file_t *slow5_open(const char *pathname, const char *mode)
     const char **slow5_get_hdr_keys(const slow5_hdr_t *header, uint64_t *len);
     char *slow5_hdr_get(const char *attr, uint32_t read_group, const slow5_hdr_t *header);
+    void slow5_idx_unload(slow5_file_t *s5p);
     int slow5_close(slow5_file_t *s5p)
     int slow5_idx_load(slow5_file_t *s5p)
     int slow5_get(const char *read_id, slow5_rec_t **read, slow5_file_t *s5p)
@@ -85,6 +106,13 @@ cdef extern from "pyslow5.h":
     char **slow5_get_aux_names(const slow5_hdr_t *header, uint64_t *len);
     slow5_aux_type *slow5_get_aux_types(const slow5_hdr_t *header, uint64_t *len);
     void slow5_rec_free(slow5_rec_t *read)
+
+    # Write slow5 file
+    slow5_file *slow5_init_empty(FILE *fp, const char *pathname, enum slow5_fmt format);
+    int64_t slow5_hdr_add_rg(slow5_hdr_t *header);
+    slow5_aux_meta *slow5_aux_meta_init_empty(void);
+    # writes EOF at end of file
+    int slow5_eof_fwrite(FILE *fp);
 
     int8_t slow5_aux_get_int8(const slow5_rec_t *read, const char *attr, int *err);
     int16_t slow5_aux_get_int16(const slow5_rec_t *read, const char *attr, int *err);

@@ -15,13 +15,17 @@ cimport numpy as np
 np.import_array()
 
 #
-# Class Open is for read-only of slow5/blow5 files.
+# Class Open for reading and writing slow5/blow5 files
+# p.m attribute sets the read/write state and file extension sets the type
 #
 
 cdef class Open:
     cdef pyslow5.slow5_file_t *s5
     cdef pyslow5.slow5_rec_t *rec
     cdef pyslow5.slow5_rec_t *read
+    cdef pyslow5.slow5_file *slow5File
+    cdef pyslow5.slow5_aux_meta *aux_meta
+    cdef int errno
     cdef bint index_state
     cdef pyslow5.uint64_t head_len
     cdef pyslow5.uint64_t aux_len
@@ -32,6 +36,8 @@ cdef class Open:
     cdef np.npy_intp shape_seq[1]
     cdef const char* p
     cdef const char* m
+    cdef int state
+    cdef FILE *slow5_file_pointer
     cdef int V
     cdef object logger
     cdef list aux_names
@@ -66,8 +72,14 @@ cdef class Open:
         self.s5 = NULL
         self.rec = NULL
         self.read = NULL
+        self.slow5File = NULL
+        self.aux_meta = NULL
+        self.errno = NULL
         self.p = ""
         self.m = ""
+        # state for read/write. -1=null, 0=read, 1=write, 2=append
+        self.state = -1
+        self.slow5_file_pointer = NULL
         self.index_state = False
         self.s5_aux_type = NULL
         self.aux_get_err = 1
@@ -126,12 +138,57 @@ cdef class Open:
         # print binary strings of filepath and mode
         self.logger.debug("FILE: {}, mode: {}".format(self.p.decode(), self.m.decode()))
         self.logger.debug("FILE: {}, mode: {}".format(self.p, self.m))
-        # opens file and creates slow5 object
-        self.s5 = pyslow5.slow5_open(self.p, self.m)
+        # Set state based on mode for file opening
+        # state for read/write. -1=null, 0=read, 1=write, 2=append
+        if mode == "r":
+            self.state = 0
+        elif mode == "w":
+            self.state = 1
+        elif mode == "a":
+            self.state = 2
+        else:
+            self.state = -1
+            # TODO: some error output
+        # opens file and creates slow5 object for reading
+        if self.state == 0:
+            self.s5 = pyslow5.slow5_open(self.p, self.m)
+            self.logger.debug("Number of read_groups: {}".format(self.s5.header.num_read_groups))
+        elif self.state == 1:
+            # self.s5 = pyslow5. TODO: open file for writing
+            slow5_file_pointer = fopen(self.p, "w")
+            if slow5_file_pointer is NULL:
+                self.logger.error("File '{}' could not be opened for writing.".format(self.p.decode()))
+            if self.p.decode().split(".")[-1] == "slow5":
+                self.format = SLOW5_FORMAT_ASCII
+            elif self.p.decode().split(".")[-1] == "blow5":
+                self.format = SLOW5_FORMAT_BINARY
+            else:
+                self.logger.error("File '{}' could not be determin type from extension.".format(self.p.decode()))
+
+            self.slow5File = slow5_init_empty(slow5_file_pointer, self.p, SLOW5_FORMAT_ASCII);
+            if self.slow5File is NULL:
+                self.logger.error("File {} failed to be initialised with slow5_init_empty".format(self.p.decode()))
+            ret = slow5_hdr_add_rg(self.slow5File.header)
+            if ret < 0:
+                self.logger.error("Could not initiate header for file '{}'.".format(self.p.decode()))
+            self.slow5File.header.num_read_groups = 1
+            # assuming lossy==0 (lossless)
+            aux_meta = slow5_aux_meta_init_empty()
+            if aux_meta is NULL:
+                self.logger.error("Could not initiate aux_meta for file '{}'.".format(self.p.decode()))
+            self.slow5File.header.aux_meta = aux_meta
+
+            # now populate
+            
+
+
+        elif self.state == 2:
+            # self.s5 = pyslow5. TODO: open file for writing and put pointer to end of file
+            # pointer at end of file
+        # check object was actually created.
         if self.s5 is NULL:
             raise MemoryError()
         # load or create and load index
-        self.logger.debug("Number of read_groups: {}".format(self.s5.header.num_read_groups))
         # self.logger.debug("Creating/loading index...")
         # ret = slow5_idx_load(self.s5)
         # if ret != 0:
@@ -149,6 +206,7 @@ cdef class Open:
         if self.read is not NULL:
             slow5_rec_free(self.read)
         if self.s5 is not NULL:
+            pyslow5.slow5_idx_unload(self.s5)
             pyslow5.slow5_close(self.s5)
 
 
