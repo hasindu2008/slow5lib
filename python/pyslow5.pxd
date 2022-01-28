@@ -84,6 +84,8 @@ cdef extern from "pyslow5.h":
     char **slow5_get_aux_names(const slow5_hdr_t *header, uint64_t *len);
     slow5_aux_type *slow5_get_aux_types(const slow5_hdr_t *header, uint64_t *len);
     void slow5_rec_free(slow5_rec_t *read)
+    void *slow5_get_next_mem(size_t *n, const slow5_file_t *s5p);
+    int slow5_rec_depress_parse(char **mem, size_t *bytes, const char *read_id, slow5_rec_t **read, slow5_file_t *s5p);
 
     int8_t slow5_aux_get_int8(const slow5_rec_t *read, const char *attr, int *err);
     int16_t slow5_aux_get_int16(const slow5_rec_t *read, const char *attr, int *err);
