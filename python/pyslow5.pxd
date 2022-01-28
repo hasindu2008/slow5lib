@@ -70,7 +70,8 @@ cdef extern from "pyslow5.h":
         int16_t* raw_signal
         pass
 
-
+    # Error handling
+    int *slow5_errno_location();
 
     # Open a slow5 file
     slow5_file_t *slow5_open(const char *pathname, const char *mode)

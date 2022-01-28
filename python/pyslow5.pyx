@@ -32,6 +32,7 @@ cdef class Open:
     cdef np.npy_intp shape_seq[1]
     cdef const char* p
     cdef const char* m
+    cdef int* s5_erno
     cdef int V
     cdef object logger
     cdef list aux_names
@@ -68,6 +69,7 @@ cdef class Open:
         self.read = NULL
         self.p = ""
         self.m = ""
+        self.s5_erno = slow5_errno_location()
         self.index_state = False
         self.s5_aux_type = NULL
         self.aux_get_err = 1
