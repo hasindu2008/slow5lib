@@ -780,10 +780,12 @@ cdef class Open:
             yield row
 
 
-    def seq_reads_multi(self, threads=1, batchsize=20, pA=False, aux=None):
+    def seq_reads_multi(self, threads=4, batchsize=4096, pA=False, aux=None):
         '''
         returns generator for sequential reading of slow5 file
         for pA and aux, see _get_read
+        threads: number of threads to use
+        batchsize: Number of reads to process with thread pool in parallel
         '''
         aux_dic = {}
         row = {}
@@ -871,8 +873,7 @@ cdef class Open:
                     row.update(aux_dic)
 
                 yield row
-            # slow5_free_batch(&self.trec, ret)
-            # self.trec = NULL
+            self.trec = NULL
             if ret < batchsize:
                 self.logger.debug("slow5_get_next_multi has no more batches - batchsize:{} ret:{}".format(batchsize, ret))
                 break
