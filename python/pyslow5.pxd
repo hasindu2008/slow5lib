@@ -1,7 +1,7 @@
+#cython: language_level=3
 from libc.stdio cimport *
 from libc.stdint cimport *
 from libc.stdlib cimport *
-
 
 cdef extern from "pyslow5.h":
 
@@ -70,9 +70,6 @@ cdef extern from "pyslow5.h":
         int16_t* raw_signal
         pass
 
-    # Error handling
-    int *slow5_errno_location();
-
     # Open a slow5 file
     slow5_file_t *slow5_open(const char *pathname, const char *mode)
     const char **slow5_get_hdr_keys(const slow5_hdr_t *header, uint64_t *len);
@@ -84,8 +81,8 @@ cdef extern from "pyslow5.h":
     char **slow5_get_aux_names(const slow5_hdr_t *header, uint64_t *len);
     slow5_aux_type *slow5_get_aux_types(const slow5_hdr_t *header, uint64_t *len);
     void slow5_rec_free(slow5_rec_t *read)
-    void *slow5_get_next_mem(size_t *n, const slow5_file_t *s5p);
-    int slow5_rec_depress_parse(char **mem, size_t *bytes, const char *read_id, slow5_rec_t **read, slow5_file_t *s5p);
+
+
 
     int8_t slow5_aux_get_int8(const slow5_rec_t *read, const char *attr, int *err);
     int16_t slow5_aux_get_int16(const slow5_rec_t *read, const char *attr, int *err);
@@ -109,3 +106,8 @@ cdef extern from "pyslow5.h":
     float *slow5_aux_get_float_array(const slow5_rec_t *read, const char *attr, uint64_t *len, int *err);
     double *slow5_aux_get_double_array(const slow5_rec_t *read, const char *attr, uint64_t *len, int *err);
     char *slow5_aux_get_string(const slow5_rec_t *read, const char *attr, uint64_t *len, int *err);
+
+cdef extern from "slow5threads.h":
+
+    int slow5_get_next_batch(slow5_rec_t ***read, slow5_file_t *s5p, int batch_size, int num_threads)
+    void slow5_free_batch(slow5_rec_t ***read, int num_rec)

@@ -185,4 +185,42 @@ for read in reads:
     print("read_number", read['read_number'])
 
 print("==============================================")
+
+print("seq_reads_multi with aux:")
+s53 = slow5.Open('examples/example2.slow5','r', DEBUG=debug)
+reads = s53.seq_reads_multi(threads=2, batchsize=3, pA=True, aux='all')
+print("type check reads:", type(reads))
+for read in reads:
+    print(read['read_id'])
+    print("read_number", read['read_number'])
+
+print("==============================================")
+# print("seq_reads with big file:")
+# start_time = time.time()
+# s53 = slow5.Open('/home/jamfer/Data/SK/multi_fast5/s5/FAK40634_d1cc054609fe2c5fcdeac358864f9dc81c8bb793_95.blow5','r', DEBUG=debug)
+# reads = s53.seq_reads(pA=True, aux='all')
+# # print("type check reads:", type(reads))
+# for read in reads:
+#     print(read['read_id'])
+#     # print("read_number", read['read_number'])
+# seq_time = round(time.time() - start_time, 4)
+# print("get_read in: {} seconds".format(seq_time))
+#
+# print("==============================================")
+# print("seq_reads_multi with big file:")
+# start_time = time.time()
+# s53 = slow5.Open('/home/jamfer/Data/SK/multi_fast5/s5/FAK40634_d1cc054609fe2c5fcdeac358864f9dc81c8bb793_95.blow5','r', DEBUG=debug)
+# reads = s53.seq_reads_multi(threads=8, batchsize=100, pA=True, aux='all')
+# # print("type check reads:", type(reads))
+# for read in reads:
+#     print(read['read_id'])
+#     # print("read_number", read['read_number'])
+# seq_multi_time = round(time.time() - start_time, 4)
+# print("get_read in: {} seconds".format(seq_multi_time))
+#
+# print("==============================================")
+#
+# print("Seq time: {}".format(seq_time))
+# print("Seq multi time: {}".format(seq_multi_time))
+
 print("done")

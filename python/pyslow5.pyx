@@ -22,6 +22,7 @@ cdef class Open:
     cdef pyslow5.slow5_file_t *s5
     cdef pyslow5.slow5_rec_t *rec
     cdef pyslow5.slow5_rec_t *read
+    cdef pyslow5.slow5_rec_t **trec
     cdef bint index_state
     cdef pyslow5.uint64_t head_len
     cdef pyslow5.uint64_t aux_len
@@ -32,7 +33,6 @@ cdef class Open:
     cdef np.npy_intp shape_seq[1]
     cdef const char* p
     cdef const char* m
-    cdef int* s5_erno
     cdef int V
     cdef object logger
     cdef list aux_names
@@ -67,9 +67,9 @@ cdef class Open:
         self.s5 = NULL
         self.rec = NULL
         self.read = NULL
+        self.trec = NULL
         self.p = ""
         self.m = ""
-        self.s5_erno = slow5_errno_location()
         self.index_state = False
         self.s5_aux_type = NULL
         self.aux_get_err = 1
@@ -778,6 +778,105 @@ cdef class Open:
                 row.update(aux_dic)
 
             yield row
+
+
+    def seq_reads_multi(self, threads=1, batchsize=20, pA=False, aux=None):
+        '''
+        returns generator for sequential reading of slow5 file
+        for pA and aux, see _get_read
+        '''
+        aux_dic = {}
+        row = {}
+        ret = 1
+        # While loops check ret of previous read for errors as fail safe
+        while ret > 0:
+            ret = slow5_get_next_batch(&self.trec, self.s5, batchsize, threads)
+            self.logger.debug("slow5_get_next_multi return: {}".format(ret))
+            # check for EOF or other errors
+            if ret < 0:
+                if ret == -1:
+                    self.logger.debug("slow5_get_next_multi reached end of file (EOF)(-1): {}: {}".format(ret, self.error_codes[ret]))
+                else:
+                    self.logger.error("slow5_get_next_multi error code: {}: {}".format(ret, self.error_codes[ret]))
+
+                break
+            for i in range(ret):
+                self.read = self.trec[i]
+                aux_dic = {}
+                row = {}
+                # get aux fields
+                if aux is not None:
+                    if not self.aux_names or not self.aux_types:
+                        self.aux_names = self.get_aux_names()
+                        self.aux_types = self.get_aux_types()
+                    if type(aux) is str:
+                        if aux == "all":
+                            aux_dic = self._get_seq_read_aux(self.aux_names, self.aux_types)
+                        else:
+                            found_single_aux = False
+                            for n, t in zip(self.aux_names, self.aux_types):
+                                if n == aux:
+                                    found_single_aux = True
+                                    aux_dic = self._get_read_aux([n], [t])
+                                    break
+                            if not found_single_aux:
+                                self.logger.warning("slow5_get_next_multi unknown aux name: {}".format(aux))
+                                aux_dic.update({aux: None})
+                    elif type(aux) is list:
+                        n_list = []
+                        t_list = []
+                        for n, t in zip(self.aux_names, self.aux_types):
+                            if n in aux:
+                                n_list.append(n)
+                                t_list.append(t)
+
+                        aux_dic = self._get_read_aux(n_list, t_list)
+                        # check for items in given list that do not exist
+                        n_set = set(n_list)
+                        aux_set = set(aux)
+                        if len(aux_set.difference(n_set)) > 0:
+                            for i in aux_set.difference(n_set):
+                                self.logger.warning("slow5_get_next_multi unknown aux name: {}".format(i))
+                                aux_dic.update({i: None})
+
+                    else:
+                        self.logger.debug("slow5_get_next_multi aux type unknown, accepts str or list: {}".format(aux))
+
+                # Get read data
+                if type(self.read.read_id) is bytes:
+                    row['read_id'] = self.read.read_id.decode()
+                else:
+                    row['read_id'] = self.read.read_id
+                # row['read_id'] = self.read.read_id.decode()
+                row['read_group'] = self.read.read_group
+                row['digitisation'] = self.read.digitisation
+                row['offset'] = self.read.offset
+                row['range'] = self.read.range
+                row['sampling_rate'] = self.read.sampling_rate
+                row['len_raw_signal'] = self.read.len_raw_signal
+                # row['signal'] = [self.read.raw_signal[i] for i in range(self.read.len_raw_signal)]
+                self.shape_seq[0] = <np.npy_intp> self.read.len_raw_signal
+                signal = np.PyArray_SimpleNewFromData(1, self.shape_seq,
+                            np.NPY_INT16, <void *> self.read.raw_signal)
+                np.PyArray_UpdateFlags(signal, signal.flags.num | np.NPY_OWNDATA)
+                row['signal'] = signal
+                # for i in range(self.read.len_raw_signal):
+                #     row['signal'].append(self.read.raw_signal[i])
+
+                # if pA=True, convert signal to pA
+                if pA:
+                    row['signal'] = self._convert_to_pA(row)
+                # if aux data update main dic
+                if aux_dic:
+                    row.update(aux_dic)
+
+                yield row
+            # slow5_free_batch(&self.trec, ret)
+            # self.trec = NULL
+            if ret < batchsize:
+                self.logger.debug("slow5_get_next_multi has no more batches - batchsize:{} ret:{}".format(batchsize, ret))
+                break
+
 
 
     def get_read_list(self, read_list, pA=False, aux=None):
