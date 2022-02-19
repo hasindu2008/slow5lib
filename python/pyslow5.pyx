@@ -2,6 +2,7 @@
 # distutils: language = c++
 # cython: language_level=3
 import sys
+import time
 import logging
 from libc.stdlib cimport malloc, free
 from libc.string cimport strdup
@@ -60,7 +61,8 @@ cdef class Open:
     cdef float *e20
     cdef double *e21
     cdef char *e22 # meant to be string, not sure about this
-
+    cdef pyslow5.float total_time_slow5_get_next
+    cdef pyslow5.float total_time_yield_a_read
 
     def __cinit__(self, pathname, mode, DEBUG=0):
         # Set to default NULL type
@@ -100,6 +102,8 @@ cdef class Open:
         self.e20 = NULL
         self.e21 = NULL
         self.e22 = NULL
+        self.total_time_slow5_get_next = 0.0
+        self.total_time_yield_a_read = 0.0
 
         # sets up logging level/verbosity
         self.V = DEBUG
@@ -152,6 +156,9 @@ cdef class Open:
             slow5_rec_free(self.read)
         if self.s5 is not NULL:
             pyslow5.slow5_close(self.s5)
+        self.logger.warning("pathname: {}".format(self.p))
+        self.logger.warning("total_time_slow5_get_next: {} seconds".format(self.total_time_slow5_get_next))
+        self.logger.warning("total_time_yield_a_read: {} seconds".format(self.total_time_yield_a_read))
 
 
     def _convert_to_pA(self, d):
@@ -698,7 +705,10 @@ cdef class Open:
         ret = 0
         # While loops check ret of previous read for errors as fail safe
         while ret >= 0:
+            start_slow5_get_next = time.time()
             ret = slow5_get_next(&self.read, self.s5)
+            self.total_time_slow5_get_next = self.total_time_slow5_get_next + (time.time() - start_slow5_get_next)
+
             self.logger.debug("slow5_get_next return: {}".format(ret))
             # check for EOF or other errors
             if ret < 0:
@@ -776,7 +786,7 @@ cdef class Open:
             # if aux data update main dic
             if aux_dic:
                 row.update(aux_dic)
-
+            self.total_time_yield_a_read = self.total_time_yield_a_read + (time.time() - start_slow5_get_next)
             yield row
 
 
