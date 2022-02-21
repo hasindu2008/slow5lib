@@ -884,10 +884,11 @@ cdef class Open:
                     row.update(aux_dic)
                 yield row
             self.total_time_yield_reads = self.total_time_yield_reads + (time.time() - start_slow5_get_next)
-            self.trec = NULL
+            slow5_free_batch(&self.trec, ret)
             if ret < batchsize:
                 self.logger.debug("slow5_get_next_multi has no more batches - batchsize:{} ret:{}".format(batchsize, ret))
                 break
+        self.read = NULL
 
 
 
