@@ -2292,6 +2292,43 @@ int slow5_rec_depress_parse(char **mem, size_t *bytes, const char *read_id, stru
     return 0;
 }
 
+
+/*
+ * decompress record if s5p has a compression method then parse to read
+ * set mem to decompressed mem and bytes to new bytes
+ * mem, bytes, s5p cannot be null
+ * return 0 on success
+ * return a SLOW5_ERR_* and set slow5_errno on failure
+ * doesn't free *mem
+ */
+int slow5_rec_partial_depress_parse(char **mem, size_t *bytes, const char *read_id, struct slow5_rec **read, struct slow5_file *s5p) {
+
+    /* assuming that if compress is initialised so is record_press */
+    if (s5p->compress && s5p->compress->record_press->method != SLOW5_COMPRESS_NONE) {
+        size_t new_bytes;
+        char *new_mem;
+        if (!(new_mem = slow5_ptr_depress_solo(s5p->compress->record_press->method, *mem, *bytes, &new_bytes)) || new_bytes == 0) {
+            if (read_id) {
+                SLOW5_ERROR("Failed to decompress read with ID '%s' from slow5 file '%s'.",
+                        read_id, s5p->meta.pathname);
+            } else {
+                SLOW5_ERROR("Failed to decompress read from slow5 file '%s'.", s5p->meta.pathname);
+            }
+            return slow5_errno = SLOW5_ERR_PRESS;
+        }
+        free(*mem);
+        *bytes = new_bytes;
+        *mem = new_mem;
+    }
+
+    if (slow5_rec_partial_parse(*mem, *bytes, read_id, read, s5p->format) == -1) {
+        SLOW5_ERROR("%s", "Record parsing failed.");
+        return slow5_errno = SLOW5_ERR_RECPARSE;
+    }
+
+    return 0;
+}
+
 /*
  * parse read_mem with read_size bytes, intended read ID read_id, the given format and auxiliary meta data aux_meta
  * if read compression is used read_mem should be decompressed beforehand, signal decompression is handled here though
@@ -2623,6 +2660,110 @@ int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struc
         } else if (aux_meta != NULL) {
             /* Parse auxiliary data */
             ret = slow5_rec_aux_parse(NULL, read_mem, offset, read_size, read, format, aux_meta);
+        }
+    }
+
+    return ret;
+}
+
+
+
+/*
+ * parse read_mem with read_size bytes, intended read ID read_id, the given format and auxiliary meta data aux_meta
+ * if read compression is used read_mem should be decompressed beforehand, signal decompression is handled here though
+ * populate the read
+ * read_mem, read cannot be NULL
+ * returns -1 on error, 0 on success
+ */
+int slow5_rec_partial_parse(char *read_mem, size_t read_size, const char *read_id, struct slow5_rec **readp, enum slow5_fmt format) {
+
+    if (!*readp) {
+        /* allocate memory for read */
+        *readp = (struct slow5_rec *) calloc(1, sizeof **readp);
+        if (!*readp) {
+            SLOW5_MALLOC_ERROR();
+            return -1;
+        }
+    } else {
+        /* free previously allocated memory except for raw_signal */
+        free((*readp)->read_id);
+        (*readp)->read_id = NULL;
+        slow5_rec_aux_free((*readp)->aux_map);
+        (*readp)->aux_map = NULL;
+    }
+
+    struct slow5_rec *read = *readp;
+
+    int ret = 0;
+
+    if (format == SLOW5_FORMAT_ASCII) {
+
+        char *tok = slow5_strsep(&read_mem, SLOW5_SEP_COL);
+        if (read_mem == NULL) {
+            SLOW5_ERROR("Read ID could not be parsed from '%.10s%s'. Tab separator was not found.",
+                    tok, strnlen(tok, 11) == 11 ? "..." : "");
+            return -1;
+        }
+
+        /* Ensure line matches requested id */
+        if (read_id != NULL) {
+            if (strcmp(tok, read_id) != 0) {
+                SLOW5_ERROR("Requested read ID '%s' does not match the read ID '%s' in fetched record.", read_id, tok);
+                ret = -1;
+            }
+        }
+        read->read_id_len = strlen(tok);
+        read->read_id = strndup(tok, read->read_id_len);
+        if (read->read_id == NULL) {
+            if (errno == ENOMEM) {
+                SLOW5_ERROR("%s", "Insufficient memory available to allocate read ID.")
+            } else {
+                SLOW5_ERROR("Duplicating read ID failed: %s", strerror(errno));
+            }
+            ret = -1;
+        }
+
+        /* TODO check slow5_ato_uint32 and the other ones below */
+        int err;
+        read->read_group = slow5_ato_uint32(tok, &err);
+        if (err == -1) {
+            SLOW5_ERROR("Read group could not be parsed from '%s'.", tok);
+            ret = -1;
+        }
+
+    } else if (format == SLOW5_FORMAT_BINARY) {
+
+        size_t size = 0;
+        uint64_t offset = 0;
+
+        size = sizeof read->read_id_len;
+        memcpy(&read->read_id_len, read_mem + offset, size);
+        offset += size;
+
+        size = read->read_id_len * sizeof *read->read_id;
+        read->read_id = strndup(read_mem + offset, size);
+        if (read->read_id == NULL) {
+            if (errno == ENOMEM) {
+                SLOW5_ERROR("%s", "Insufficient memory available to allocate read ID.")
+            } else {
+                SLOW5_ERROR("Duplicating read ID failed: %s", strerror(errno));
+            }
+            ret = -1;
+        }
+
+    /* Ensure line matches requested id */
+        if (read_id != NULL && strcmp(read->read_id, read_id) != 0) {
+                SLOW5_ERROR("Requested read ID '%s' does not match the read ID '%s' in fetched record.", read_id, read->read_id);
+                ret = -1;
+            }
+        offset += size;
+        size = sizeof read->read_group;
+        memcpy(&read->read_group, read_mem + offset, size);
+        offset += size;
+
+        if (offset > read_size) { /* Read too much */
+            SLOW5_ERROR("Read more bytes than record size. At offset '%" PRIu64 "' but record size is '%zu'.", offset, read_size);
+            ret = -1;
         }
     }
 
