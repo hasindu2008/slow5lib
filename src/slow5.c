@@ -2723,6 +2723,11 @@ int slow5_rec_partial_parse(char *read_mem, size_t read_size, const char *read_i
             ret = -1;
         }
 
+        tok = slow5_strsep(&read_mem, SLOW5_SEP_COL);
+        if (tok == NULL) {
+            SLOW5_ERROR("Read group could not be parsed from '%s'.", tok);
+            ret = -1;
+        }
         /* TODO check slow5_ato_uint32 and the other ones below */
         int err;
         read->read_group = slow5_ato_uint32(tok, &err);
