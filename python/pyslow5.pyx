@@ -814,6 +814,7 @@ cdef class Open:
 
                 break
             for i in range(ret):
+                python_parse_read_start = time.time()
                 self.read = self.trec[i]
                 aux_dic = {}
                 row = {}
@@ -882,8 +883,8 @@ cdef class Open:
                 # if aux data update main dic
                 if aux_dic:
                     row.update(aux_dic)
+                self.total_time_yield_reads = self.total_time_yield_reads + (time.time() - python_parse_read_start)
                 yield row
-            self.total_time_yield_reads = self.total_time_yield_reads + (time.time() - start_slow5_get_next)
             self.trec = NULL
             if ret < batchsize:
                 self.logger.debug("slow5_get_next_multi has no more batches - batchsize:{} ret:{}".format(batchsize, ret))
