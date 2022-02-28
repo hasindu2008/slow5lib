@@ -885,11 +885,11 @@ cdef class Open:
                     row.update(aux_dic)
                 self.total_time_yield_reads = self.total_time_yield_reads + (time.time() - python_parse_read_start)
                 yield row
-            self.trec = NULL
+            slow5_free_batch(&self.trec, ret)
             if ret < batchsize:
                 self.logger.debug("slow5_get_next_multi has no more batches - batchsize:{} ret:{}".format(batchsize, ret))
                 break
-
+        self.read = NULL
 
 
     def get_read_list(self, read_list, pA=False, aux=None):
