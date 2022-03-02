@@ -23,9 +23,7 @@ cdef class Open:
     cdef pyslow5.slow5_file_t *s5
     cdef pyslow5.slow5_rec_t *rec
     cdef pyslow5.slow5_rec_t *read
-    cdef pyslow5.slow5_file *slow5File
-    cdef pyslow5.slow5_aux_meta *aux_meta
-    cdef int errno
+    cdef pyslow5.slow5_rec_t *write
     cdef bint index_state
     cdef pyslow5.uint64_t head_len
     cdef pyslow5.uint64_t aux_len
@@ -37,7 +35,6 @@ cdef class Open:
     cdef const char* p
     cdef const char* m
     cdef int state
-    cdef FILE *slow5_file_pointer
     cdef int V
     cdef object logger
     cdef list aux_names
@@ -72,14 +69,11 @@ cdef class Open:
         self.s5 = NULL
         self.rec = NULL
         self.read = NULL
-        self.slow5File = NULL
-        self.aux_meta = NULL
-        self.errno = NULL
+        self.write = NULL
         self.p = ""
         self.m = ""
         # state for read/write. -1=null, 0=read, 1=write, 2=append
         self.state = -1
-        self.slow5_file_pointer = NULL
         self.index_state = False
         self.s5_aux_type = NULL
         self.aux_get_err = 1
@@ -154,34 +148,9 @@ cdef class Open:
             self.s5 = pyslow5.slow5_open(self.p, self.m)
             self.logger.debug("Number of read_groups: {}".format(self.s5.header.num_read_groups))
         elif self.state == 1:
-            # self.s5 = pyslow5. TODO: open file for writing
-            slow5_file_pointer = fopen(self.p, "w")
-            if slow5_file_pointer is NULL:
+            self.s5 = slow5_open_write(self.p, self.m)
+            if self.s5 is NULL:
                 self.logger.error("File '{}' could not be opened for writing.".format(self.p.decode()))
-            if self.p.decode().split(".")[-1] == "slow5":
-                self.format = SLOW5_FORMAT_ASCII
-            elif self.p.decode().split(".")[-1] == "blow5":
-                self.format = SLOW5_FORMAT_BINARY
-            else:
-                self.logger.error("File '{}' could not be determin type from extension.".format(self.p.decode()))
-
-            self.slow5File = slow5_init_empty(slow5_file_pointer, self.p, SLOW5_FORMAT_ASCII);
-            if self.slow5File is NULL:
-                self.logger.error("File {} failed to be initialised with slow5_init_empty".format(self.p.decode()))
-            ret = slow5_hdr_add_rg(self.slow5File.header)
-            if ret < 0:
-                self.logger.error("Could not initiate header for file '{}'.".format(self.p.decode()))
-            self.slow5File.header.num_read_groups = 1
-            # assuming lossy==0 (lossless)
-            aux_meta = slow5_aux_meta_init_empty()
-            if aux_meta is NULL:
-                self.logger.error("Could not initiate aux_meta for file '{}'.".format(self.p.decode()))
-            self.slow5File.header.aux_meta = aux_meta
-
-            # now populate
-            
-
-
         elif self.state == 2:
             # self.s5 = pyslow5. TODO: open file for writing and put pointer to end of file
             # pointer at end of file
@@ -205,6 +174,8 @@ cdef class Open:
             slow5_rec_free(self.rec)
         if self.read is not NULL:
             slow5_rec_free(self.read)
+        if self.write is not NULL:
+            slow5_rec_free(self.write)
         if self.s5 is not NULL:
             pyslow5.slow5_idx_unload(self.s5)
             pyslow5.slow5_close(self.s5)
@@ -229,6 +200,9 @@ cdef class Open:
         new_raw = np.array(raw_unit * (d['signal'] + offset), dtype=np.float32)
         return new_raw
 
+    # ==========================================================================
+    #      Read SLOW5 file
+    # ==========================================================================
 
     def _get_read(self, read_id, pA, aux):
         '''
@@ -920,3 +894,276 @@ cdef class Open:
 
         aux_types = [self.s5_aux_type[i] for i in range(self.aux_len)]
         return aux_types
+
+    # ==========================================================================
+    #      Write SLOW5 file
+    # ==========================================================================
+
+    def get_empty_header():
+        '''
+        returns empty header dic for user to populate
+        Any values not populated will be skipped
+        '''
+        header = {"asic_id": None,
+                  "asic_id_eeprom": None,
+                  "asic_temp": None,
+                  "asic_version": None,
+                  "auto_update": None,
+                  "auto_update_source": None,
+                  "barcoding_enabled": None,
+                  "bream_is_standard": None,
+                  "configuration_version": None,
+                  "device_id": None,
+                  "device_type": None,
+                  "distribution_status": None,
+                  "distribution_version": None,
+                  "exp_script_name": None,
+                  "exp_script_purpose": None,
+                  "exp_start_time": None,
+                  "experiment_duration_set": None,
+                  "flow_cell_id": None,
+                  "flow_cell_product_code": None,
+                  "guppy_version": None,
+                  "heatsink_temp": None,
+                  "hostname": None,
+                  "installation_type": None,
+                  "local_basecalling": None,
+                  "operating_system": None,
+                  "package": None,
+                  "protocol_group_id": None,
+                  "protocol_run_id": None,
+                  "protocol_start_time": None,
+                  "protocols_version": None,
+                  "run_id": None,
+                  "sample_frequency": None,
+                  "sample_id": None,
+                  "sequencing_kit": None,
+                  "usb_config": None,
+                  "version": None,
+                  "hublett_board_id": None,
+                  "satellite_firmware_version": None}
+
+        return header
+
+    def get_empty_record(aux=False):
+        '''
+        Return a dictionary of empty record and types
+        if axu=True, a second dictionary will be returned with optional aux record
+        '''
+        record = {"read_id": None,
+                  "read_group": None,
+                  "digitisation": None,
+                  "offset": None,
+                  "range": None,
+                  "sampling_rate": None,
+                  "len_raw_signal": None,
+                  "raw_signal": None}
+
+        # record_types = {"read_id": type("string"),
+        #                 "read_group": type(1),
+        #                 "digitisation": type(1.0),
+        #                 "offset": type(1.0),
+        #                 "range": type(1.0),
+        #                 "sampling_rate": type(1.0),
+        #                 "len_raw_signal": type(10),
+        #                 "raw_signal": type(np.array([1, 2, 3], np.NPY_INT16))}
+
+        aux = {"channel_number": None,
+               "median_before": None,
+               "read_number": None,
+               "start_mux": None,
+               "start_time": None}
+
+        # aux_types = {"channel_number": type("string"),
+        #              "median_before": type(1.0),
+        #              "read_number": type(10),
+        #              "start_mux": type(1),
+        #              "start_time": type(100),
+        #              "end_reason": None}
+        # return both record and aux if aux is True
+        if aux:
+            return record, aux
+        return record
+
+
+    def _header_type_validation(header):
+        '''
+        internal function to validate header types before pushing to C side
+        '''
+        for h in header:
+            if header[h] is not None:
+                t = type(header[h])
+                if t is not type("string"):
+                    self.logger.warning("_header_type_validation {}: {} is not a string type, attempting to convert".format(h, header[h]))
+                    #try and convert
+                    try:
+                        s = str(header[h])
+                        header[h] = s
+                        self.logger.warning("_header_type_validation {}: {} conversion successful".format(h, s))
+                    except:
+                        self.logger.error("_header_type_validation {}: {} could not convert value to string".format(h, header[h]))
+                        raise
+        return header
+
+
+    def _aux_header_type_validation(user_aux_types):
+        '''
+        internal function to validate and convert aux types before pushing to C side
+        '''
+        slow5_aux_types = {}
+
+        py_aux_types = {"channel_number": type("string"),
+                     "median_before": type(1.0),
+                     "read_number": type(10),
+                     "start_mux": type(1),
+                     "start_time": type(100),
+                     "end_reason": None}
+
+        C_aux_types = {"channel_number": SLOW5_STRING,
+                     "median_before":SLOW5_DOUBLE,
+                     "read_number": SLOW5_INT32_T,
+                     "start_mux": SLOW5_UINT8_T,
+                     "start_time": SLOW5_UINT64_T,
+                     "end_reason": None}
+
+        for a in user_aux_types:
+            if user_aux_types[a] is None:
+                continue
+            if a not in py_aux_types:
+                self.logger.error("_aux_type_validation {}: {} user aux field not in pyslow5 aux_types".format(a, user_aux_types[a]))
+                return None
+            if user_aux_types[a] == py_aux_types[a]:
+                slow5_aux_types[a] = C_aux_types[a]
+            else:
+                self.logger.error("_aux_type_validation {}: {} user aux field type mismatch with pyslow5 aux_types".format(a, user_aux_types[a]))
+                return None
+        return slow5_aux_types
+
+
+    def _record_type_validation(user_record, aux=None):
+        '''
+        internal function to validate and convert aux types before pushing to C side
+        returns None, None on error
+        '''
+
+        py_record_types = {"read_id": type("string"),
+                           "read_group": type(1),
+                           "digitisation": type(1.0),
+                           "offset": type(1.0),
+                           "range": type(1.0),
+                           "sampling_rate": type(1.0),
+                           "len_raw_signal": type(10),
+                           "raw_signal": type(np.array([1, 2, 3], np.NPY_INT16))}
+
+        py_aux_types = {"channel_number": type("string"),
+                        "median_before": type(1.0),
+                        "read_number": type(10),
+                        "start_mux": type(1),
+                        "start_time": type(100),
+                        "end_reason": None}
+
+
+        for a in user_record:
+            if user_record[a] is None:
+                continue
+            if a not in py_record_types:
+                self.logger.error("_record_type_validation {}: {} user primary field not in pyslow5 record_types".format(a, user_record[a]))
+                return None
+            if user_record[a] != py_record_types[a]:
+                self.logger.error("_record_type_validation {}: {} user primary field type mismatch with pyslow5 record_types".format(a, user_record[a]))
+                return None, None
+
+        # check aux if given
+        if aux is not None:
+            for a in aux:
+                if a not in py_aux_types:
+                    self.logger.error("_record_type_validation {}: {} user aux field not in pyslow5 aux_types".format(a, aux[a]))
+                    return None, None
+                if aux[a] is None:
+                    continue
+                if type(aux[a]) != py_aux_types[a]:
+                    self.logger.error("_record_type_validation {}: {} user aux field type mismatch with pyslow5 aux_types".format(a, aux[a]))
+                    return None, None
+
+        return slow5_aux_types, aux
+
+
+    def write_header(self, header, aux_types=None):
+        '''
+        write slow5 header to file.
+        takes header dic for attributes, then write once.
+        Currently limited to ONLY 1 read_group
+        Use slow5tools merge after writing as a temporary solution
+        '''
+
+
+        checked_header = self._header_type_validation(header)
+        if aux_types is not None:
+            checked_aux = self._aux_header_type_validation(aux_types)
+
+        errors = False
+        h_fails = []
+        for h in checked_header:
+            ret = slow5_hdr_add_attr(h, self.s5.header)
+            if ret < 0:
+                self.logger.error("write_header: slow5_hdr_add_attr {}: {} could not initialise to C s5.header struct".format(h, checked_header[h]))
+                h_fails.append(h)
+                errors = True
+
+        if len(h_fails) > 0:
+            self.logger.error("write_header: The following headers failed to initialise {}".format(", ".join(h_fails)))
+
+        for h in checked_header:
+            if h in h_fails:
+                continue
+            ret = slow5_hdr_set(h, checked_header[h], 0, self.s5.header)
+            if ret < 0:
+                self.logger.error("write_header: slow5_hdr_set {}: {} could not set to C s5.header struct".format(h, checked_header[h]))
+        a_fails = []
+        if aux_types is not None:
+            for a in checked_aux:
+                ret = slow5_aux_meta_add(self.s5.header.aux_meta, a, checked_aux[a])
+                if ret < 0:
+                    self.logger.error("write_header: slow5_aux_meta_add {}: {} could not set to C s5.header.aux_meta struct".format(a, checked_aux[a]))
+                    a_fails.append(a)
+                    errors = True
+
+        if len(a_fails) > 0:
+            self.logger.error("write_header: The following aux_meta fields failed to initialise {}".format(", ".join(a_fails)))
+
+        if not errors:
+            ret = slow5_header_write(self.s5)
+            if ret < 0:
+                self.logger.error("write_header: slow5_header_write could not write header")
+                return -1
+            return 0
+        else:
+            self.logger.error("write_header: errors encountered setting up header, aborting write")
+            return -1
+
+    def write_record(self, record, aux=None):
+        '''
+        write a single record
+        check self.head_state, if False, header needs to be written. Use aux types to do first check.
+        if the validation works, then write the header just before the first record is written.
+        This should make the user experience a lot less complicated and have less steps
+        '''
+
+        record_types = {"read_id": type("string"),
+                        "read_group": type(1),
+                        "digitisation": type(1.0),
+                        "offset": type(1.0),
+                        "range": type(1.0),
+                        "sampling_rate": type(1.0),
+                        "len_raw_signal": type(10),
+                        "raw_signal": type(np.array([1, 2, 3], np.NPY_INT16))}
+
+        aux_types = {"channel_number": type("string"),
+                     "median_before": type(1.0),
+                     "read_number": type(10),
+                     "start_mux": type(1),
+                     "start_time": type(100)}
+        checked_record, checked_aux = self._record_type_validation(record, aux)
+        # checked_aux = self._record_type_validation(aux)
+
+        return
