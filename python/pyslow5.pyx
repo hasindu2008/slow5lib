@@ -1088,63 +1088,45 @@ cdef class Open:
         return slow5_aux_types, aux
 
 
-    def write_header(self, header, aux_types=None):
+    def write_header(self, header):
         '''
         write slow5 header to file.
         takes header dic for attributes, then write once.
         Currently limited to ONLY 1 read_group
         Use slow5tools merge after writing as a temporary solution
         '''
-
-
         checked_header = self._header_type_validation(header)
-        if aux_types is not None:
-            checked_aux = self._aux_header_type_validation(aux_types)
 
         errors = False
-        h_fails = []
         for h in checked_header:
             ret = slow5_hdr_add_attr(h, self.s5.header)
             if ret < 0:
                 self.logger.error("write_header: slow5_hdr_add_attr {}: {} could not initialise to C s5.header struct".format(h, checked_header[h]))
-                h_fails.append(h)
                 errors = True
 
         if len(h_fails) > 0:
             self.logger.error("write_header: The following headers failed to initialise {}".format(", ".join(h_fails)))
 
+        if errors:
+            return -1
+
         for h in checked_header:
-            if h in h_fails:
-                continue
             ret = slow5_hdr_set(h, checked_header[h], 0, self.s5.header)
             if ret < 0:
                 self.logger.error("write_header: slow5_hdr_set {}: {} could not set to C s5.header struct".format(h, checked_header[h]))
-        a_fails = []
-        if aux_types is not None:
-            for a in checked_aux:
-                ret = slow5_aux_meta_add(self.s5.header.aux_meta, a, checked_aux[a])
-                if ret < 0:
-                    self.logger.error("write_header: slow5_aux_meta_add {}: {} could not set to C s5.header.aux_meta struct".format(a, checked_aux[a]))
-                    a_fails.append(a)
-                    errors = True
-
-        if len(a_fails) > 0:
-            self.logger.error("write_header: The following aux_meta fields failed to initialise {}".format(", ".join(a_fails)))
+                errors = True
 
         if not errors:
-            ret = slow5_header_write(self.s5)
-            if ret < 0:
-                self.logger.error("write_header: slow5_header_write could not write header")
-                return -1
             return 0
         else:
             self.logger.error("write_header: errors encountered setting up header, aborting write")
+            # sys.exit(1)
             return -1
 
     def write_record(self, record, aux=None):
         '''
         write a single record
-        check self.head_state, if False, header needs to be written. Use aux types to do first check.
+        check self.header_state, if False, header needs to be written. Use aux types to do first check.
         if the validation works, then write the header just before the first record is written.
         This should make the user experience a lot less complicated and have less steps
         '''
@@ -1162,8 +1144,30 @@ cdef class Open:
                      "median_before": type(1.0),
                      "read_number": type(10),
                      "start_mux": type(1),
-                     "start_time": type(100)}
+                     "start_time": type(100),
+                     "end_reason": None}
         checked_record, checked_aux = self._record_type_validation(record, aux)
         # checked_aux = self._record_type_validation(aux)
 
-        return
+        # if all checks are good, test self.header_state for 1 time write
+        if not self.header_state:
+            a_fails = []
+            if None not in [aux, checked_aux]:
+                slow5_aux_types = self._aux_header_type_validation(aux_types)
+                for a in slow5_aux_types:
+                    if slow5_aux_types[a] is None:
+                        continue
+                    ret = slow5_aux_meta_add(self.s5.header.aux_meta, a, slow5_aux_types[a])
+                    if ret < 0:
+                        self.logger.error("write_header: slow5_aux_meta_add {}: {} could not set to C s5.header.aux_meta struct".format(a, checked_aux[a]))
+                        a_fails.append(a)
+
+            if len(a_fails) > 0:
+                self.logger.error("write_header: The following aux_meta fields failed to initialise {}".format(", ".join(a_fails)))
+                return -1
+            ret = slow5_header_write(self.s5)
+            if ret < 0:
+                self.logger.error("write_header: slow5_header_write could not write header")
+                return -1
+            self.header_state = True
+        return 0
