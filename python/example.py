@@ -207,10 +207,7 @@ for read in reads:
     record = F.get_empty_record()
     print(read)
     for i in read:
-        if i == "signal":
-            print(read[i][:10])
-            record["raw_signal"] = read[i]
-        elif i in record:
+        if i in record:
             record[i] = read[i]
     print(record)
     ret = F.write_record(record)

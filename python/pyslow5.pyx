@@ -971,7 +971,7 @@ cdef class Open:
                   "range": None,
                   "sampling_rate": None,
                   "len_raw_signal": None,
-                  "raw_signal": None}
+                  "signal": None}
 
         # record_types = {"read_id": type("string"),
         #                 "read_group": type(1),
@@ -1067,7 +1067,7 @@ cdef class Open:
                            "range": type(1.0),
                            "sampling_rate": type(1.0),
                            "len_raw_signal": type(10),
-                           "raw_signal": type(np.array([1, 2, 3], np.int16))}
+                           "signal": type(np.array([1, 2, 3], np.int16))}
 
         py_aux_types = {"channel_number": type("string"),
                         "median_before": type(1.0),
@@ -1160,6 +1160,7 @@ cdef class Open:
                      "start_mux": type(1),
                      "start_time": type(100),
                      "end_reason": None}
+
         self.logger.debug("write_record: _record_type_validation running")
         checked_record, checked_aux = self._record_type_validation(record, aux)
         # checked_aux = self._record_type_validation(aux)
@@ -1219,7 +1220,7 @@ cdef class Open:
         self.logger.debug("write_record: self.write processing raw_signal")
         # self.write.raw_signal = checked_record["raw_signal"] # might need a malloc
         for i in range(checked_record["len_raw_signal"]):
-            self.write.raw_signal[i] = checked_record["raw_signal"][i]
+            self.write.raw_signal[i] = checked_record["signal"][i]
 
         self.logger.debug("write_record: self.write raw_signal done")
 
