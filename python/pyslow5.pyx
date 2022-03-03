@@ -1176,7 +1176,7 @@ cdef class Open:
                     for a in slow5_aux_types:
                         if slow5_aux_types[a] is None:
                             continue
-                        ret = slow5_aux_meta_add(self.s5.header.aux_meta, a, slow5_aux_types[a])
+                        ret = slow5_aux_meta_add(self.s5.header.aux_meta, a.encode(), slow5_aux_types[a])
                         if ret < 0:
                             self.logger.error("write_record: slow5_aux_meta_add {}: {} could not set to C s5.header.aux_meta struct".format(a, checked_aux[a]))
                             error = True
@@ -1230,19 +1230,26 @@ cdef class Open:
                 self.logger.error("write_record: checked_aux is None".format(a, checked_aux[a]))
                 return -1
             for a in checked_aux:
+                self.logger.debug("write_record: checked_aux: {}: {}".format(a, checked_aux[a]))
                 if checked_aux[a] is None:
                     continue
                 if a == "channel_number":
-                    ret = slow5_rec_set_string(self.write, self.s5.header.aux_meta, a, checked_aux[a])
+                    self.logger.debug("write_record: slow5_rec_set_string running...")
+                    ret = slow5_rec_set_string(self.write, self.s5.header.aux_meta, a.encode(), checked_aux[a].encode())
+                    self.logger.debug("write_record: slow5_rec_set_string running done: ret = {}".format(ret))
                     if ret < 0:
                         self.logger.error("write_record: slow5_rec_set_string could not write aux value {}: {}".format(a, checked_aux[a]))
                         return -1
                 else:
-                    ret = slow5_rec_set(self.write, self.s5.header.aux_meta, a, <void *>checked_aux[a])
+                    self.logger.debug("write_record: slow5_rec_set_string running...")
+                    ret = slow5_rec_set(self.write, self.s5.header.aux_meta, a.encode(), <void *>checked_aux[a])
+                    self.logger.debug("write_record: slow5_rec_set running done: ret = {}".format(ret))
                     if ret < 0:
                         self.logger.error("write_record: slow5_rec_set could not write aux value {}: {}".format(a, checked_aux[a]))
                         return -1
             self.logger.debug("write_record: aux stuff done")
+            # self.logger.debug("write_record: aux: {}".format(self.s5.header.aux_meta.channel_number))
+
 
         self.logger.debug("write_record: slow5_rec_write()")
         # write the record

@@ -218,7 +218,38 @@ F.close()
 
 
 print("==============================================")
-# print("write reads with aux")
+print("write reads with aux")
+
+F = slow5.Open('examples/example_write_aux.slow5','w', DEBUG=debug)
+header = F.get_empty_header()
+# record = F.get_empty_record()
+
+counter = 0
+for i in header:
+    header[i] = "test_{}".format(counter)
+    counter += 1
+
+ret = F.write_header(header)
+print("ret: write_header(): {}".format(ret))
+
+s58 = slow5.Open('examples/example2.slow5','r', DEBUG=debug)
+reads = s58.seq_reads(aux='all')
+
+for read in reads:
+    record, aux = F.get_empty_record(aux=True)
+    print(read)
+    for i in read:
+        if i in record:
+            record[i] = read[i]
+        if i in aux:
+            aux[i] = read[i]
+    print(record)
+    print(aux)
+    ret = F.write_record(record, aux)
+    print("ret: write_record(): {}".format(ret))
+
+F.close()
+
 
 
 print("==============================================")
