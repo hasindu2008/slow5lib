@@ -187,9 +187,12 @@ cdef class Open:
                 slow5_close_write(self.s5)
                 self.close_state = True
                 self.logger.debug("{} closed".format(self.p.decode()))
-        if self.s5 is not NULL:
-            pyslow5.slow5_idx_unload(self.s5)
-            pyslow5.slow5_close(self.s5)
+            else:
+                self.logger.error("{} already closed".format(self.p.decode()))
+        if self.state == 0:
+            if self.s5 is not NULL:
+                pyslow5.slow5_idx_unload(self.s5)
+                pyslow5.slow5_close(self.s5)
 
 
     def _convert_to_pA(self, d):
@@ -1246,7 +1249,7 @@ cdef class Open:
         # free memory
         self.logger.debug("write_record: slow5_rec_free()")
         self.write = NULL
-        slow5_rec_free(self.write);
+        # slow5_rec_free(self.write);
 
         self.logger.debug("write_record: function complete, returning 0")
         return 0
