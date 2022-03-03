@@ -185,4 +185,44 @@ for read in reads:
     print("read_number", read['read_number'])
 
 print("==============================================")
+
+print("write reads no aux")
+
+F = slow5.Open('examples/example_write.slow5','w', DEBUG=debug)
+header = F.get_empty_header()
+# record = F.get_empty_record()
+
+counter = 0
+for i in header:
+    header[i] = "test_{}".format(counter)
+    counter += 1
+
+ret = F.write_header(header)
+print("ret: write_header(): {}".format(ret))
+
+s58 = slow5.Open('examples/example2.slow5','r', DEBUG=debug)
+reads = s58.seq_reads()
+
+for read in reads:
+    record = F.get_empty_record()
+    print(read)
+    for i in read:
+        if i == "signal":
+            print(read[i][:10])
+            record["raw_signal"] = read[i]
+        elif i in record:
+            record[i] = read[i]
+    print(record)
+    ret = F.write_record(record)
+    print("ret: write_record(): {}".format(ret))
+
+F.close()
+
+
+
+print("==============================================")
+# print("write reads with aux")
+
+
+print("==============================================")
 print("done")

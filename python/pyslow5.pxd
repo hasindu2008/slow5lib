@@ -31,6 +31,11 @@ cdef extern from "pyslow5.h":
         SLOW5_STRING,
         SLOW5_ENUM_ARRAY
 
+    ctypedef struct slow5_aux_meta_t:
+        pass
+
+    ctypedef struct slow5_hdr_data_t:
+        pass
 
     ctypedef struct slow5_version:
         uint8_t major
@@ -42,7 +47,9 @@ cdef extern from "pyslow5.h":
     ctypedef struct slow5_hdr_t:
         slow5_version version;
         uint32_t num_read_groups;
-        pass
+        slow5_hdr_data_t data;
+        slow5_aux_meta_t *aux_meta;
+
     ctypedef struct slow5_idx_t:
         pass
     ctypedef enum slow5_fmt:
@@ -113,13 +120,13 @@ cdef extern from "pyslow5.h":
     # from slow5.h
     int slow5_hdr_add_attr(const char *attr, slow5_hdr_t *header);
     int slow5_hdr_set(const char *attr, const char *value, uint32_t read_group, slow5_hdr_t *header);
-    slow5_rec_t *slow5_rec_init(void);
+    slow5_rec_t *slow5_rec_init();
 
     # from slow5_extra.h
 
-    int slow5_aux_meta_add(struct slow5_aux_meta *aux_meta, const char *attr, slow5_aux_type type);
-    int slow5_rec_set_string(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, const char *attr, const char *data)
-    int slow5_rec_set(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, const char *attr, const void *data);
+    int slow5_aux_meta_add(slow5_aux_meta_t *aux_meta, const char *attr, slow5_aux_type type);
+    int slow5_rec_set_string(slow5_rec_t *read, slow5_aux_meta_t *aux_meta, const char *attr, const char *data)
+    int slow5_rec_set(slow5_rec_t *read, slow5_aux_meta_t *aux_meta, const char *attr, const void *data);
 
 cdef extern from "slow5_write.h":
 
