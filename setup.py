@@ -7,6 +7,7 @@ except ImportError:
     from distutils.extension import Extension
 
 import sys
+import os
 import platform
 
 include_dirs = []
@@ -44,7 +45,9 @@ depends=['python/pyslow5.pxd', 'python/pyslow5.h',
             'slow5/klib/khash.h', 'slow5/klib/kvec.h',
             'src/slow5_extra.h', 'src/slow5_idx.h', 'src/slow5_misc.h', 'src/klib/ksort.h' ,
             'thirdparty/streamvbyte/include/streamvbyte.h', 'thirdparty/streamvbyte/include/streamvbyte_zigzag.h']
-extra_compile_args = ['-g', '-Wall', '-O2', '-std=c99']
+# extra_compile_args = ['-g', '-Wall', '-O2', '-std=c99']
+extra_compile_args = []
+os.environ["CFLAGS"] = '-g -Wall -O2 -std=c99'
 
 arch=platform.machine()
 if arch in ["aarch64", "arm64"]:
