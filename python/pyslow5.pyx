@@ -1076,6 +1076,16 @@ cdef class Open:
                         "start_time": type(100),
                         "end_reason": None}
 
+        # self.logger.debug("_record_type_validation: setting new_aux_vars")
+        # new_aux_vars = {"channel_number": self.e22,
+        #                 "median_before": self.e9,
+        #                 "read_number": self.e2,
+        #                 "start_mux": self.e4,
+        #                 "start_time": self.e7,
+        #                 "start_time": None}
+        #
+        # self.logger.debug("_record_type_validation: setting new_aux_vars done")
+        new_aux = {}
 
         for a in user_record:
             if user_record[a] is None:
@@ -1091,6 +1101,7 @@ cdef class Open:
 
         # check aux if given
         if aux is not None:
+            self.logger.debug("_record_type_validation: doing aux stuff...")
             for a in aux:
                 if a not in py_aux_types:
                     self.logger.error("_record_type_validation {}: {} user aux field not in pyslow5 aux_types".format(a, aux[a]))
@@ -1100,8 +1111,43 @@ cdef class Open:
                 if type(aux[a]) != py_aux_types[a]:
                     self.logger.error("_record_type_validation {}: {} user aux field type mismatch with pyslow5 aux_types".format(a, aux[a]))
                     return None, None
+                else:
+                    self.logger.debug("_record_type_validation: aux passed tests...")
+                    # if new_aux_vars[a] is None:
+                    #     self.logger.debug("_record_type_validation: it's None, skipping: {}".format(a, new_aux_vars[a]))
+                    #     continue
+                    if a == "channel_number":
+                        v = aux[a].encode()
+                        # self.e22 = aux[a].encode()
+                        self.e22 =  <char *>v
+                        new_aux[a] = self.e22
+                    elif a == "median_before":
+                        self.e9 = <double>aux[a]
+                        new_aux[a] = self.e9
+                    elif a == "read_number":
+                        self.e2 = <int32_t>aux[a]
+                        new_aux[a] = self.e2
+                    elif a == "start_mux":
+                        self.e4 = <uint8_t>aux[a]
+                        new_aux[a] = self.e4
+                    elif a == "start_time":
+                        self.e7 = <uint64_t>aux[a]
+                        new_aux[a] = self.e7
+                    elif a == "end_reason":
+                        continue
 
-        return user_record, aux
+                    # new_aux[a]
+                    # self.logger.debug("_record_type_validation: aux new_aux_vars[a] = v")
+                    # v = new_aux_vars[a]
+                    # self.logger.debug("_record_type_validation: aux v = aux[a]")
+                    # v = aux[a]
+                    # self.logger.debug("_record_type_validation: aux new_aux[a] = v")
+                    # new_aux[a] = v
+                    # self.logger.debug("_record_type_validation: aux {} done".format(a))
+            self.logger.debug("_record_type_validation: aux stuff done")
+
+
+        return user_record, new_aux
 
 
     def write_header(self, header):
@@ -1235,7 +1281,9 @@ cdef class Open:
                     continue
                 if a == "channel_number":
                     self.logger.debug("write_record: slow5_rec_set_string running...")
-                    ret = slow5_rec_set_string(self.write, self.s5.header.aux_meta, a.encode(), checked_aux[a].encode())
+                    self.logger.debug("write_record: slow5_rec_set_string type: {}".format(type(checked_aux[a])))
+
+                    ret = slow5_rec_set_string(self.write, self.s5.header.aux_meta, a.encode(), <char *>checked_aux[a])
                     self.logger.debug("write_record: slow5_rec_set_string running done: ret = {}".format(ret))
                     if ret < 0:
                         self.logger.error("write_record: slow5_rec_set_string could not write aux value {}: {}".format(a, checked_aux[a]))
