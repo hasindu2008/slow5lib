@@ -42,6 +42,7 @@ slow5_file_t *slow5_open_write(char *filename, char *mode){
     return sf;
 }
 
+
 int slow5_close_write(slow5_file_t *sf){
     if(sf->format == SLOW5_FORMAT_BINARY){
         if(slow5_eof_fwrite(sf->fp) < 0){
@@ -70,6 +71,23 @@ int slow5_rec_write(slow5_file_t *sf, slow5_rec_t *rec){
     int ret = slow5_rec_fwrite(sf->fp, rec, sf->header->aux_meta, sf->format, sf->compress);
     return ret;
 }
+
+
+int slow5_aux_meta_add_wrapper(slow5_hdr_t *header, const char *attr, enum slow5_aux_type type){
+    int ret = slow5_aux_meta_add(header->aux_meta, attr, type);
+    return ret;
+}
+
+int slow5_rec_set_wrapper(struct slow5_rec *read, slow5_hdr_t *header, const char *attr, const void *data){
+    int ret = slow5_rec_set(read, header->aux_meta, attr, data);
+    return ret;
+}
+
+int slow5_rec_set_string_wrapper(struct slow5_rec *read, slow5_hdr_t *header, const char *attr, const char *data) {
+    int ret = slow5_rec_set_string(read, header->aux_meta, attr, data);
+    return ret;
+}
+
 
 #ifdef DEBUG
 
@@ -120,17 +138,17 @@ void single_read_group_file(){
     }
 
     //add axuilliary field: read_number
-    if(slow5_aux_meta_add(sf->header->aux_meta, "read_number", SLOW5_INT32_T)!=0){
+    if(slow5_aux_meta_add_wrapper(sf->header, "read_number", SLOW5_INT32_T)!=0){
         fprintf(stderr,"Error adding read_number auxilliary field\n");
         exit(EXIT_FAILURE);
     }
     //add axuilliary field: start_mux
-    if(slow5_aux_meta_add(sf->header->aux_meta, "start_mux", SLOW5_UINT8_T)!=0){
+    if(slow5_aux_meta_add_wrapper(sf->header, "start_mux", SLOW5_UINT8_T)!=0){
         fprintf(stderr,"Error adding start_mux auxilliary field\n");
         exit(EXIT_FAILURE);
     }
     //add auxilliary field: start_time
-    if(slow5_aux_meta_add(sf->header->aux_meta, "start_time", SLOW5_UINT64_T)!=0){
+    if(slow5_aux_meta_add_wrapper(sf->header, "start_time", SLOW5_UINT64_T)!=0){
         fprintf(stderr,"Error adding start_time auxilliary field\n");
         exit(EXIT_FAILURE);
     }
@@ -150,6 +168,11 @@ void single_read_group_file(){
 
     //primary fields
     slow5_record -> read_id = strdup("read_0");
+    if(slow5_record->read_id == NULL){
+        fprintf(stderr,"Could not allocate space for strdup.");
+        exit(EXIT_FAILURE);
+    }
+    slow5_record -> read_id_len = strlen(slow5_record -> read_id);
     slow5_record -> read_group = 0;
     slow5_record -> digitisation = 4096.0;
     slow5_record -> offset = 3.0;
@@ -165,7 +188,6 @@ void single_read_group_file(){
         slow5_record->raw_signal[i] = i;
     }
 
-
     //auxiliary fileds
     char *channel_number = "channel_number";
     double median_before = 0.1;
@@ -173,25 +195,25 @@ void single_read_group_file(){
     uint8_t start_mux = 1;
     uint64_t start_time = 100;
 
-    if(slow5_rec_set_string(slow5_record, sf->header->aux_meta, "channel_number", channel_number)!=0){
+    if(slow5_rec_set_string_wrapper(slow5_record, sf->header, "channel_number", channel_number)!=0){
         fprintf(stderr,"Error setting channel_number auxilliary field\n");
         exit(EXIT_FAILURE);
     }
-    if(slow5_rec_set(slow5_record, sf->header->aux_meta, "median_before", &median_before)!=0){
+    if(slow5_rec_set_wrapper(slow5_record, sf->header, "median_before", &median_before)!=0){
         fprintf(stderr,"Error setting median_before auxilliary field\n");
         exit(EXIT_FAILURE);
     }
-    if(slow5_rec_set(slow5_record, sf->header->aux_meta, "read_number", &read_number)!=0){
+    if(slow5_rec_set_wrapper(slow5_record, sf->header, "read_number", &read_number)!=0){
         fprintf(stderr,"Error setting read_number auxilliary field\n");
         exit(EXIT_FAILURE);
     }
 
-    if(slow5_rec_set(slow5_record, sf->header->aux_meta, "start_mux", &start_mux)!=0){
+    if(slow5_rec_set_wrapper(slow5_record, sf->header, "start_mux", &start_mux)!=0){
         fprintf(stderr,"Error setting start_mux auxilliary field\n");
         exit(EXIT_FAILURE);
     }
 
-    if(slow5_rec_set(slow5_record, sf->header->aux_meta, "start_time", &start_time)!=0){
+    if(slow5_rec_set_wrapper(slow5_record, sf->header, "start_time", &start_time)!=0){
         fprintf(stderr,"Error setting start_time auxilliary field\n");
         exit(EXIT_FAILURE);
     }
