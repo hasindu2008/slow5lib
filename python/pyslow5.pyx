@@ -160,6 +160,49 @@ cdef class Open:
         self.logger.warning("total_time_slow5_get_next: {} seconds".format(self.total_time_slow5_get_next))
         self.logger.warning("total_time_yield_reads: {} seconds".format(self.total_time_yield_reads))
 
+        # try resetting everything at end to see if mem leaks are reduced...
+        self.s5 = NULL
+        self.rec = NULL
+        self.read = NULL
+        self.trec = NULL
+        self.p = ""
+        self.m = ""
+        self.index_state = False
+        self.s5_aux_type = NULL
+        self.aux_get_err = 1
+        self.aux_get_len = 0
+        self.head_len = 0
+        self.aux_len = 0
+        self.shape_seq[0] = 0
+        self.shape_get[0] = 0
+        self.e0 = -1
+        self.e1 = -1
+        self.e2 = -1
+        self.e3 = -1
+        self.e4 = -1
+        self.e5 = -1
+        self.e6 = -1
+        self.e7 = -1
+        self.e8 = -1.0
+        self.e9 = -1.0
+        self.e10 = 0
+        self.e12 = NULL
+        self.e13 = NULL
+        self.e14 = NULL
+        self.e15 = NULL
+        self.e16 = NULL
+        self.e17 = NULL
+        self.e18 = NULL
+        self.e19 = NULL
+        self.e20 = NULL
+        self.e21 = NULL
+        self.e22 = NULL
+        self.total_time_slow5_get_next = 0.0
+        self.total_time_yield_reads = 0.0
+        self.aux_names = []
+        self.aux_types = []
+
+
     def _convert_to_pA(self, d):
         '''
         convert raw signal data to pA using digitisation, offset, and range
