@@ -336,7 +336,8 @@ void slow5_free_batch(slow5_rec_t ***read, int num_rec){
 
 #if DEBUG
 
-#define FILE_PATH "../f5c/test/chr22_meth_example/reads.blow5"
+// #define FILE_PATH "../f5c/test/chr22_meth_example/reads.blow5"
+#define FILE_PATH "/home/jamfer/Data/SK/multi_fast5/s5/FAK40634_d1cc054609fe2c5fcdeac358864f9dc81c8bb793_95.blow5"
 
 int main(){
 
@@ -348,7 +349,7 @@ int main(){
     slow5_rec_t **rec = NULL;
     int ret=0;
     int batch_size = 4096;
-    int num_thread = 4;
+    int num_thread = 8;
     while((ret = slow5_get_next_batch(&rec,sp,batch_size,num_thread)) > 0){
 
         for(int i=0;i<ret;i++){

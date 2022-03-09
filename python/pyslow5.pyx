@@ -50,6 +50,7 @@ cdef class Open:
     cdef pyslow5.float e8
     cdef double e9
     cdef char e10
+    cdef int e11
     cdef pyslow5.int8_t *e12
     cdef pyslow5.int16_t *e13
     cdef pyslow5.int32_t *e14
@@ -70,8 +71,10 @@ cdef class Open:
         self.rec = NULL
         self.read = NULL
         self.trec = NULL
-        self.p = ""
-        self.m = ""
+        # self.p = ""
+        # self.m = ""
+        self.p = NULL
+        self.m = NULL
         self.index_state = False
         self.s5_aux_type = NULL
         self.aux_get_err = 1
@@ -91,6 +94,7 @@ cdef class Open:
         self.e8 = -1.0
         self.e9 = -1.0
         self.e10 = 0
+        self.e11 = 0
         self.e12 = NULL
         self.e13 = NULL
         self.e14 = NULL
@@ -150,6 +154,10 @@ cdef class Open:
 
 
     def __dealloc__(self):
+        # if self.p is not NULL:
+        #     free(self.p)
+        # if self.m is not NULL:
+        #     free(self.m)
         if self.rec is not NULL:
             slow5_rec_free(self.rec)
         if self.read is not NULL:
@@ -161,46 +169,47 @@ cdef class Open:
         self.logger.warning("total_time_yield_reads: {} seconds".format(self.total_time_yield_reads))
 
         # try resetting everything at end to see if mem leaks are reduced...
-        self.s5 = NULL
-        self.rec = NULL
-        self.read = NULL
-        self.trec = NULL
-        self.p = ""
-        self.m = ""
-        self.index_state = False
-        self.s5_aux_type = NULL
-        self.aux_get_err = 1
-        self.aux_get_len = 0
-        self.head_len = 0
-        self.aux_len = 0
-        self.shape_seq[0] = 0
-        self.shape_get[0] = 0
-        self.e0 = -1
-        self.e1 = -1
-        self.e2 = -1
-        self.e3 = -1
-        self.e4 = -1
-        self.e5 = -1
-        self.e6 = -1
-        self.e7 = -1
-        self.e8 = -1.0
-        self.e9 = -1.0
-        self.e10 = 0
-        self.e12 = NULL
-        self.e13 = NULL
-        self.e14 = NULL
-        self.e15 = NULL
-        self.e16 = NULL
-        self.e17 = NULL
-        self.e18 = NULL
-        self.e19 = NULL
-        self.e20 = NULL
-        self.e21 = NULL
-        self.e22 = NULL
-        self.total_time_slow5_get_next = 0.0
-        self.total_time_yield_reads = 0.0
-        self.aux_names = []
-        self.aux_types = []
+        # self.s5 = NULL
+        # self.rec = NULL
+        # self.read = NULL
+        # self.trec = NULL
+        # self.p = ""
+        # self.m = ""
+        # if self.index_state is not NULL:
+        #     free(self.index_state)
+        # self.s5_aux_type = NULL
+        # self.aux_get_err = 1
+        # self.aux_get_len = 0
+        # self.head_len = 0
+        # self.aux_len = 0
+        # self.shape_seq[0] = 0
+        # self.shape_get[0] = 0
+        # self.e0 = -1
+        # self.e1 = -1
+        # self.e2 = -1
+        # self.e3 = -1
+        # self.e4 = -1
+        # self.e5 = -1
+        # self.e6 = -1
+        # self.e7 = -1
+        # self.e8 = -1.0
+        # self.e9 = -1.0
+        # self.e10 = 0
+        # self.e12 = NULL
+        # self.e13 = NULL
+        # self.e14 = NULL
+        # self.e15 = NULL
+        # self.e16 = NULL
+        # self.e17 = NULL
+        # self.e18 = NULL
+        # self.e19 = NULL
+        # self.e20 = NULL
+        # self.e21 = NULL
+        # self.e22 = NULL
+        # self.total_time_slow5_get_next = 0.0
+        # self.total_time_yield_reads = 0.0
+        # self.aux_names = []
+        # self.aux_types = []
 
 
     def _convert_to_pA(self, d):
@@ -408,6 +417,13 @@ cdef class Open:
                 else:
                     self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
                     dic[name] = None
+            elif atype == 11:
+                self.e11 = slow5_aux_get_enum(self.rec, a_name, &self.aux_get_err)
+                if self.aux_get_err == 0:
+                    dic[name] = self.e11
+                else:
+                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                    dic[name] = None
             elif atype == 12:
                 self.e12 = slow5_aux_get_int8_array(self.rec, a_name, &self.aux_get_len, &self.aux_get_err)
                 if self.aux_get_err == 0:
@@ -520,6 +536,9 @@ cdef class Open:
                 else:
                     self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
                     dic[name] = None
+            elif atype == 22:
+                self.logger.debug("NOT IMPLEMENTED YET: get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                dic[name] = None
             else:
                 self.logger.debug("get_read_aux atype not known, skipping: {}".format(atype))
 
@@ -612,6 +631,13 @@ cdef class Open:
                 self.e10 = slow5_aux_get_char(self.read, a_name, &self.aux_get_err)
                 if self.aux_get_err == 0:
                     dic[name] = self.e10
+                else:
+                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                    dic[name] = None
+            elif atype == 11:
+                self.e11 = slow5_aux_get_enum(self.read, a_name, &self.aux_get_err)
+                if self.aux_get_err == 0:
+                    dic[name] = self.e11
                 else:
                     self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
                     dic[name] = None
@@ -727,6 +753,9 @@ cdef class Open:
                 else:
                     self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
                     dic[name] = None
+            elif atype == 22:
+                self.logger.debug("NOT IMPLEMENTED YET: get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                dic[name] = None
             else:
                 self.logger.debug("get_read_aux atype not known, skipping: {}".format(atype))
 
