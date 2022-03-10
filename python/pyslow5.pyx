@@ -229,7 +229,8 @@ cdef class Open:
         # for i in d['signal']:
         #     j = (i + offset) * raw_unit
         #     new_raw.append(float("{0:.2f}".format(round(j,2))))
-        new_raw = np.array(raw_unit * (d['signal'] + offset), dtype=np.float32)
+        # new_raw = np.array(raw_unit * (d['signal'] + offset), dtype=np.float32)
+        new_raw = (raw_unit * (d['signal'] + offset)).astype(np.float32)
         return new_raw
 
 
