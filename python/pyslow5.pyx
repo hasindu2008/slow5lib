@@ -872,6 +872,11 @@ cdef class Open:
         aux_dic = {}
         row = {}
         ret = 1
+        timedic = {"aux_total_time": 0,
+                   "primary_total_time": 0,
+                   "pA_total_time": 0,
+                   "signal_total_time": 0}
+
         # While loops check ret of previous read for errors as fail safe
         while ret > 0:
             start_slow5_get_next = time.time()
@@ -892,6 +897,7 @@ cdef class Open:
                 aux_dic = {}
                 row = {}
                 # get aux fields
+                aux_time_start = time.time()
                 if aux is not None:
                     if not self.aux_names or not self.aux_types:
                         self.aux_names = self.get_aux_names()
@@ -928,8 +934,9 @@ cdef class Open:
 
                     else:
                         self.logger.debug("slow5_get_next_multi aux type unknown, accepts str or list: {}".format(aux))
-
+                timedic["aux_total_time"] = timedic["aux_total_time"] + (time.time() - aux_time_start)
                 # Get read data
+                primary_start_time = time.time()
                 if type(self.read.read_id) is bytes:
                     row['read_id'] = self.read.read_id.decode()
                 else:
@@ -942,17 +949,22 @@ cdef class Open:
                 row['sampling_rate'] = self.read.sampling_rate
                 row['len_raw_signal'] = self.read.len_raw_signal
                 # row['signal'] = [self.read.raw_signal[i] for i in range(self.read.len_raw_signal)]
+                signal_start_time = time.time()
                 self.shape_seq[0] = <np.npy_intp> self.read.len_raw_signal
                 signal = np.PyArray_SimpleNewFromData(1, self.shape_seq,
                             np.NPY_INT16, <void *> self.read.raw_signal)
                 np.PyArray_UpdateFlags(signal, signal.flags.num | np.NPY_OWNDATA)
                 row['signal'] = signal
+                timedic["signal_total_time"] = timedic["signal_total_time"] + (time.time() - signal_start_time)
+                timedic["primary_total_time"] = timedic["primary_total_time"] + (time.time() - primary_start_time)
                 # for i in range(self.read.len_raw_signal):
                 #     row['signal'].append(self.read.raw_signal[i])
 
                 # if pA=True, convert signal to pA
                 if pA:
+                    pA_start_time = time.time()
                     row['signal'] = self._convert_to_pA(row)
+                    timedic["pA_total_time"] = timedic["pA_total_time"] + (time.time() - pA_start_time)
                 # if aux data update main dic
                 if aux_dic:
                     row.update(aux_dic)
@@ -963,6 +975,9 @@ cdef class Open:
                 self.logger.debug("slow5_get_next_multi has no more batches - batchsize:{} ret:{}".format(batchsize, ret))
                 break
         self.read = NULL
+        self.logger.debug("seq_reads_multi timings:")
+        for i in timedic:
+            self.logger.debug("{}: {}".format(i, timedic[i]))
 
 
     def get_read_list(self, read_list, pA=False, aux=None):
