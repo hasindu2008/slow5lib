@@ -36,6 +36,7 @@ cdef class Open:
     cdef np.npy_intp shape_seq[1]
     cdef const char* p
     cdef const char* m
+    cdef char *attr
     cdef int state
     cdef int V
     cdef object logger
@@ -74,6 +75,7 @@ cdef class Open:
         self.write = NULL
         self.p = ""
         self.m = ""
+        self.attr = ""
         # state for read/write. -1=null, 0=read, 1=write, 2=append
         self.state = -1
         self.index_state = False
@@ -128,7 +130,17 @@ cdef class Open:
                             -5: ["SLOW5_ERR_IO", "other file I/O error"],
                             -6: ["SLOW5_ERR_NOIDX", "index not loaded"],
                             -7: ["SLOW5_ERR_NOTFOUND", "read id not found"],
-                            }
+                            -8: ["SLOW5_ERR_OTH", "other error (big endian, internal error, etc.)"],
+                            -9: ["SLOW5_ERR_UNK", "file format unknown"],
+                            -10: ["SLOW5_ERR_MEM", "memory (re)allocation error"],
+                            -11: ["SLOW5_ERR_NOAUX", "no auxiliary map"],
+                            -12: ["SLOW5_ERR_NOFLD", "field not found"],
+                            -13: ["SLOW5_ERR_PRESS", "(de)compression failure"],
+                            -14: ["SLOW5_ERR_MAGIC", "magic number invalid"],
+                            -15: ["SLOW5_ERR_VERSION", "version incompatible"],
+                            -16: ["SLOW5_ERR_HDRPARSE", "header parsing error"],
+                            -17: ["SLOW5_ERR_TYPE", "error relating to slow5 type"],
+                                                        }
         p = str.encode(pathname)
         self.p = strdup(p)
         m = str.encode(mode)
@@ -1271,7 +1283,6 @@ cdef class Open:
 
         self.logger.debug("write_record: self.write raw_signal done")
 
-        cdef char *attr
         if aux:
             self.logger.debug("write_record: aux stuff...")
             if checked_aux is None:
@@ -1281,14 +1292,18 @@ cdef class Open:
                 self.logger.debug("write_record: checked_aux: {}: {}".format(a, checked_aux[a]))
                 if checked_aux[a] is None:
                     continue
-                attr = strdup(a.encode());   # this will be a huge memory leak. Need to keep track and free. The best way is to keep a.encode() stuff inside the class itself or something 
+                self.attr = <char *> malloc(sizeof(char)*len(a))
+                for i in range(len(a)):
+                    self.attr[i] = ord(a[i])
+                # self.attr = str.encode(a)
+                self.logger.debug("write_record: self.attr: {} == {} ?".format(a, self.attr))
                 if a == "channel_number":
                     self.logger.debug("write_record: slow5_rec_set_string_wrapper running...")
                     self.logger.debug("write_record: slow5_rec_set_string_wrapper type: {}".format(type(checked_aux[a])))
 
-                       
+
                     # ret = slow5_rec_set_string(self.write, self.s5.header.aux_meta, attr, <char *>checked_aux[a])
-                    ret = slow5_rec_set_string_wrapper(self.write, self.s5.header, attr, <const char *>checked_aux[a])
+                    ret = slow5_rec_set_string_wrapper(self.write, self.s5.header, self.attr, <const char *>checked_aux[a])
                     self.logger.debug("write_record: slow5_rec_set_string_wrapper running done: ret = {}".format(ret))
                     if ret < 0:
                         self.logger.error("write_record: slow5_rec_set_string_wrapper could not write aux value {}: {}".format(a, checked_aux[a]))
@@ -1296,12 +1311,12 @@ cdef class Open:
                 else:
                     self.logger.debug("write_record: slow5_rec_set_wrapper running...")
                     # ret = slow5_rec_set(self.write, self.s5.header.aux_meta, attr, <void *>checked_aux[a])
-                    ret = slow5_rec_set_wrapper(self.write, self.s5.header, attr, <const void *>checked_aux[a])
+                    ret = slow5_rec_set_wrapper(self.write, self.s5.header, self.attr, <const void *>checked_aux[a])
                     self.logger.debug("write_record: slow5_rec_set_wrapper running done: ret = {}".format(ret))
                     if ret < 0:
                         self.logger.error("write_record: slow5_rec_set_wrapper could not write aux value {}: {}".format(a, checked_aux[a]))
                         return -1
-                #free(attr);        
+                free(self.attr)
             self.logger.debug("write_record: aux stuff done")
             # self.logger.debug("write_record: aux: {}".format(self.s5.header.aux_meta.channel_number))
 
