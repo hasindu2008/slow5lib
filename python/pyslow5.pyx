@@ -1222,9 +1222,10 @@ cdef class Open:
                     for a in slow5_aux_types:
                         if slow5_aux_types[a] is None:
                             continue
-                        ret = slow5_aux_meta_add(self.s5.header.aux_meta, a.encode(), slow5_aux_types[a])
+                        # ret = slow5_aux_meta_add(self.s5.header.aux_meta, a.encode(), slow5_aux_types[a])
+                        ret = slow5_aux_meta_add_wrapper(self.s5.header, a.encode(), slow5_aux_types[a])
                         if ret < 0:
-                            self.logger.error("write_record: slow5_aux_meta_add {}: {} could not set to C s5.header.aux_meta struct".format(a, checked_aux[a]))
+                            self.logger.error("write_record: slow5_aux_meta_add_wrapper {}: {} could not set to C s5.header.aux_meta struct".format(a, checked_aux[a]))
                             error = True
                 else:
                     error = True
@@ -1280,20 +1281,22 @@ cdef class Open:
                 if checked_aux[a] is None:
                     continue
                 if a == "channel_number":
-                    self.logger.debug("write_record: slow5_rec_set_string running...")
-                    self.logger.debug("write_record: slow5_rec_set_string type: {}".format(type(checked_aux[a])))
+                    self.logger.debug("write_record: slow5_rec_set_string_wrapper running...")
+                    self.logger.debug("write_record: slow5_rec_set_string_wrapper type: {}".format(type(checked_aux[a])))
 
-                    ret = slow5_rec_set_string(self.write, self.s5.header.aux_meta, a.encode(), <char *>checked_aux[a])
-                    self.logger.debug("write_record: slow5_rec_set_string running done: ret = {}".format(ret))
+                    # ret = slow5_rec_set_string(self.write, self.s5.header.aux_meta, a.encode(), <char *>checked_aux[a])
+                    ret = slow5_rec_set_string_wrapper(self.write, self.s5.header, a.encode(), <const char *>checked_aux[a])
+                    self.logger.debug("write_record: slow5_rec_set_string_wrapper running done: ret = {}".format(ret))
                     if ret < 0:
-                        self.logger.error("write_record: slow5_rec_set_string could not write aux value {}: {}".format(a, checked_aux[a]))
+                        self.logger.error("write_record: slow5_rec_set_string_wrapper could not write aux value {}: {}".format(a, checked_aux[a]))
                         return -1
                 else:
-                    self.logger.debug("write_record: slow5_rec_set_string running...")
-                    ret = slow5_rec_set(self.write, self.s5.header.aux_meta, a.encode(), <void *>checked_aux[a])
-                    self.logger.debug("write_record: slow5_rec_set running done: ret = {}".format(ret))
+                    self.logger.debug("write_record: slow5_rec_set_wrapper running...")
+                    # ret = slow5_rec_set(self.write, self.s5.header.aux_meta, a.encode(), <void *>checked_aux[a])
+                    ret = slow5_rec_set_wrapper(self.write, self.s5.header, a.encode(), <const void *>checked_aux[a])
+                    self.logger.debug("write_record: slow5_rec_set_wrapper running done: ret = {}".format(ret))
                     if ret < 0:
-                        self.logger.error("write_record: slow5_rec_set could not write aux value {}: {}".format(a, checked_aux[a]))
+                        self.logger.error("write_record: slow5_rec_set_wrapper could not write aux value {}: {}".format(a, checked_aux[a]))
                         return -1
             self.logger.debug("write_record: aux stuff done")
             # self.logger.debug("write_record: aux: {}".format(self.s5.header.aux_meta.channel_number))
