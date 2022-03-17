@@ -75,7 +75,7 @@ cdef class Open:
         self.write = NULL
         self.p = ""
         self.m = ""
-        self.attr = ""
+        self.attr = NULL
         # state for read/write. -1=null, 0=read, 1=write, 2=append
         self.state = -1
         self.index_state = False
@@ -1282,7 +1282,7 @@ cdef class Open:
             self.write.raw_signal[i] = checked_record["signal"][i]
 
         self.logger.debug("write_record: self.write raw_signal done")
-
+        # cdef char *attr
         if aux:
             self.logger.debug("write_record: aux stuff...")
             if checked_aux is None:
@@ -1296,6 +1296,7 @@ cdef class Open:
                 for i in range(len(a)):
                     self.attr[i] = ord(a[i])
                 # self.attr = str.encode(a)
+                # attr = strdup(a.encode())
                 self.logger.debug("write_record: self.attr: {} == {} ?".format(a, self.attr))
                 if a == "channel_number":
                     self.logger.debug("write_record: slow5_rec_set_string_wrapper running...")
@@ -1303,6 +1304,7 @@ cdef class Open:
 
 
                     # ret = slow5_rec_set_string(self.write, self.s5.header.aux_meta, attr, <char *>checked_aux[a])
+                    # ret = slow5_rec_set_string_wrapper(self.write, self.s5.header, attr, <const char *>checked_aux[a])
                     ret = slow5_rec_set_string_wrapper(self.write, self.s5.header, self.attr, <const char *>checked_aux[a])
                     self.logger.debug("write_record: slow5_rec_set_string_wrapper running done: ret = {}".format(ret))
                     if ret < 0:
@@ -1311,12 +1313,12 @@ cdef class Open:
                 else:
                     self.logger.debug("write_record: slow5_rec_set_wrapper running...")
                     # ret = slow5_rec_set(self.write, self.s5.header.aux_meta, attr, <void *>checked_aux[a])
+                    # ret = slow5_rec_set_wrapper(self.write, self.s5.header, attr, <const void *>checked_aux[a])
                     ret = slow5_rec_set_wrapper(self.write, self.s5.header, self.attr, <const void *>checked_aux[a])
                     self.logger.debug("write_record: slow5_rec_set_wrapper running done: ret = {}".format(ret))
                     if ret < 0:
                         self.logger.error("write_record: slow5_rec_set_wrapper could not write aux value {}: {}".format(a, checked_aux[a]))
                         return -1
-                free(self.attr)
             self.logger.debug("write_record: aux stuff done")
             # self.logger.debug("write_record: aux: {}".format(self.s5.header.aux_meta.channel_number))
 
@@ -1324,6 +1326,7 @@ cdef class Open:
         self.logger.debug("write_record: slow5_rec_write()")
         # write the record
         slow5_rec_write(self.s5, self.write);
+        free(self.attr)
         # free memory
         self.logger.debug("write_record: slow5_rec_free()")
         self.write = NULL
