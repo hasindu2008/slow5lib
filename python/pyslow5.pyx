@@ -1129,22 +1129,22 @@ cdef class Open:
                     #     self.logger.debug("_record_type_validation: it's None, skipping: {}".format(a, new_aux_vars[a]))
                     #     continue
                     if a == "channel_number":
-                        v = aux[a].encode()
-                        # self.e22 = aux[a].encode()
-                        self.e22 =  <char *>v
-                        new_aux[a] = self.e22
+                        self.e22 = <char *>malloc(sizeof(char)*len(aux[a]))
+                        for i in range(len(aux[a])):
+                            self.e22[i] =  ord(aux[a][i])
+                        new_aux[a] = 1
                     elif a == "median_before":
                         self.e9 = <double>aux[a]
-                        new_aux[a] = self.e9
+                        new_aux[a] = 1
                     elif a == "read_number":
                         self.e2 = <int32_t>aux[a]
-                        new_aux[a] = self.e2
+                        new_aux[a] = 1
                     elif a == "start_mux":
                         self.e4 = <uint8_t>aux[a]
-                        new_aux[a] = self.e4
+                        new_aux[a] = 1
                     elif a == "start_time":
                         self.e7 = <uint64_t>aux[a]
-                        new_aux[a] = self.e7
+                        new_aux[a] = 1
                     elif a == "end_reason":
                         continue
 
@@ -1283,13 +1283,13 @@ cdef class Open:
 
         self.logger.debug("write_record: self.write raw_signal done")
         cdef char **attr = NULL
-        
+
         if aux:
             self.logger.debug("write_record: aux stuff...")
             if checked_aux is None:
                 self.logger.error("write_record: checked_aux is None".format(a, checked_aux[a]))
                 return -1
-            
+
             num_attr = len(checked_aux)
             attr = <char **> malloc(sizeof(char*)*num_attr)
             attr_index = 0
@@ -1306,22 +1306,36 @@ cdef class Open:
 
                     # ret = slow5_rec_set_string(self.write, self.s5.header.aux_meta, attr, <char *>checked_aux[a])
                     # ret = slow5_rec_set_string_wrapper(self.write, self.s5.header, attr, <const char *>checked_aux[a])
-                    ret = slow5_rec_set_string_wrapper(self.write, self.s5.header, attr[attr_index], <const char *>checked_aux[a])
+                    ret = slow5_rec_set_string_wrapper(self.write, self.s5.header, attr[attr_index], <const char *>self.e22)
+                    # ret = slow5_rec_set_string_wrapper(self.write, self.s5.header, attr[attr_index], <const char *>checked_aux[a])
                     self.logger.debug("write_record: slow5_rec_set_string_wrapper running done: ret = {}".format(ret))
                     if ret < 0:
                         self.logger.error("write_record: slow5_rec_set_string_wrapper could not write aux value {}: {}".format(a, checked_aux[a]))
                         #### We should free here
                         return -1
-                else:
-                    self.logger.debug("write_record: slow5_rec_set_wrapper running...")
-                    # ret = slow5_rec_set(self.write, self.s5.header.aux_meta, attr, <void *>checked_aux[a])
-                    # ret = slow5_rec_set_wrapper(self.write, self.s5.header, attr, <const void *>checked_aux[a])
-                    ret = slow5_rec_set_wrapper(self.write, self.s5.header, attr[attr_index], <const void *>checked_aux[a])
-                    self.logger.debug("write_record: slow5_rec_set_wrapper running done: ret = {}".format(ret))
+                elif a == "median_before":
+                    # self.e9 = <double>aux[a]
+                    ret = slow5_rec_set_wrapper(self.write, self.s5.header, attr[attr_index], <const void *>&self.e9)
+                elif a == "read_number":
+                    # self.e2 = <int32_t>aux[a]
+                    ret = slow5_rec_set_wrapper(self.write, self.s5.header, attr[attr_index], <const void *>&self.e2)
+                elif a == "start_mux":
+                    # self.e4 = <uint8_t>aux[a]
+                    ret = slow5_rec_set_wrapper(self.write, self.s5.header, attr[attr_index], <const void *>&self.e4)
+                elif a == "start_time":
+                    # self.e7 = <uint64_t>aux[a]
+                    ret = slow5_rec_set_wrapper(self.write, self.s5.header, attr[attr_index], <const void *>&self.e7)
+                elif a == "end_reason":
+                    ret = 0
+                    # self.logger.debug("write_record: slow5_rec_set_wrapper running...")
+                    # # ret = slow5_rec_set(self.write, self.s5.header.aux_meta, attr, <void *>checked_aux[a])
+                    # # ret = slow5_rec_set_wrapper(self.write, self.s5.header, attr, <const void *>checked_aux[a])
+                    # ret = slow5_rec_set_wrapper(self.write, self.s5.header, attr[attr_index], <const void *>checked_aux[a])
+                    # self.logger.debug("write_record: slow5_rec_set_wrapper running done: ret = {}".format(ret))
                     if ret < 0:
                         self.logger.error("write_record: slow5_rec_set_wrapper could not write aux value {}: {}".format(a, checked_aux[a]))
                         return -1
-                attr_index = attr_index + 1        
+                attr_index = attr_index + 1
             self.logger.debug("write_record: aux stuff done")
             # self.logger.debug("write_record: aux: {}".format(self.s5.header.aux_meta.channel_number))
 
@@ -1331,12 +1345,17 @@ cdef class Open:
         slow5_rec_write(self.s5, self.write);
 
         # perhaps check if aux is there?
-        if (attr): 
+        if attr:
             N=len(checked_aux)
             for i in range(N):
                 free(attr[i])
-            free(attr)    
-    
+            free(attr)
+        self.e9 = -1.0
+        self.e2 = -1
+        self.e4 = -1
+        self.e7 = -1
+        self.e22 = NULL
+
         # free memory
         self.logger.debug("write_record: slow5_rec_free()")
         self.write = NULL
