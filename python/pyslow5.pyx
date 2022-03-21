@@ -343,77 +343,77 @@ cdef class Open:
                 if self.aux_get_err == 0:
                     dic[name] = self.e0
                 else:
-                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype, self.aux_get_err, self.error_codes[self.aux_get_err]))
                     dic[name] = None
             elif atype == 1:
                 self.e1 = slow5_aux_get_int16(self.rec, a_name, &self.aux_get_err)
                 if self.aux_get_err == 0:
                     dic[name] = self.e1
                 else:
-                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype, self.aux_get_err, self.error_codes[self.aux_get_err]))
                     dic[name] = None
             elif atype == 2:
                 self.e2 = slow5_aux_get_int32(self.rec, a_name, &self.aux_get_err)
                 if self.aux_get_err == 0:
                     dic[name] = self.e2
                 else:
-                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype, self.aux_get_err, self.error_codes[self.aux_get_err]))
                     dic[name] = None
             elif atype == 3:
                 self.e3 = slow5_aux_get_int64(self.rec, a_name, &self.aux_get_err)
                 if self.aux_get_err == 0:
                     dic[name] = self.e3
                 else:
-                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype, self.aux_get_err, self.error_codes[self.aux_get_err]))
                     dic[name] = None
             elif atype == 4:
                 self.e4 = slow5_aux_get_uint8(self.rec, a_name, &self.aux_get_err)
                 if self.aux_get_err == 0:
                     dic[name] = self.e4
                 else:
-                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype, self.aux_get_err, self.error_codes[self.aux_get_err]))
                     dic[name] = None
             elif atype == 5:
                 self.e5 = slow5_aux_get_uint16(self.rec, a_name, &self.aux_get_err)
                 if self.aux_get_err == 0:
                     dic[name] = self.e5
                 else:
-                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype, self.aux_get_err, self.error_codes[self.aux_get_err]))
                     dic[name] = None
             elif atype == 6:
                 self.e6 = slow5_aux_get_uint32(self.rec, a_name, &self.aux_get_err)
                 if self.aux_get_err == 0:
                     dic[name] = self.e6
                 else:
-                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype, self.aux_get_err, self.error_codes[self.aux_get_err]))
                     dic[name] = None
             elif atype == 7:
                 self.e7 = slow5_aux_get_uint64(self.rec, a_name, &self.aux_get_err)
                 if self.aux_get_err == 0:
                     dic[name] = self.e7
                 else:
-                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype, self.aux_get_err, self.error_codes[self.aux_get_err]))
                     dic[name] = None
             elif atype == 8:
                 self.e8 = slow5_aux_get_float(self.rec, a_name, &self.aux_get_err)
                 if self.aux_get_err == 0:
                     dic[name] = self.e8
                 else:
-                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype, self.aux_get_err, self.error_codes[self.aux_get_err]))
                     dic[name] = None
             elif atype == 9:
                 self.e9 = slow5_aux_get_double(self.rec, a_name, &self.aux_get_err)
                 if self.aux_get_err == 0:
                     dic[name] = self.e9
                 else:
-                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype, self.aux_get_err, self.error_codes[self.aux_get_err]))
                     dic[name] = None
             elif atype == 10:
                 self.e10 = slow5_aux_get_char(self.rec, a_name, &self.aux_get_err)
                 if self.aux_get_err == 0:
                     dic[name] = self.e10
                 else:
-                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype, self.aux_get_err, self.error_codes[self.aux_get_err]))
                     dic[name] = None
             elif atype == 12:
                 self.e12 = slow5_aux_get_int8_array(self.rec, a_name, &self.aux_get_len, &self.aux_get_err)
@@ -423,7 +423,7 @@ cdef class Open:
                         l.append(self.e12[i])
                     dic[name] = l
                 else:
-                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype, self.aux_get_err, self.error_codes[self.aux_get_err]))
                     dic[name] = None
             elif atype == 13:
                 self.e13 = slow5_aux_get_int16_array(self.rec, a_name, &self.aux_get_len, &self.aux_get_err)
@@ -433,7 +433,7 @@ cdef class Open:
                         l.append(self.e13[i])
                     dic[name] = l
                 else:
-                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype, self.aux_get_err, self.error_codes[self.aux_get_err]))
                     dic[name] = None
             elif atype == 14:
                 self.e14 = slow5_aux_get_int32_array(self.rec, a_name, &self.aux_get_len, &self.aux_get_err)
@@ -443,7 +443,7 @@ cdef class Open:
                         l.append(self.e14[i])
                     dic[name] = l
                 else:
-                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype, self.aux_get_err, self.error_codes[self.aux_get_err]))
                     dic[name] = None
             elif atype == 15:
                 self.e15 = slow5_aux_get_int64_array(self.rec, a_name, &self.aux_get_len, &self.aux_get_err)
@@ -453,7 +453,7 @@ cdef class Open:
                         l.append(self.e15[i])
                     dic[name] = l
                 else:
-                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype, self.aux_get_err, self.error_codes[self.aux_get_err]))
                     dic[name] = None
             elif atype == 16:
                 self.e16 = slow5_aux_get_uint8_array(self.rec, a_name, &self.aux_get_len, &self.aux_get_err)
@@ -463,7 +463,7 @@ cdef class Open:
                         l.append(self.e16[i])
                     dic[name] = l
                 else:
-                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype, self.aux_get_err, self.error_codes[self.aux_get_err]))
                     dic[name] = None
             elif atype == 17:
                 self.e17 = slow5_aux_get_uint16_array(self.rec, a_name, &self.aux_get_len, &self.aux_get_err)
@@ -473,7 +473,7 @@ cdef class Open:
                         l.append(self.e17[i])
                     dic[name] = l
                 else:
-                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype, self.aux_get_err, self.error_codes[self.aux_get_err]))
                     dic[name] = None
             elif atype == 18:
                 self.e18 = slow5_aux_get_uint32_array(self.rec, a_name, &self.aux_get_len, &self.aux_get_err)
@@ -483,7 +483,7 @@ cdef class Open:
                         l.append(self.e18[i])
                     dic[name] = l
                 else:
-                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype, self.aux_get_err, self.error_codes[self.aux_get_err]))
                     dic[name] = None
             elif atype == 19:
                 self.e19 = slow5_aux_get_uint64_array(self.rec, a_name, &self.aux_get_len, &self.aux_get_err)
@@ -493,7 +493,7 @@ cdef class Open:
                         l.append(self.e19[i])
                     dic[name] = l
                 else:
-                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype, self.aux_get_err, self.error_codes[self.aux_get_err]))
                     dic[name] = None
             elif atype == 20:
                 self.e20 = slow5_aux_get_float_array(self.rec, a_name, &self.aux_get_len, &self.aux_get_err)
@@ -503,7 +503,7 @@ cdef class Open:
                         l.append(self.e20[i])
                     dic[name] = l
                 else:
-                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype, self.aux_get_err, self.error_codes[self.aux_get_err]))
                     dic[name] = None
             elif atype == 21:
                 self.e21 = slow5_aux_get_double_array(self.rec, a_name, &self.aux_get_len, &self.aux_get_err)
@@ -513,7 +513,7 @@ cdef class Open:
                         l.append(self.e21[i])
                     dic[name] = l
                 else:
-                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype, self.aux_get_err, self.error_codes[self.aux_get_err]))
                     dic[name] = None
             elif atype == 22:
                 self.e22 = slow5_aux_get_string(self.rec, a_name, &self.aux_get_len, &self.aux_get_err)
@@ -525,7 +525,7 @@ cdef class Open:
                         s = "".join(l)
                     dic[name] = s
                 else:
-                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype, self.aux_get_err, self.error_codes[self.aux_get_err]))
                     dic[name] = None
             else:
                 self.logger.debug("get_read_aux atype not known, skipping: {}".format(atype))
@@ -550,77 +550,77 @@ cdef class Open:
                 if self.aux_get_err == 0:
                     dic[name] = self.e0
                 else:
-                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype, self.aux_get_err, self.error_codes[self.aux_get_err]))
                     dic[name] = None
             elif atype == 1:
                 self.e1 = slow5_aux_get_int16(self.read, a_name, &self.aux_get_err)
                 if self.aux_get_err == 0:
                     dic[name] = self.e1
                 else:
-                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype, self.aux_get_err, self.error_codes[self.aux_get_err]))
                     dic[name] = None
             elif atype == 2:
                 self.e2 = slow5_aux_get_int32(self.read, a_name, &self.aux_get_err)
                 if self.aux_get_err == 0:
                     dic[name] = self.e2
                 else:
-                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype, self.aux_get_err, self.error_codes[self.aux_get_err]))
                     dic[name] = None
             elif atype == 3:
                 self.e3 = slow5_aux_get_int64(self.read, a_name, &self.aux_get_err)
                 if self.aux_get_err == 0:
                     dic[name] = self.e3
                 else:
-                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype, self.aux_get_err, self.error_codes[self.aux_get_err]))
                     dic[name] = None
             elif atype == 4:
                 self.e4 = slow5_aux_get_uint8(self.read, a_name, &self.aux_get_err)
                 if self.aux_get_err == 0:
                     dic[name] = self.e4
                 else:
-                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype, self.aux_get_err, self.error_codes[self.aux_get_err]))
                     dic[name] = None
             elif atype == 5:
                 self.e5 = slow5_aux_get_uint16(self.read, a_name, &self.aux_get_err)
                 if self.aux_get_err == 0:
                     dic[name] = self.e5
                 else:
-                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype, self.aux_get_err, self.error_codes[self.aux_get_err]))
                     dic[name] = None
             elif atype == 6:
                 self.e6 = slow5_aux_get_uint32(self.read, a_name, &self.aux_get_err)
                 if self.aux_get_err == 0:
                     dic[name] = self.e6
                 else:
-                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype, self.aux_get_err, self.error_codes[self.aux_get_err]))
                     dic[name] = None
             elif atype == 7:
                 self.e7 = slow5_aux_get_uint64(self.read, a_name, &self.aux_get_err)
                 if self.aux_get_err == 0:
                     dic[name] = self.e7
                 else:
-                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype, self.aux_get_err, self.error_codes[self.aux_get_err]))
                     dic[name] = None
             elif atype == 8:
                 self.e8 = slow5_aux_get_float(self.read, a_name, &self.aux_get_err)
                 if self.aux_get_err == 0:
                     dic[name] = self.e8
                 else:
-                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype, self.aux_get_err, self.error_codes[self.aux_get_err]))
                     dic[name] = None
             elif atype == 9:
                 self.e9 = slow5_aux_get_double(self.read, a_name, &self.aux_get_err)
                 if self.aux_get_err == 0:
                     dic[name] = self.e9
                 else:
-                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype, self.aux_get_err, self.error_codes[self.aux_get_err]))
                     dic[name] = None
             elif atype == 10:
                 self.e10 = slow5_aux_get_char(self.read, a_name, &self.aux_get_err)
                 if self.aux_get_err == 0:
                     dic[name] = self.e10
                 else:
-                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype, self.aux_get_err, self.error_codes[self.aux_get_err]))
                     dic[name] = None
             elif atype == 12:
                 self.e12 = slow5_aux_get_int8_array(self.read, a_name, &self.aux_get_len, &self.aux_get_err)
@@ -630,7 +630,7 @@ cdef class Open:
                         l.append(self.e12[i])
                     dic[name] = l
                 else:
-                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype, self.aux_get_err, self.error_codes[self.aux_get_err]))
                     dic[name] = None
             elif atype == 13:
                 self.e13 = slow5_aux_get_int16_array(self.read, a_name, &self.aux_get_len, &self.aux_get_err)
@@ -640,7 +640,7 @@ cdef class Open:
                         l.append(self.e13[i])
                     dic[name] = l
                 else:
-                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype, self.aux_get_err, self.error_codes[self.aux_get_err]))
                     dic[name] = None
             elif atype == 14:
                 self.e14 = slow5_aux_get_int32_array(self.read, a_name, &self.aux_get_len, &self.aux_get_err)
@@ -650,7 +650,7 @@ cdef class Open:
                         l.append(self.e14[i])
                     dic[name] = l
                 else:
-                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype, self.aux_get_err, self.error_codes[self.aux_get_err]))
                     dic[name] = None
             elif atype == 15:
                 self.e15 = slow5_aux_get_int64_array(self.read, a_name, &self.aux_get_len, &self.aux_get_err)
@@ -660,7 +660,7 @@ cdef class Open:
                         l.append(self.e15[i])
                     dic[name] = l
                 else:
-                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype, self.aux_get_err, self.error_codes[self.aux_get_err]))
                     dic[name] = None
             elif atype == 16:
                 self.e16 = slow5_aux_get_uint8_array(self.read, a_name, &self.aux_get_len, &self.aux_get_err)
@@ -670,7 +670,7 @@ cdef class Open:
                         l.append(self.e16[i])
                     dic[name] = l
                 else:
-                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype, self.aux_get_err, self.error_codes[self.aux_get_err]))
                     dic[name] = None
             elif atype == 17:
                 self.e17 = slow5_aux_get_uint16_array(self.read, a_name, &self.aux_get_len, &self.aux_get_err)
@@ -680,7 +680,7 @@ cdef class Open:
                         l.append(self.e17[i])
                     dic[name] = l
                 else:
-                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype, self.aux_get_err, self.error_codes[self.aux_get_err]))
                     dic[name] = None
             elif atype == 18:
                 self.e18 = slow5_aux_get_uint32_array(self.read, a_name, &self.aux_get_len, &self.aux_get_err)
@@ -690,7 +690,7 @@ cdef class Open:
                         l.append(self.e18[i])
                     dic[name] = l
                 else:
-                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype, self.aux_get_err, self.error_codes[self.aux_get_err]))
                     dic[name] = None
             elif atype == 19:
                 self.e19 = slow5_aux_get_uint64_array(self.read, a_name, &self.aux_get_len, &self.aux_get_err)
@@ -700,7 +700,7 @@ cdef class Open:
                         l.append(self.e19[i])
                     dic[name] = l
                 else:
-                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype, self.aux_get_err, self.error_codes[self.aux_get_err]))
                     dic[name] = None
             elif atype == 20:
                 self.e20 = slow5_aux_get_float_array(self.read, a_name, &self.aux_get_len, &self.aux_get_err)
@@ -710,7 +710,7 @@ cdef class Open:
                         l.append(self.e20[i])
                     dic[name] = l
                 else:
-                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype, self.aux_get_err, self.error_codes[self.aux_get_err]))
                     dic[name] = None
             elif atype == 21:
                 self.e21 = slow5_aux_get_double_array(self.read, a_name, &self.aux_get_len, &self.aux_get_err)
@@ -720,7 +720,7 @@ cdef class Open:
                         l.append(self.e21[i])
                     dic[name] = l
                 else:
-                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype, self.aux_get_err, self.error_codes[self.aux_get_err]))
                     dic[name] = None
             elif atype == 22:
                 self.e22 = slow5_aux_get_string(self.read, a_name, &self.aux_get_len, &self.aux_get_err)
@@ -732,7 +732,7 @@ cdef class Open:
                         s = "".join(l)
                     dic[name] = s
                 else:
-                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype, self.aux_get_err, self.error_codes[self.aux_get_err]))
                     dic[name] = None
             else:
                 self.logger.debug("get_read_aux atype not known, skipping: {}".format(atype))
@@ -1369,10 +1369,13 @@ cdef class Open:
         '''
         close file so EOF is written
         '''
-        if not self.close_state:
-            slow5_close_write(self.s5)
-            self.close_state = True
-            self.logger.debug("{} closed".format(self.p.decode()))
+        if self.state == 1:
+            if not self.close_state:
+                slow5_close_write(self.s5)
+                self.close_state = True
+                self.logger.debug("{} closed".format(self.p.decode()))
+            else:
+                self.logger.error("{} already closed".format(self.p.decode()))
         else:
-            self.logger.error("{} already closed".format(self.p.decode()))
+            self.logger.error("{} not open for writing".format(self.p.decode()))
         return
