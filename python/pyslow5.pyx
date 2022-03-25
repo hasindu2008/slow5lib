@@ -34,9 +34,10 @@ cdef class Open:
     cdef pyslow5.uint64_t aux_get_len
     cdef np.npy_intp shape_get[1]
     cdef np.npy_intp shape_seq[1]
-    cdef const char* p
-    cdef const char* m
-    cdef char *attr
+    cdef char* p
+    cdef str path
+    cdef char* m
+    cdef str mode
     cdef int state
     cdef int V
     cdef object logger
@@ -65,6 +66,12 @@ cdef class Open:
     cdef float *e20
     cdef double *e21
     cdef char *e22 # meant to be string, not sure about this
+    cdef char *channel_number
+    cdef char *median_before
+    cdef char *read_number
+    cdef char *start_mux
+    cdef char *start_time
+    # cdef something end_reason # some enum
 
 
     def __cinit__(self, pathname, mode, DEBUG=0):
@@ -73,9 +80,10 @@ cdef class Open:
         self.rec = NULL
         self.read = NULL
         self.write = NULL
+        self.path = ""
         self.p = ""
+        self.mode = ""
         self.m = ""
-        #self.attr = NULL
         # state for read/write. -1=null, 0=read, 1=write, 2=append
         self.state = -1
         self.index_state = False
@@ -99,6 +107,7 @@ cdef class Open:
         self.e8 = -1.0
         self.e9 = -1.0
         self.e10 = 0
+        # self.e11 = ?
         self.e12 = NULL
         self.e13 = NULL
         self.e14 = NULL
@@ -110,6 +119,25 @@ cdef class Open:
         self.e20 = NULL
         self.e21 = NULL
         self.e22 = NULL
+        self.channel_number = <char *>malloc(sizeof(char)*len("channel_number"))
+        for i in range(len("channel_number")):
+            self.channel_number[i] =  ord("channel_number"[i])
+        self.channel_number = <char *>malloc(sizeof(char)*len("channel_number"))
+        for i in range(len("channel_number")):
+            self.channel_number[i] =  ord("channel_number"[i])
+        self.median_before = <char *>malloc(sizeof(char)*len("median_before"))
+        for i in range(len("median_before")):
+            self.median_before[i] =  ord("median_before"[i])
+        self.read_number = <char *>malloc(sizeof(char)*len("read_number"))
+        for i in range(len("read_number")):
+            self.read_number[i] =  ord("read_number"[i])
+        self.start_mux = <char *>malloc(sizeof(char)*len("start_mux"))
+        for i in range(len("start_mux")):
+            self.start_mux[i] =  ord("start_mux"[i])
+        self.start_time = <char *>malloc(sizeof(char)*len("start_time"))
+        for i in range(len("start_time")):
+            self.start_time[i] =  ord("start_time"[i])
+        # cdef something end_reason # some enum
 
         # sets up logging level/verbosity
         self.V = DEBUG
@@ -142,11 +170,13 @@ cdef class Open:
                             -17: ["SLOW5_ERR_TYPE", "error relating to slow5 type"],
                                                         }
         p = str.encode(pathname)
+        self.path = pathname
         self.p = strdup(p)
         m = str.encode(mode)
+        self.mode = mode
         self.m = strdup(m)
         # print binary strings of filepath and mode
-        self.logger.debug("FILE: {}, mode: {}".format(self.p.decode(), self.m.decode()))
+        self.logger.debug("FILE: {}, mode: {}".format(self.path, self.mode))
         self.logger.debug("FILE: {}, mode: {}".format(self.p, self.m))
         # Set state based on mode for file opening
         # state for read/write. -1=null, 0=read, 1=write, 2=append
@@ -166,12 +196,13 @@ cdef class Open:
         elif self.state == 1:
             self.s5 = slow5_open_write(self.p, self.m)
             if self.s5 is NULL:
-                self.logger.error("File '{}' could not be opened for writing.".format(self.p.decode()))
-        # elif self.state == 2:
+                self.logger.error("File '{}' could not be opened for writing.".format(self.path))
+        elif self.state == 2:
+            self.logger.error("File '{}' append method not yet implemented, please bug devs".format(self.path, self.mode))
             # self.s5 = pyslow5. TODO: open file for writing and put pointer to end of file
             # pointer at end of file
         else:
-            self.logger.error("File '{}' unknown open method: {}".format(self.p.decode(), self.m.decode()))
+            self.logger.error("File '{}' unknown open method: {}".format(self.path, self.mode))
         # check object was actually created.
         if self.s5 is NULL:
             raise MemoryError()
@@ -198,13 +229,21 @@ cdef class Open:
             if not self.close_state:
                 slow5_close_write(self.s5)
                 self.close_state = True
-                self.logger.debug("{} closed".format(self.p.decode()))
+                self.logger.debug("{} closed".format(self.path))
             else:
-                self.logger.error("{} already closed".format(self.p.decode()))
+                self.logger.error("{} already closed".format(self.path))
         if self.state == 0:
             if self.s5 is not NULL:
                 pyslow5.slow5_idx_unload(self.s5)
                 pyslow5.slow5_close(self.s5)
+
+        free(self.p)
+        free(self.m)
+        free(self.channel_number)
+        free(self.median_before)
+        free(self.read_number)
+        free(self.start_mux)
+        free(self.start_time)
 
 
     def _convert_to_pA(self, d):
@@ -238,8 +277,8 @@ cdef class Open:
         returns dic = dictionary of main fields for read_id, with any aux fields added
         '''
         if not self.index_state:
-            self.logger.debug("FILE: {}, mode: {}".format(self.p.decode(), self.m.decode()))
-            self.logger.debug("FILE: {}, mode: {}".format(self.p, self.m))
+            self.logger.debug("FILE: {}, mode: {}".format(self.path, self.mode))
+            # self.logger.debug("FILE: {}, mode: {}".format(self.path, self.m))
             self.logger.debug("Creating/loading index...")
             ret = slow5_idx_load(self.s5)
             if ret != 0:
@@ -985,28 +1024,12 @@ cdef class Open:
                   "len_raw_signal": None,
                   "signal": None}
 
-        # record_types = {"read_id": type("string"),
-        #                 "read_group": type(1),
-        #                 "digitisation": type(1.0),
-        #                 "offset": type(1.0),
-        #                 "range": type(1.0),
-        #                 "sampling_rate": type(1.0),
-        #                 "len_raw_signal": type(10),
-        #                 "raw_signal": type(np.array([1, 2, 3], np.NPY_INT16))}
-
         aux_rec = {"channel_number": None,
                "median_before": None,
                "read_number": None,
                "start_mux": None,
                "start_time": None}
 
-        # aux_types = {"channel_number": type("string"),
-        #              "median_before": type(1.0),
-        #              "read_number": type(10),
-        #              "start_mux": type(1),
-        #              "start_time": type(100),
-        #              "end_reason": None}
-        # return both record and aux if aux is True
         if aux:
             return record, aux_rec
         return record
@@ -1088,15 +1111,6 @@ cdef class Open:
                         "start_time": type(100),
                         "end_reason": None}
 
-        # self.logger.debug("_record_type_validation: setting new_aux_vars")
-        # new_aux_vars = {"channel_number": self.e22,
-        #                 "median_before": self.e9,
-        #                 "read_number": self.e2,
-        #                 "start_mux": self.e4,
-        #                 "start_time": self.e7,
-        #                 "start_time": None}
-        #
-        # self.logger.debug("_record_type_validation: setting new_aux_vars done")
         new_aux = {}
 
         for a in user_record:
@@ -1106,7 +1120,6 @@ cdef class Open:
                 self.logger.error("_record_type_validation {}: {} user primary field not in pyslow5 record_types".format(a, user_record[a]))
                 return None, None
 
-            # self.logger.debug("_record_type_validation py_record_types: {}: {}, user_record_type: {}: {}".format(a, py_record_types[a], a, type(user_record[a])))
             if type(user_record[a]) != py_record_types[a]:
                 self.logger.error("_record_type_validation {}: {} user primary field type mismatch with pyslow5 record_types".format(a, user_record[a]))
                 return None, None
@@ -1125,9 +1138,6 @@ cdef class Open:
                     return None, None
                 else:
                     self.logger.debug("_record_type_validation: aux passed tests...")
-                    # if new_aux_vars[a] is None:
-                    #     self.logger.debug("_record_type_validation: it's None, skipping: {}".format(a, new_aux_vars[a]))
-                    #     continue
                     if a == "channel_number":
                         self.e22 = <char *>malloc(sizeof(char)*len(aux[a]))
                         for i in range(len(aux[a])):
@@ -1148,14 +1158,6 @@ cdef class Open:
                     elif a == "end_reason":
                         continue
 
-                    # new_aux[a]
-                    # self.logger.debug("_record_type_validation: aux new_aux_vars[a] = v")
-                    # v = new_aux_vars[a]
-                    # self.logger.debug("_record_type_validation: aux v = aux[a]")
-                    # v = aux[a]
-                    # self.logger.debug("_record_type_validation: aux new_aux[a] = v")
-                    # new_aux[a] = v
-                    # self.logger.debug("_record_type_validation: aux {} done".format(a))
             self.logger.debug("_record_type_validation: aux stuff done")
 
 
@@ -1202,15 +1204,6 @@ cdef class Open:
         if the validation works, then write the header just before the first record is written.
         This should make the user experience a lot less complicated and have less steps
         '''
-
-        # record_types = {"read_id": type("string"),
-        #                 "read_group": type(1),
-        #                 "digitisation": type(1.0),
-        #                 "offset": type(1.0),
-        #                 "range": type(1.0),
-        #                 "sampling_rate": type(1.0),
-        #                 "len_raw_signal": type(10),
-        #                 "raw_signal": type(np.array([1, 2, 3], np.NPY_INT16))}
 
         aux_types = {"channel_number": type("string"),
                      "median_before": type(1.0),
@@ -1282,7 +1275,7 @@ cdef class Open:
             self.write.raw_signal[i] = checked_record["signal"][i]
 
         self.logger.debug("write_record: self.write raw_signal done")
-        cdef char **attr = NULL
+        # cdef char **attr = NULL
 
         if aux:
             self.logger.debug("write_record: aux stuff...")
@@ -1290,66 +1283,41 @@ cdef class Open:
                 self.logger.error("write_record: checked_aux is None".format(a, checked_aux[a]))
                 return -1
 
-            num_attr = len(checked_aux)
-            attr = <char **> malloc(sizeof(char*)*num_attr)
-            attr_index = 0
             for a in checked_aux:
                 self.logger.debug("write_record: checked_aux: {}: {}".format(a, checked_aux[a]))
                 if checked_aux[a] is None:
                     continue
-                attr[attr_index] = strdup(a.encode())
-                self.logger.debug("write_record: attr[attr_index]: {} == {} ?".format(a, attr[attr_index]))
                 if a == "channel_number":
                     self.logger.debug("write_record: slow5_rec_set_string_wrapper running...")
                     self.logger.debug("write_record: slow5_rec_set_string_wrapper type: {}".format(type(checked_aux[a])))
-
-
-                    # ret = slow5_rec_set_string(self.write, self.s5.header.aux_meta, attr, <char *>checked_aux[a])
-                    # ret = slow5_rec_set_string_wrapper(self.write, self.s5.header, attr, <const char *>checked_aux[a])
-                    ret = slow5_rec_set_string_wrapper(self.write, self.s5.header, attr[attr_index], <const char *>self.e22)
-                    # ret = slow5_rec_set_string_wrapper(self.write, self.s5.header, attr[attr_index], <const char *>checked_aux[a])
+                    ret = slow5_rec_set_string_wrapper(self.write, self.s5.header, self.channel_number, <const char *>self.e22)
                     self.logger.debug("write_record: slow5_rec_set_string_wrapper running done: ret = {}".format(ret))
                     if ret < 0:
                         self.logger.error("write_record: slow5_rec_set_string_wrapper could not write aux value {}: {}".format(a, checked_aux[a]))
                         #### We should free here
                         return -1
                 elif a == "median_before":
-                    # self.e9 = <double>aux[a]
-                    ret = slow5_rec_set_wrapper(self.write, self.s5.header, attr[attr_index], <const void *>&self.e9)
+                    ret = slow5_rec_set_wrapper(self.write, self.s5.header, self.median_before, <const void *>&self.e9)
                 elif a == "read_number":
-                    # self.e2 = <int32_t>aux[a]
-                    ret = slow5_rec_set_wrapper(self.write, self.s5.header, attr[attr_index], <const void *>&self.e2)
+                    ret = slow5_rec_set_wrapper(self.write, self.s5.header, self.read_number, <const void *>&self.e2)
                 elif a == "start_mux":
-                    # self.e4 = <uint8_t>aux[a]
-                    ret = slow5_rec_set_wrapper(self.write, self.s5.header, attr[attr_index], <const void *>&self.e4)
+                    ret = slow5_rec_set_wrapper(self.write, self.s5.header, self.start_mux, <const void *>&self.e4)
                 elif a == "start_time":
-                    # self.e7 = <uint64_t>aux[a]
-                    ret = slow5_rec_set_wrapper(self.write, self.s5.header, attr[attr_index], <const void *>&self.e7)
+                    ret = slow5_rec_set_wrapper(self.write, self.s5.header, self.start_time, <const void *>&self.e7)
                 elif a == "end_reason":
+                    # not implemented yet becuase of variability in ONT versioning
                     ret = 0
-                    # self.logger.debug("write_record: slow5_rec_set_wrapper running...")
-                    # # ret = slow5_rec_set(self.write, self.s5.header.aux_meta, attr, <void *>checked_aux[a])
-                    # # ret = slow5_rec_set_wrapper(self.write, self.s5.header, attr, <const void *>checked_aux[a])
-                    # ret = slow5_rec_set_wrapper(self.write, self.s5.header, attr[attr_index], <const void *>checked_aux[a])
-                    # self.logger.debug("write_record: slow5_rec_set_wrapper running done: ret = {}".format(ret))
-                    if ret < 0:
-                        self.logger.error("write_record: slow5_rec_set_wrapper could not write aux value {}: {}".format(a, checked_aux[a]))
-                        return -1
-                attr_index = attr_index + 1
+                if ret < 0:
+                    self.logger.error("write_record: slow5_rec_set_wrapper could not write aux value {}: {}".format(a, checked_aux[a]))
+                    return -1
+
             self.logger.debug("write_record: aux stuff done")
-            # self.logger.debug("write_record: aux: {}".format(self.s5.header.aux_meta.channel_number))
 
 
         self.logger.debug("write_record: slow5_rec_write()")
         # write the record
         slow5_rec_write(self.s5, self.write);
 
-        # perhaps check if aux is there?
-        if attr:
-            N=len(checked_aux)
-            for i in range(N):
-                free(attr[i])
-            free(attr)
         self.e9 = -1.0
         self.e2 = -1
         self.e4 = -1
@@ -1359,7 +1327,7 @@ cdef class Open:
         # free memory
         self.logger.debug("write_record: slow5_rec_free()")
         self.write = NULL
-        # slow5_rec_free(self.write);
+        slow5_rec_free(self.write)
 
         self.logger.debug("write_record: function complete, returning 0")
         return 0
@@ -1373,9 +1341,9 @@ cdef class Open:
             if not self.close_state:
                 slow5_close_write(self.s5)
                 self.close_state = True
-                self.logger.debug("{} closed".format(self.p.decode()))
+                self.logger.debug("{} closed".format(self.path))
             else:
-                self.logger.error("{} already closed".format(self.p.decode()))
+                self.logger.error("{} already closed".format(self.path))
         else:
-            self.logger.error("{} not open for writing".format(self.p.decode()))
+            self.logger.error("{} not open for writing".format(self.path))
         return
