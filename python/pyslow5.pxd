@@ -125,7 +125,7 @@ cdef extern from "pyslow5.h":
     # from slow5_extra.h
 
     int slow5_aux_meta_add(slow5_aux_meta_t *aux_meta, const char *attr, slow5_aux_type type);
-    int slow5_rec_set_string(slow5_rec_t *read, slow5_aux_meta_t *aux_meta, const char *attr, const char *data)
+    int slow5_rec_set_string(slow5_rec_t *read, slow5_aux_meta_t *aux_meta, const char *attr, const char *data);
     int slow5_rec_set(slow5_rec_t *read, slow5_aux_meta_t *aux_meta, const char *attr, const void *data);
 
 cdef extern from "slow5_write.h":
