@@ -71,7 +71,12 @@ cdef class Open:
     cdef char *read_number
     cdef char *start_mux
     cdef char *start_time
-    # cdef something end_reason # some enum
+    cdef char *end_reason # need to add end_reason_val
+    cdef char *channel_number_val
+    cdef double median_before_val
+    cdef pyslow5.int32_t read_number_val
+    cdef pyslow5.uint8_t start_mux_val
+    cdef pyslow5.uint64_t start_time_val
 
 
     def __cinit__(self, pathname, mode, DEBUG=0):
@@ -119,29 +124,17 @@ cdef class Open:
         self.e20 = NULL
         self.e21 = NULL
         self.e22 = NULL
-        # self.channel_number = <char *>malloc(sizeof(char)*len("channel_number"))
-        # for i in range(len("channel_number")):
-        #     self.channel_number[i] =  ord("channel_number"[i])
-        # self.channel_number = <char *>malloc(sizeof(char)*len("channel_number"))
-        # for i in range(len("channel_number")):
-        #     self.channel_number[i] =  ord("channel_number"[i])
-        # self.median_before = <char *>malloc(sizeof(char)*len("median_before"))
-        # for i in range(len("median_before")):
-        #     self.median_before[i] =  ord("median_before"[i])
-        # self.read_number = <char *>malloc(sizeof(char)*len("read_number"))
-        # for i in range(len("read_number")):
-        #     self.read_number[i] =  ord("read_number"[i])
-        # self.start_mux = <char *>malloc(sizeof(char)*len("start_mux"))
-        # for i in range(len("start_mux")):
-        #     self.start_mux[i] =  ord("start_mux"[i])
-        # self.start_time = <char *>malloc(sizeof(char)*len("start_time"))
-        # for i in range(len("start_time")):
-        #     self.start_time[i] =  ord("start_time"[i])
         self.channel_number = strdup("channel_number")
         self.median_before = strdup("median_before")
         self.read_number = strdup("read_number")
         self.start_mux = strdup("start_mux")
         self.start_time = strdup("start_time")
+        self.end_reason = strdup("end_reason")
+        channel_number_val = NULL
+        median_before_val = -1.0
+        read_number_val = -1
+        start_mux_val = -1
+        start_time_val = -1
 
 
         # cdef something end_reason # some enum
@@ -1149,19 +1142,19 @@ cdef class Open:
                         # self.e22 = <char *>malloc(sizeof(char)*len(aux[a]))
                         # for i in range(len(aux[a])):
                         #     self.e22[i] =  ord(aux[a][i])
-                        self.e22=strdup(aux[a].encode())
+                        self.channel_number_val=strdup(aux[a].encode())
                         new_aux[a] = 1
                     elif a == "median_before":
-                        self.e9 = <double>aux[a]
+                        self.median_before_val = <double>aux[a]
                         new_aux[a] = 1
                     elif a == "read_number":
-                        self.e2 = <int32_t>aux[a]
+                        self.read_number_val = <int32_t>aux[a]
                         new_aux[a] = 1
                     elif a == "start_mux":
-                        self.e4 = <uint8_t>aux[a]
+                        self.start_mux_val = <uint8_t>aux[a]
                         new_aux[a] = 1
                     elif a == "start_time":
-                        self.e7 = <uint64_t>aux[a]
+                        self.start_time_val = <uint64_t>aux[a]
                         new_aux[a] = 1
                     elif a == "end_reason":
                         continue
@@ -1298,20 +1291,20 @@ cdef class Open:
                 if a == "channel_number":
                     self.logger.debug("write_record: slow5_rec_set_string_wrapper running...")
                     self.logger.debug("write_record: slow5_rec_set_string_wrapper type: {}".format(type(checked_aux[a])))
-                    ret = slow5_rec_set_string_wrapper(self.write, self.s5.header, self.channel_number, <const char *>self.e22)
+                    ret = slow5_rec_set_string_wrapper(self.write, self.s5.header, self.channel_number, <const char *>self.channel_number_val)
                     self.logger.debug("write_record: slow5_rec_set_string_wrapper running done: ret = {}".format(ret))
                     if ret < 0:
                         self.logger.error("write_record: slow5_rec_set_string_wrapper could not write aux value {}: {}".format(a, checked_aux[a]))
                         #### We should free here
                         return -1
                 elif a == "median_before":
-                    ret = slow5_rec_set_wrapper(self.write, self.s5.header, self.median_before, <const void *>&self.e9)
+                    ret = slow5_rec_set_wrapper(self.write, self.s5.header, self.median_before, <const void *>&self.median_before_val)
                 elif a == "read_number":
-                    ret = slow5_rec_set_wrapper(self.write, self.s5.header, self.read_number, <const void *>&self.e2)
+                    ret = slow5_rec_set_wrapper(self.write, self.s5.header, self.read_number, <const void *>&self.read_number_val)
                 elif a == "start_mux":
-                    ret = slow5_rec_set_wrapper(self.write, self.s5.header, self.start_mux, <const void *>&self.e4)
+                    ret = slow5_rec_set_wrapper(self.write, self.s5.header, self.start_mux, <const void *>&self.start_mux_val)
                 elif a == "start_time":
-                    ret = slow5_rec_set_wrapper(self.write, self.s5.header, self.start_time, <const void *>&self.e7)
+                    ret = slow5_rec_set_wrapper(self.write, self.s5.header, self.start_time, <const void *>&self.start_time_val)
                 elif a == "end_reason":
                     # not implemented yet becuase of variability in ONT versioning
                     ret = 0
@@ -1326,11 +1319,11 @@ cdef class Open:
         # write the record
         slow5_rec_write(self.s5, self.write);
 
-        self.e9 = -1.0
-        self.e2 = -1
-        self.e4 = -1
-        self.e7 = -1
-        self.e22 = NULL
+        self.channel_number_val = NULL
+        self.median_before_val = -1.0
+        self.read_number_val = -1
+        self.start_mux_val = -1
+        self.start_time_val = -1
 
         # free memory
         self.logger.debug("write_record: slow5_rec_free()")
