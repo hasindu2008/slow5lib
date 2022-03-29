@@ -87,7 +87,7 @@ setup(
     ext_modules=extensions,
     cmdclass= {'build_ext': build_ext},
     classifiers = [
-        'Development Status :: 4 - Beta',
+        'Development Status :: 5 - Production/Stable',
         'License :: OSI Approved :: MIT License',
         'Programming Language :: C',
         'Programming Language :: Cython',

@@ -17,7 +17,7 @@ endif
 ifeq ($(zstd_local),)
 else
 CFLAGS		+= -DSLOW5_USE_ZSTD
-CPPFLAGS += -I $(zstd_local)
+CPPFLAGS 	+= -I $(zstd_local)
 endif
 BUILD_DIR	= lib
 

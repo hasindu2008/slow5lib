@@ -38,6 +38,7 @@ add_subdirectory(thirdparty/streamvbyte)
 #
 # Build a shared lib
 add_library(slow5 SHARED ${slow5_} ${slow5_idx} ${slow5_misc} ${slow5_press})
+target_link_libraries(slow5 streamvbyte_slow5)
 #
 #just to get rid of Clion warnings
 file(GLOB_RECURSE C_SOURCES RELATIVE ${CMAKE_SOURCE_DIR} "test/*.c")
@@ -46,9 +47,9 @@ add_executable(slow5test test/unit_test_two_rg.c) #run make test to test all tes
 #
 # link with dependencies
 IF (${DEPLOY_PLATFORM} STREQUAL "x86")
-    target_link_libraries(slow5test slow5 streamvbyte -lz -ldl -lm -lpthread -lrt)
-    target_link_libraries(slow5exmp slow5 streamvbyte -lz -ldl -lm -lpthread -lrt -fopenmp)
+    target_link_libraries(slow5test slow5 streamvbyte_slow5 -lz -ldl -lm -lpthread -lrt)
+    target_link_libraries(slow5exmp slow5 streamvbyte_slow5 -lz -ldl -lm -lpthread -lrt -fopenmp)
 ELSE()
-    target_link_libraries(slow5test slow5 -lz -ldl -lm)
-    target_link_libraries(slow5exmp slow5 -lz -ldl -lm)
+    target_link_libraries(slow5test slow5 streamvbyte_slow5 -lz -ldl -lm)
+    target_link_libraries(slow5exmp slow5 streamvbyte_slow5 -lz -ldl -lm)
 ENDIF()

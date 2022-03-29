@@ -22,6 +22,7 @@ cdef class Open:
     cdef pyslow5.slow5_file_t *s5
     cdef pyslow5.slow5_rec_t *rec
     cdef pyslow5.slow5_rec_t *read
+    cdef bint index_state
     cdef pyslow5.uint64_t head_len
     cdef pyslow5.uint64_t aux_len
     cdef pyslow5.slow5_aux_type *s5_aux_type
@@ -65,6 +66,9 @@ cdef class Open:
         self.s5 = NULL
         self.rec = NULL
         self.read = NULL
+        self.p = ""
+        self.m = ""
+        self.index_state = False
         self.s5_aux_type = NULL
         self.aux_get_err = 1
         self.aux_get_len = 0
@@ -116,21 +120,22 @@ cdef class Open:
                             -7: ["SLOW5_ERR_NOTFOUND", "read id not found"],
                             }
         p = str.encode(pathname)
-        self.p = p
+        self.p = strdup(p)
         m = str.encode(mode)
-        self.m = m
+        self.m = strdup(m)
         # print binary strings of filepath and mode
         self.logger.debug("FILE: {}, mode: {}".format(self.p.decode(), self.m.decode()))
+        self.logger.debug("FILE: {}, mode: {}".format(self.p, self.m))
         # opens file and creates slow5 object
         self.s5 = pyslow5.slow5_open(self.p, self.m)
         if self.s5 is NULL:
             raise MemoryError()
         # load or create and load index
         self.logger.debug("Number of read_groups: {}".format(self.s5.header.num_read_groups))
-        self.logger.debug("Creating/loading index...")
-        ret = slow5_idx_load(self.s5)
-        if ret != 0:
-            self.logger.warning("slow5_idx_load return not 0: {}: {}".format(ret, self.error_codes[ret]))
+        # self.logger.debug("Creating/loading index...")
+        # ret = slow5_idx_load(self.s5)
+        # if ret != 0:
+        #     self.logger.warning("slow5_idx_load return not 0: {}: {}".format(ret, self.error_codes[ret]))
 
 
     def __init__(self, pathname, mode, DEBUG=0):
@@ -159,10 +164,11 @@ cdef class Open:
         range = d['range']
         offset = d['offset']
         raw_unit = range / digitisation
-        new_raw = []
-        for i in d['signal']:
-            j = (i + offset) * raw_unit
-            new_raw.append(float("{0:.2f}".format(round(j,2))))
+        # new_raw = []
+        # for i in d['signal']:
+        #     j = (i + offset) * raw_unit
+        #     new_raw.append(float("{0:.2f}".format(round(j,2))))
+        new_raw = np.array(raw_unit * (d['signal'] + offset), dtype=np.float32)
         return new_raw
 
 
@@ -173,6 +179,15 @@ cdef class Open:
         aux = str 'name'/'all' or list of names of auxiliary fields added to return dictionary
         returns dic = dictionary of main fields for read_id, with any aux fields added
         '''
+        if not self.index_state:
+            self.logger.debug("FILE: {}, mode: {}".format(self.p.decode(), self.m.decode()))
+            self.logger.debug("FILE: {}, mode: {}".format(self.p, self.m))
+            self.logger.debug("Creating/loading index...")
+            ret = slow5_idx_load(self.s5)
+            if ret != 0:
+                self.logger.warning("slow5_idx_load return not 0: {}: {}".format(ret, self.error_codes[ret]))
+            else:
+                self.index_state = True
         dic = {}
         aux_dic = {}
         ID = str.encode(read_id)
