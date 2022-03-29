@@ -119,24 +119,31 @@ cdef class Open:
         self.e20 = NULL
         self.e21 = NULL
         self.e22 = NULL
-        self.channel_number = <char *>malloc(sizeof(char)*len("channel_number"))
-        for i in range(len("channel_number")):
-            self.channel_number[i] =  ord("channel_number"[i])
-        self.channel_number = <char *>malloc(sizeof(char)*len("channel_number"))
-        for i in range(len("channel_number")):
-            self.channel_number[i] =  ord("channel_number"[i])
-        self.median_before = <char *>malloc(sizeof(char)*len("median_before"))
-        for i in range(len("median_before")):
-            self.median_before[i] =  ord("median_before"[i])
-        self.read_number = <char *>malloc(sizeof(char)*len("read_number"))
-        for i in range(len("read_number")):
-            self.read_number[i] =  ord("read_number"[i])
-        self.start_mux = <char *>malloc(sizeof(char)*len("start_mux"))
-        for i in range(len("start_mux")):
-            self.start_mux[i] =  ord("start_mux"[i])
-        self.start_time = <char *>malloc(sizeof(char)*len("start_time"))
-        for i in range(len("start_time")):
-            self.start_time[i] =  ord("start_time"[i])
+        # self.channel_number = <char *>malloc(sizeof(char)*len("channel_number"))
+        # for i in range(len("channel_number")):
+        #     self.channel_number[i] =  ord("channel_number"[i])
+        # self.channel_number = <char *>malloc(sizeof(char)*len("channel_number"))
+        # for i in range(len("channel_number")):
+        #     self.channel_number[i] =  ord("channel_number"[i])
+        # self.median_before = <char *>malloc(sizeof(char)*len("median_before"))
+        # for i in range(len("median_before")):
+        #     self.median_before[i] =  ord("median_before"[i])
+        # self.read_number = <char *>malloc(sizeof(char)*len("read_number"))
+        # for i in range(len("read_number")):
+        #     self.read_number[i] =  ord("read_number"[i])
+        # self.start_mux = <char *>malloc(sizeof(char)*len("start_mux"))
+        # for i in range(len("start_mux")):
+        #     self.start_mux[i] =  ord("start_mux"[i])
+        # self.start_time = <char *>malloc(sizeof(char)*len("start_time"))
+        # for i in range(len("start_time")):
+        #     self.start_time[i] =  ord("start_time"[i])
+        self.channel_number = strdup("channel_number")
+        self.median_before = strdup("median_before")
+        self.read_number = strdup("read_number")
+        self.start_mux = strdup("start_mux")
+        self.start_time = strdup("start_time")
+
+
         # cdef something end_reason # some enum
 
         # sets up logging level/verbosity
@@ -1139,9 +1146,10 @@ cdef class Open:
                 else:
                     self.logger.debug("_record_type_validation: aux passed tests...")
                     if a == "channel_number":
-                        self.e22 = <char *>malloc(sizeof(char)*len(aux[a]))
-                        for i in range(len(aux[a])):
-                            self.e22[i] =  ord(aux[a][i])
+                        # self.e22 = <char *>malloc(sizeof(char)*len(aux[a]))
+                        # for i in range(len(aux[a])):
+                        #     self.e22[i] =  ord(aux[a][i])
+                        self.e22=strdup(aux[a].encode())
                         new_aux[a] = 1
                     elif a == "median_before":
                         self.e9 = <double>aux[a]
