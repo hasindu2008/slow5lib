@@ -1139,9 +1139,6 @@ cdef class Open:
                 else:
                     self.logger.debug("_record_type_validation: aux passed tests...")
                     if a == "channel_number":
-                        # self.e22 = <char *>malloc(sizeof(char)*len(aux[a]))
-                        # for i in range(len(aux[a])):
-                        #     self.e22[i] =  ord(aux[a][i])
                         self.channel_number_val=strdup(aux[a].encode())
                         new_aux[a] = 1
                     elif a == "median_before":
@@ -1215,7 +1212,6 @@ cdef class Open:
 
         self.logger.debug("write_record: _record_type_validation running")
         checked_record, checked_aux = self._record_type_validation(record, aux)
-        # checked_aux = self._record_type_validation(aux)
         self.logger.debug("write_record: _record_type_validation done")
 
         # if all checks are good, test self.header_state for 1 time write
@@ -1228,7 +1224,6 @@ cdef class Open:
                     for a in slow5_aux_types:
                         if slow5_aux_types[a] is None:
                             continue
-                        # ret = slow5_aux_meta_add(self.s5.header.aux_meta, a.encode(), slow5_aux_types[a])
                         ret = slow5_aux_meta_add_wrapper(self.s5.header, a.encode(), slow5_aux_types[a])
                         if ret < 0:
                             self.logger.error("write_record: slow5_aux_meta_add_wrapper {}: {} could not set to C s5.header.aux_meta struct".format(a, checked_aux[a]))
@@ -1271,7 +1266,6 @@ cdef class Open:
         self.logger.debug("write_record: self.write assignments done")
 
         self.logger.debug("write_record: self.write processing raw_signal")
-        # self.write.raw_signal = checked_record["raw_signal"] # might need a malloc
         for i in range(checked_record["len_raw_signal"]):
             self.write.raw_signal[i] = checked_record["signal"][i]
 
