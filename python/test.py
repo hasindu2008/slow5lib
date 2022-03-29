@@ -218,7 +218,155 @@ class testAuxAll(unittest.TestCase):
                 self.assertEqual(int(sum([round(i, 2) for i in read['signal'][:10]])), int(results[i][1]))
                 self.assertEqual(read['start_time'] ,results[i][2])
 
+class testWrite(unittest.TestCase):
+    def setUp(self):
+        self.s5 = slow5.Open('examples/example2.slow5','r', DEBUG=debug)
+        self.F = slow5.Open('examples/example_write.slow5','w', DEBUG=debug)
+    def tearDown(self):
+        self.F.close()
+    def test_get_empty_header(self):
+        results = {"asic_id": None,
+                  "asic_id_eeprom": None,
+                  "asic_temp": None,
+                  "asic_version": None,
+                  "auto_update": None,
+                  "auto_update_source": None,
+                  "barcoding_enabled": None,
+                  "bream_is_standard": None,
+                  "configuration_version": None,
+                  "device_id": None,
+                  "device_type": None,
+                  "distribution_status": None,
+                  "distribution_version": None,
+                  "exp_script_name": None,
+                  "exp_script_purpose": None,
+                  "exp_start_time": None,
+                  "experiment_duration_set": None,
+                  "flow_cell_id": None,
+                  "flow_cell_product_code": None,
+                  "guppy_version": None,
+                  "heatsink_temp": None,
+                  "hostname": None,
+                  "installation_type": None,
+                  "local_basecalling": None,
+                  "operating_system": None,
+                  "package": None,
+                  "protocol_group_id": None,
+                  "protocol_run_id": None,
+                  "protocol_start_time": None,
+                  "protocols_version": None,
+                  "run_id": None,
+                  "sample_frequency": None,
+                  "sample_id": None,
+                  "sequencing_kit": None,
+                  "usb_config": None,
+                  "version": None,
+                  "hublett_board_id": None,
+                  "satellite_firmware_version": None}
+        header = self.F.get_empty_header()
+        for i, head in enumerate(header):
+            with self.subTest(i=i, attr=head):
+                self.assertEqual(header[head], results[head])
+    def test_write_header(self):
+        # This doesn't actually write the header, but adds it to object
+        # Header is actually written when writing first record
+        results = 0
+        header = self.F.get_empty_header()
+        counter = 0
+        for i in header:
+            header[i] = "test_{}".format(counter)
+            counter += 1
+        ret = self.F.write_header(header)
+        self.assertEqual(ret, results)
+    def test_get_empty_record(self):
+        results = {"read_id": None,
+                  "read_group": 0,
+                  "digitisation": None,
+                  "offset": None,
+                  "range": None,
+                  "sampling_rate": None,
+                  "len_raw_signal": None,
+                  "signal": None}
+        record = self.F.get_empty_record()
+        for i, rec in enumerate(record):
+            with self.subTest(i=i, attr=rec):
+                self.assertEqual(record[rec], results[rec])
+    def test_write_records(self):
+        results = [0]*8
+        ret_list = []
+        header = self.F.get_empty_header()
+        counter = 0
+        for i in header:
+            header[i] = "test_{}".format(counter)
+            counter += 1
+        ret = self.F.write_header(header)
+        reads = self.s5.seq_reads()
+        for read in reads:
+            record = self.F.get_empty_record()
+            for i in read:
+                if i in record:
+                    record[i] = read[i]
+            ret = self.F.write_record(record)
+            ret_list.append(ret)
+        self.assertEqual(ret_list, results)
 
+
+class testWriteData(unittest.TestCase):
+    def setUp(self):
+        self.s5 = slow5.Open('examples/example2.slow5','r', DEBUG=debug)
+        self.F = slow5.Open('examples/example_write.slow5','r', DEBUG=debug)
+    def test_write_matches_read(self):
+        reads = self.s5.seq_reads()
+        for read in reads:
+            wread = self.F.get_read(read["read_id"])
+            for i, rec in enumerate(wread):
+                # TODO: remove this when read_groups are added
+                with self.subTest(i=i, attr=rec):
+                    if rec == "read_group":
+                        continue
+                    if rec == "signal":
+                        self.assertEqual(int(sum([round(i, 2) for i in wread[rec][:10]])), int(sum([round(i, 2) for i in read[rec][:10]])))
+                    else:
+                        self.assertEqual(wread[rec], read[rec])
+
+
+class testWriteAux(unittest.TestCase):
+    def setUp(self):
+        self.s5 = slow5.Open('examples/example2.slow5','r', DEBUG=debug)
+        self.F = slow5.Open('examples/example_write_aux.slow5','w', DEBUG=debug)
+    def tearDown(self):
+        self.F.close()
+    def test_get_empty_aux(self):
+        results = {"channel_number": None,
+               "median_before": None,
+               "read_number": None,
+               "start_mux": None,
+               "start_time": None,
+               "end_reason": None}
+        _, aux = self.F.get_empty_record(aux=True)
+        for i, rec in enumerate(aux):
+            with self.subTest(i=i, attr=rec):
+                self.assertEqual(aux[rec], results[rec])
+    def test_write_records_aux(self):
+        results = [0]*8
+        ret_list = []
+        header = self.F.get_empty_header()
+        counter = 0
+        for i in header:
+            header[i] = "test_{}".format(counter)
+            counter += 1
+        ret = self.F.write_header(header)
+        reads = self.s5.seq_reads(aux='all')
+        for read in reads:
+            record, aux = self.F.get_empty_record(aux=True)
+            for i in read:
+                if i in record:
+                    record[i] = read[i]
+                if i in aux:
+                    aux[i] = read[i]
+            ret = self.F.write_record(record, aux)
+            ret_list.append(ret)
+        self.assertEqual(ret_list, results)
 
 
 # def test_bad_type(self):
