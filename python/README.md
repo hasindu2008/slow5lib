@@ -6,6 +6,22 @@ The slow5 python library (pyslow5) allows a user to read slow5 and blow5 files.
 
 Initial setup and example info for environment
 ###### slow5lib needs python3.4.2 or higher.
+
+If you only want to use the python library, then you can simply install using pip
+
+Using a virtual environment (see below if you need to install python)
+
+```bash
+python3 -m venv path/to/slow5libvenv
+source path/to/slow5libvenv/bin/activate
+python3 -m pip install --upgrade pip
+python3 -m pip install setuptools cython numpy wheel
+# do this separately, after the libs above
+python3 -m pip install pyslow5
+```
+
+### Dev install
+
 ```bash
 # If your native python3 meets this requirement, you can use that, or use a
 # specific version installed with deadsnakes below. If you install with deadsnakes,
@@ -25,7 +41,7 @@ sudo apt install python3.7 python3.7-dev python3.7-venv
 # get zlib1g-dev
 sudo apt-get update && sudo apt-get install -y zlib1g-dev
 
-# Chekc with
+# Check with
 python3 --version
 
 # You will also need the python headers if you don't already have them installed.
@@ -71,12 +87,17 @@ python3 -m pip uninstall pyslow5
 
 ## Usage
 
+### Reading a file
+
 #### `Open(FILE, mode, DEBUG=0)`:
 
 The pyslow5 libraryr has one main Class, `pyslow5.Open` which opens a slow5/blow5 (slow5 for easy reference) file for reading.
 
 `FILE`: the file or filepath of the slow5 file to open
-`mode`: mode in which to open the file. Currently, only `r` is accepted for read only.
+`mode`: mode in which to open the file.
++ `r`= read only
++ `w`= write/overwrite
++ `a`= append
 
 This is designed to mimic Python's native Open() to help users remember the syntax
 
@@ -188,4 +209,129 @@ Returns an ordered list of auxiliary attribute types (same order as get_aux_name
 
 This can mostly be ignored, but will be used in error tracing in the future, as auxiliary field requests have multiple types, each with their own calls, and not all are used. It could be the case a call for an auxiliary filed fails, and knowing which type the field is requesting is very helpful in understanding which function in C is being called, that could be causing the error.
 
-See documentation for full example
+### Writing a file
+
+To write a file, `mode` in `Open()` must be set to `'w'`
+
+#### `get_empty_header()`:
+
+Returns a dictionary containing all known header attributes with their values set to `None`.
+
+User can modify each value, and add or remove attributes to be used has header items.
+All values end up stored as strings, and anything left as `None` will be skipped.
+To write header, see `write_header()`
+
+Example:
+
+```python
+s5 = slow5.Open(file,'w')
+header = s5.get_empty_header()
+```
+
+#### `write_header(header, read_group=0)`:
+
+Write header to file
+
++ `header` = populated dictionary from `get_empty_header()`
++ returns 0 on success, <0 on error with error code
+
+You must write `read_group=0` (default) first before writing any other read_groups, and it is advised to write read_groups in sequential order.
+
+Example:
+
+```python
+# Get some empty headers
+header = s5.get_empty_header()
+header2 = s5.get_empty_header()
+
+# Populate headers with some test data
+counter = 0
+for i in header:
+    header[i] = "test_{}".format(counter)
+    counter += 1
+
+for i in header2:
+    header2[i] = "test_{}".format(counter)
+    counter += 1
+
+# Write first read group
+ret = s5.write_header(header)
+print("ret: write_header(): {}".format(ret))
+# Write second read group, etc
+ret = s5.write_header(header2, read_group=1)
+print("ret: write_header(): {}".format(ret))
+```
+
+#### `get_empty_record(aux=False)`:
+
+Get empty read record for populating with data. Use with `write_record()`
+
++ aux = Bool for returning empty aux dictionary as well as read dictionary
++ returns a single read dictionary or a read and aux dictionary depending on aux flag
+
+Example:
+```python
+# open some file to read. We will copy the data then write it
+# including aux fields
+s5_read = slow5.Open(read_file,'r')
+reads = s5_read.seq_reads(aux='all')
+
+# For each read in s5_read...
+for read in reads:
+    # get an empty record and aux dictionary
+    record, aux = s5.get_empty_record(aux=True)
+    # for each field in read...
+    for i in read:
+        # if the field is in the record dictionary...
+        if i in record:
+            # copy the value over...
+            record[i] = read[i]
+        do same for aux dictionary
+        if i in aux:
+            aux[i] = read[i]
+    # write the record
+    ret = s5.write_record(record, aux)
+    print("ret: write_record(): {}".format(ret))
+```
+
+#### `write_record(record, aux=None)`:
+
+Write a record and optional aux fields.
+
++ record = a populated dictionary from `get_empty_record()`
++ aux = an empty aux record returned by `get_empty_record(aux=True)`
++ returns 0 on success and -1 on error/failure
+
+Example:
+
+```python
+
+record, aux = s5.get_empty_record(aux=True)
+# populate record, aux dictionaries
+#....
+# Write record
+ret = s5.write_record(record, aux)
+print("ret: write_record(): {}".format(ret))
+```
+
+#### `close()`:
+
+Closes a record open for writing or appending, and writes an End Of File (EOF) flag.
+
+If not explicitly closed, when the `s5` object goes out of context in python, it will also trigger a close to attempt to avoid having a missing EOF.
+
+Please call this when you are finished writing a file.
+
+Example:
+
+```python
+s5 = slow5.Open(file,'w')
+
+# do some writing....
+
+# Write's EOF and closes file
+s5.close()
+```
+
+
+See documentation for full examples
