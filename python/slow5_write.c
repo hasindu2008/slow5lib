@@ -4,7 +4,7 @@
 
 slow5_file_t *slow5_open_write(char *filename, char *mode){
 
-    FILE *fp = fopen(filename, mode);
+    FILE *fp = fopen(filename, "w");
     if(fp==NULL){
         fprintf(stderr,"Error opening file!\n");
         return NULL;
@@ -40,6 +40,51 @@ slow5_file_t *slow5_open_write(char *filename, char *mode){
     }
 
     return sf;
+}
+
+slow5_file_t *slow5_open_write_append(char *filename, char *mode){
+
+    slow5_file_t* slow5File = slow5_open(filename, "r");
+    if(!slow5File){
+        fprintf(stderr,"Opening %s failed\n", filename);
+        exit(EXIT_FAILURE);
+    }
+
+    if(slow5File->format==SLOW5_FORMAT_BINARY){
+        if(fseek(slow5File->fp , 0, SEEK_END) !=0 ){
+            fprintf(stderr,"Fseek to the end of the BLOW file failed.");
+            exit(EXIT_FAILURE);
+        }
+        const char eof[] = SLOW5_BINARY_EOF;
+        if(slow5_is_eof(slow5File->fp, eof, sizeof eof)!=1){
+            fprintf(stderr,"No valid slow5 eof marker at the end of the BLOW5 file."); //should be a warning instead?
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    int ret = fclose(slow5File->fp);
+    if(ret != 0){
+        fprintf(stderr,"Closing %s after reading the header failed\n", filename);
+        exit(EXIT_FAILURE);
+    }
+
+    //opening a file like this twice is unnecessary if we use open_with, but lazy for now
+    slow5File->fp = fopen(filename, "r+");
+    if(slow5File->fp == NULL){
+        fprintf(stderr,"Opening %s for appending failed\n", filename);
+        exit(EXIT_FAILURE);
+    }
+
+    if(slow5File->format==SLOW5_FORMAT_BINARY){
+        const char eof[] = SLOW5_BINARY_EOF;
+        if(fseek(slow5File->fp, - (sizeof *eof) * (sizeof eof) , SEEK_END) != 0){
+            fprintf(stderr,"Fseek to the end of the BLOW file failed before the EOF failed.");
+            exit(EXIT_FAILURE);
+        }
+    }    
+
+    return slow5File;
+
 }
 
 
@@ -91,9 +136,11 @@ int slow5_rec_set_string_wrapper(struct slow5_rec *read, slow5_hdr_t *header, co
 
 #ifdef DEBUG
 
+#define FILE_NAME "test.blow5"
+
 void single_read_group_file(){
 
-    slow5_file_t *sf = slow5_open_write("test.blow5", "w");
+    slow5_file_t *sf = slow5_open_write(FILE_NAME, "w");
     if(sf==NULL){
         fprintf(stderr,"Error opening file!\n");
         exit(EXIT_FAILURE);
@@ -224,6 +271,80 @@ void single_read_group_file(){
 
     slow5_close_write(sf);
 
+
+    // // now some appending fun
+
+    sf = slow5_open_write_append(FILE_NAME, "a");
+    if(sf==NULL){
+        fprintf(stderr,"Error opening file!\n");
+        exit(EXIT_FAILURE);
+    }
+
+    /******************* A SLOW5 record ************************/
+    slow5_record = slow5_rec_init();
+    if(slow5_record == NULL){
+        fprintf(stderr,"Could not allocate space for a slow5 record.");
+        exit(EXIT_FAILURE);
+    }
+
+    //primary fields
+    slow5_record -> read_id = strdup("read_1");
+    if(slow5_record->read_id == NULL){
+        fprintf(stderr,"Could not allocate space for strdup.");
+        exit(EXIT_FAILURE);
+    }
+    slow5_record -> read_id_len = strlen(slow5_record -> read_id);
+    slow5_record -> read_group = 0;
+    slow5_record -> digitisation = 4096.0;
+    slow5_record -> offset = 4.0;
+    slow5_record -> range = 12.0;
+    slow5_record -> sampling_rate = 4000.0;
+    slow5_record -> len_raw_signal = 12;
+    slow5_record -> raw_signal = malloc(sizeof(int16_t)*12);
+    if(slow5_record->raw_signal == NULL){
+        fprintf(stderr,"Could not allocate space for raw signal.");
+        exit(EXIT_FAILURE);
+    }
+    for(int i=0;i<12;i++){
+        slow5_record->raw_signal[i] = i;
+    }
+
+    //auxiliary fileds
+    channel_number = "channel_number";
+    median_before = 0.2;
+    read_number = 11;
+    start_mux = 2;
+    start_time = 200;
+
+    if(slow5_rec_set_string_wrapper(slow5_record, sf->header, "channel_number", channel_number)!=0){
+        fprintf(stderr,"Error setting channel_number auxilliary field\n");
+        exit(EXIT_FAILURE);
+    }
+    if(slow5_rec_set_wrapper(slow5_record, sf->header, "median_before", &median_before)!=0){
+        fprintf(stderr,"Error setting median_before auxilliary field\n");
+        exit(EXIT_FAILURE);
+    }
+    if(slow5_rec_set_wrapper(slow5_record, sf->header, "read_number", &read_number)!=0){
+        fprintf(stderr,"Error setting read_number auxilliary field\n");
+        exit(EXIT_FAILURE);
+    }
+
+    if(slow5_rec_set_wrapper(slow5_record, sf->header, "start_mux", &start_mux)!=0){
+        fprintf(stderr,"Error setting start_mux auxilliary field\n");
+        exit(EXIT_FAILURE);
+    }
+
+    if(slow5_rec_set_wrapper(slow5_record, sf->header, "start_time", &start_time)!=0){
+        fprintf(stderr,"Error setting start_time auxilliary field\n");
+        exit(EXIT_FAILURE);
+    }
+
+    slow5_rec_write(sf, slow5_record);
+
+    slow5_rec_free(slow5_record);
+
+    slow5_close_write(sf);    
+
 }
 
 
@@ -239,4 +360,4 @@ int main(){
 }
 
 #endif
-//gcc -Wall python/slow5_write.c  -I include/ lib/libslow5.a -lm -lz  -g -D DEBUG=1
+//gcc -Wall python/slow5_write.c  -I include/ lib/libslow5.a -lm -lz  -O2 -g -D DEBUG=1
