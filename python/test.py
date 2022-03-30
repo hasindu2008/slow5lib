@@ -131,7 +131,7 @@ class TestYieldRead(unittest.TestCase):
                 else:
                     self.assertEqual(read['read_id'], results[i])
 
-class testHeaders(unittest.TestCase):
+class TestHeaders(unittest.TestCase):
     def setUp(self):
         self.s5 = slow5.Open('examples/example.slow5','r', DEBUG=debug)
 
@@ -183,7 +183,7 @@ class testHeaders(unittest.TestCase):
                 val = self.s5.get_header_value(attr)
                 self.assertEqual(val, results[i])
 
-class testAuxAll(unittest.TestCase):
+class TestAuxAll(unittest.TestCase):
     def setUp(self):
         self.s5 = slow5.Open('examples/example2.slow5','r', DEBUG=debug)
     def test_get_aux_names(self):
@@ -218,7 +218,7 @@ class testAuxAll(unittest.TestCase):
                 self.assertEqual(int(sum([round(i, 2) for i in read['signal'][:10]])), int(results[i][1]))
                 self.assertEqual(read['start_time'] ,results[i][2])
 
-class testWrite(unittest.TestCase):
+class TestWrite(unittest.TestCase):
     def setUp(self):
         self.s5 = slow5.Open('examples/example2.slow5','r', DEBUG=debug)
         self.F = slow5.Open('examples/example_write.slow5','w', DEBUG=debug)
@@ -311,7 +311,7 @@ class testWrite(unittest.TestCase):
         self.assertEqual(ret_list, results)
 
 
-class testWriteData(unittest.TestCase):
+class TestWriteData(unittest.TestCase):
     def setUp(self):
         self.s5 = slow5.Open('examples/example2.slow5','r', DEBUG=debug)
         self.F = slow5.Open('examples/example_write.slow5','r', DEBUG=debug)
@@ -330,7 +330,7 @@ class testWriteData(unittest.TestCase):
                         self.assertEqual(wread[rec], read[rec])
 
 
-class testWriteAux(unittest.TestCase):
+class TestWriteAux(unittest.TestCase):
     def setUp(self):
         self.s5 = slow5.Open('examples/example2.slow5','r', DEBUG=debug)
         self.F = slow5.Open('examples/example_write_aux.slow5','w', DEBUG=debug)

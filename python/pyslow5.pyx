@@ -231,7 +231,7 @@ cdef class Open:
                 self.close_state = True
                 self.logger.debug("{} closed".format(self.path))
             else:
-                self.logger.error("{} already closed".format(self.path))
+                self.logger.debug("{} already closed".format(self.path))
         if self.state == 0:
             if self.s5 is not NULL:
                 pyslow5.slow5_idx_unload(self.s5)
@@ -1338,7 +1338,7 @@ cdef class Open:
                 self.close_state = True
                 self.logger.debug("{} closed".format(self.path))
             else:
-                self.logger.error("{} already closed".format(self.path))
+                self.logger.warning("{} already closed".format(self.path))
         else:
-            self.logger.error("{} not open for writing".format(self.path))
+            self.logger.error("{} not open for writing, remake class object to refresh".format(self.path))
         return
