@@ -26,6 +26,7 @@ cdef class Open:
     cdef pyslow5.slow5_rec_t *write
     cdef bint index_state
     cdef bint header_state
+    cdef bint header_add_attr_state
     cdef bint close_state
     cdef pyslow5.uint64_t head_len
     cdef pyslow5.uint64_t aux_len
@@ -93,6 +94,7 @@ cdef class Open:
         self.state = -1
         self.index_state = False
         self.header_state = False
+        self.header_add_attr_state = False
         self.close_state = False
         self.s5_aux_type = NULL
         self.aux_get_err = 1
@@ -1162,7 +1164,7 @@ cdef class Open:
         return user_record, new_aux
 
 
-    def write_header(self, header):
+    def write_header(self, header, read_group=0):
         '''
         write slow5 header to file.
         takes header dic for attributes, then write once.
@@ -1172,10 +1174,23 @@ cdef class Open:
         checked_header = self._header_type_validation(header)
 
         errors = False
-        for h in checked_header:
-            ret = slow5_hdr_add_attr(h.encode(), self.s5.header)
+        if not self.header_add_attr_state:
+            if read_group > 0:
+                self.logger.error("write_header: You must set read_group=0 first")
+                self.logger.error("write_header: headers failed to initialise.")
+                return -1
+            for h in checked_header:
+                ret = slow5_hdr_add_attr(h.encode(), self.s5.header)
+                if ret < 0:
+                    self.logger.error("write_header: slow5_hdr_add_attr {}: {} could not initialise to C s5.header struct".format(h, checked_header[h]))
+                    errors = True
+                else:
+                    self.header_add_attr_state = True
+
+        if read_group > 0 and self.header_add_attr_state:
+            ret = slow5_hdr_add_rg(self.s5.header)
             if ret < 0:
-                self.logger.error("write_header: slow5_hdr_add_attr {}: {} could not initialise to C s5.header struct".format(h, checked_header[h]))
+                self.logger.error("write_header: slow5_hdr_add_rg failed for read_group: {}".format(read_group))
                 errors = True
 
         if errors:
@@ -1183,7 +1198,7 @@ cdef class Open:
             return -1
 
         for h in checked_header:
-            ret = slow5_hdr_set(h.encode(), checked_header[h].encode(), 0, self.s5.header)
+            ret = slow5_hdr_set(h.encode(), checked_header[h].encode(), read_group, self.s5.header)
             if ret < 0:
                 self.logger.error("write_header: slow5_hdr_set {}: {} could not set to C s5.header struct".format(h, checked_header[h]))
                 errors = True
@@ -1254,7 +1269,7 @@ cdef class Open:
         self.logger.debug("write_record: self.write assignments...")
         checked_record["read_id"] = checked_record["read_id"].encode()
         self.write.read_id = checked_record["read_id"]
-        self.write.read_group = 0
+        self.write.read_group = checked_record["read_group"]
         self.write.digitisation = checked_record["digitisation"]
         self.write.offset = checked_record["offset"]
         self.write.range = checked_record["range"]

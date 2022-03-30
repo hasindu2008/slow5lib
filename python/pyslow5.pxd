@@ -120,6 +120,7 @@ cdef extern from "pyslow5.h":
     # from slow5.h
     int slow5_hdr_add_attr(const char *attr, slow5_hdr_t *header);
     int slow5_hdr_set(const char *attr, const char *value, uint32_t read_group, slow5_hdr_t *header);
+    int64_t slow5_hdr_add_rg(slow5_hdr_t *header);
     slow5_rec_t *slow5_rec_init();
 
     # from slow5_extra.h
