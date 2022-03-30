@@ -50,9 +50,11 @@ typedef struct {
     int32_t n_rec;
     int32_t capacity_rec;
 
-    char **mem_records;
+    char **mem_records; //unused in get()
     size_t *mem_bytes;
+
     slow5_rec_t **slow5_rec;
+    char **rid; //only used in get()
 
 } db_t;
 
@@ -166,6 +168,16 @@ void parse_single(core_t* core,db_t* db, int32_t i){
 
 void work_per_single_read(core_t* core,db_t* db, int32_t i){
     parse_single(core,db,i);
+}
+
+void work_per_single_read2(core_t* core,db_t* db, int32_t i){
+    assert(db->rid[i]!=NULL);
+    int ret = slow5_get(db->rid[i],&db->slow5_rec[i], core->sf);
+    if(ret<0){
+        fprintf(stderr,"Error when fetching the read %s\n",db->rid[i]);
+        exit(EXIT_FAILURE);
+    }
+    db->mem_bytes[i]=ret;
 
 }
 
@@ -303,6 +315,26 @@ void process_db(core_t* core,db_t* db){
 }
 
 
+int slow5_get_batch(slow5_rec_t ***read, slow5_file_t *s5p, char **rid, int num_rid, int num_threads){
+
+    core_t *core = init_core(s5p,num_rid,num_threads);
+    db_t* db = init_db(core);
+
+    db->rid = rid;
+    db->n_rec = num_rid;
+    work_db(core,db,work_per_single_read2);
+    fprintf(stderr,"loaded and parsed %d recs\n",num_rid);
+
+    *read = db->slow5_rec;
+
+    free_db_tmp(db);
+    free_db(db);
+    free_core(core);
+
+    return num_rid;
+}
+
+
 int slow5_get_next_batch(slow5_rec_t ***read, slow5_file_t *s5p, int batch_size, int num_threads){
 
     core_t *core = init_core(s5p,batch_size,num_threads);
@@ -336,8 +368,8 @@ void slow5_free_batch(slow5_rec_t ***read, int num_rec){
 
 #if DEBUG
 
-// #define FILE_PATH "../f5c/test/chr22_meth_example/reads.blow5"
-#define FILE_PATH "/home/jamfer/Data/SK/multi_fast5/s5/FAK40634_d1cc054609fe2c5fcdeac358864f9dc81c8bb793_95.blow5"
+#define FILE_PATH "../f5c/test/chr22_meth_example/reads.blow5"
+//#define FILE_PATH "/home/jamfer/Data/SK/multi_fast5/s5/FAK40634_d1cc054609fe2c5fcdeac358864f9dc81c8bb793_95.blow5"
 
 int main(){
 
@@ -365,8 +397,42 @@ int main(){
 
     slow5_close(sp);
 
+
+    //now random read fun
+    sp = slow5_open(FILE_PATH,"r");
+    if(sp==NULL){
+       fprintf(stderr,"Error in opening file\n");
+       exit(EXIT_FAILURE);
+    }
+    rec = NULL;
+
+    ret = slow5_idx_load(sp);
+    if(ret<0){
+        fprintf(stderr,"Error in loading index\n");
+        exit(EXIT_FAILURE);
+    }
+
+    int num_rid = 4;
+    num_thread = 2;
+    char *rid[num_rid];
+    rid[0]="428922bd-39fe-4e4b-9baa-478334aa17d0";
+    rid[1]="da81525b-b4d5-410b-ab8b-e5dd97aa7420",
+    rid[2]="7b12f432-82b8-4170-a578-8e6acbb1f658";
+    rid[3]="f6327045-c041-4c9e-8a14-c430e990a3c2";
+
+    ret = slow5_get_batch(&rec, sp, rid, num_rid, num_thread);
+    assert(ret==num_rid);
+    for(int i=0;i<ret;i++){
+        uint64_t len_raw_signal = rec[i]->len_raw_signal;
+        printf("%s\t%ld\n",rec[i]->read_id,len_raw_signal);
+    }
+    slow5_free_batch(&rec,ret);
+
+    slow5_idx_unload(sp);
+    slow5_close(sp);
+
     return 0;
 }
-//gcc -Wall python/slow5threads.c -I include/ lib/libslow5.a  -lpthread -lz
+//gcc -Wall python/slow5threads.c -I include/ lib/libslow5.a  -lpthread -lz -g -O2 -DDEBUG=1
 
 #endif
