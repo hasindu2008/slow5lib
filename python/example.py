@@ -205,11 +205,9 @@ reads = s58.seq_reads()
 
 for read in reads:
     record = F.get_empty_record()
-    print(read)
     for i in read:
         if i in record:
             record[i] = read[i]
-    print(record)
     ret = F.write_record(record)
     print("ret: write_record(): {}".format(ret))
 
@@ -237,14 +235,11 @@ reads = s58.seq_reads(aux='all')
 
 for read in reads:
     record, aux = F.get_empty_record(aux=True)
-    print(read)
     for i in read:
         if i in record:
             record[i] = read[i]
         if i in aux:
             aux[i] = read[i]
-    print(record)
-    print(aux)
     ret = F.write_record(record, aux)
     print("ret: write_record(): {}".format(ret))
 
