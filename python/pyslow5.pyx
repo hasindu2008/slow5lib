@@ -209,9 +209,9 @@ cdef class Open:
             if self.s5 is NULL:
                 self.logger.error("File '{}' could not be opened for writing.".format(self.path))
         elif self.state == 2:
-            self.logger.error("File '{}' append method not yet implemented, please bug devs".format(self.path, self.mode))
-            # self.s5 = pyslow5. TODO: open file for writing and put pointer to end of file
-            # pointer at end of file
+            self.s5 = slow5_open_write_append(self.p, self.m)
+            if self.s5 is NULL:
+                self.logger.error("File '{}' could not be opened for writing - appending.".format(self.path))
         else:
             self.logger.error("File '{}' unknown open method: {}".format(self.path, self.mode))
         # check object was actually created.
@@ -240,7 +240,7 @@ cdef class Open:
             slow5_rec_free(self.read)
         if self.write is not NULL:
             slow5_rec_free(self.write)
-        if self.state == 1:
+        if self.state in [1, 2]:
             if not self.close_state:
                 slow5_close_write(self.s5)
                 self.close_state = True
@@ -1428,6 +1428,7 @@ cdef class Open:
         self.logger.debug("write_record: self.write assignments...")
         checked_record["read_id"] = checked_record["read_id"].encode()
         self.write.read_id = checked_record["read_id"]
+        self.write.read_id_len = len(checked_record["read_id"])
         self.write.read_group = checked_record["read_group"]
         self.write.digitisation = checked_record["digitisation"]
         self.write.offset = checked_record["offset"]

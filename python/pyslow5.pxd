@@ -66,6 +66,7 @@ cdef extern from "pyslow5.h":
         slow5_file_meta_t meta
 
     ctypedef struct slow5_rec_t:
+        uint16_t read_id_len
         char* read_id
         uint32_t read_group
         double digitisation
@@ -139,6 +140,7 @@ cdef extern from "slow5_write.h":
 
     #from slow5_write.h
     slow5_file_t *slow5_open_write(char *filename, char *mode);
+    slow5_file_t *slow5_open_write_append(char *filename, char *mode);
     int slow5_close_write(slow5_file_t *sf);
     int slow5_header_write(slow5_file_t *sf);
     int slow5_rec_write(slow5_file_t *sf, slow5_rec_t *rec);
