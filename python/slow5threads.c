@@ -11,6 +11,7 @@
 #include <string.h>
 #include <slow5/slow5.h>
 #include "../src/slow5_extra.h"
+#include "slow5_write.h"
 
 #define WORK_STEAL 1 //simple work stealing enabled or not (no work stealing mean no load balancing)
 #define STEAL_THRESH 1 //stealing threshold
@@ -153,13 +154,30 @@ int load_db(core_t* core, db_t* db) {
 }
 
 
+int write_db(core_t* core, db_t* db) {
+
+
+    int32_t i = 0;
+    for(i=0;i<db->n_rec;i++) {
+
+        size_t n = fwrite(db->mem_records[i], db->mem_bytes[i], 1, core->sf->fp);
+        if (n != 1) {
+            fprintf(stderr,"Writing failed for read id %s!\n", db->slow5_rec[i]->read_id);
+        } 
+
+    }
+
+    return i;
+}
+
+
 void parse_single(core_t* core,db_t* db, int32_t i){
 
     assert(db->mem_bytes[i]>0);
     assert(db->mem_records[i]!=NULL);
     int ret=slow5_rec_depress_parse(&db->mem_records[i], &db->mem_bytes[i], NULL, &db->slow5_rec[i], core->sf);
     if(ret!=0){
-        fprintf(stderr,"Error parsing the record %d",i);
+        fprintf(stderr,"Error parsing the record %s",db->slow5_rec[i]->read_id);
         exit(EXIT_FAILURE);
     }
 
@@ -180,6 +198,28 @@ void work_per_single_read2(core_t* core,db_t* db, int32_t i){
     db->mem_bytes[i]=ret;
 
 }
+
+void work_per_single_read3(core_t* core,db_t* db, int32_t i){
+    assert(db->slow5_rec[i]!=NULL);
+    slow5_file_t *sf = core->sf;
+    //fprintf(stderr,"Here %d\n",i);
+    slow5_press_method_t press_out = {SLOW5_COMPRESS_ZLIB, SLOW5_COMPRESS_SVB_ZD};
+    slow5_press_t *press_ptr = slow5_press_init(press_out);
+    if(!press_ptr){
+        fprintf(stderr,"Could not initialize the slow5 compression method%s","");
+        exit(EXIT_FAILURE);
+    }    
+    db->mem_records[i] = slow5_rec_to_mem(db->slow5_rec[i], sf->header->aux_meta, sf->format, press_ptr, &(db->mem_bytes[i]));
+    //fprintf(stderr,"Here 2 %d\n",i);
+    slow5_press_free(press_ptr);
+    
+    if(db->mem_records[i] == NULL){
+        fprintf(stderr,"Error when converting the read %d to memory\n",i);
+        exit(EXIT_FAILURE);
+    }
+
+}
+
 
 /* partially free a data batch - only the read dependent allocations are freed */
 void free_db_tmp(db_t* db) {
@@ -355,6 +395,30 @@ int slow5_get_next_batch(slow5_rec_t ***read, slow5_file_t *s5p, int batch_size,
 }
 
 
+int slow5_write_batch(slow5_rec_t **read, slow5_file_t *s5p, int batch_size, int num_threads){
+
+    core_t *core = init_core(s5p,batch_size,num_threads);
+    db_t* db = init_db(core);
+
+    db->n_rec = batch_size;
+    free(db->slow5_rec); //stupid lazy for now
+    db->slow5_rec = read;
+    work_db(core,db,work_per_single_read3);
+    fprintf(stderr,"Processed %d recs\n",batch_size);
+
+    int num_wr=write_db(core,db);
+    fprintf(stderr,"Written %d recs\n",num_wr);
+
+    db->slow5_rec = NULL;
+    free_db_tmp(db);
+    free_db(db);
+    free_core(core);
+
+    return num_wr;
+}
+
+
+
 void slow5_free_batch(slow5_rec_t ***read, int num_rec){
 
     slow5_rec_t **reads = *read;
@@ -366,12 +430,13 @@ void slow5_free_batch(slow5_rec_t ***read, int num_rec){
     *read = NULL;
 }
 
-#if DEBUG
+#ifdef DEBUGTHREAD
 
-#define FILE_PATH "../f5c/test/chr22_meth_example/reads.blow5"
+#define FILE_PATH "test.blow5" //for reading
+#define FILE_PATH_WRITE "test.blow5"
 //#define FILE_PATH "/home/jamfer/Data/SK/multi_fast5/s5/FAK40634_d1cc054609fe2c5fcdeac358864f9dc81c8bb793_95.blow5"
 
-int main(){
+int read_func(){
 
     slow5_file_t *sp = slow5_open(FILE_PATH,"r");
     if(sp==NULL){
@@ -415,10 +480,10 @@ int main(){
     int num_rid = 4;
     num_thread = 2;
     char *rid[num_rid];
-    rid[0]="428922bd-39fe-4e4b-9baa-478334aa17d0";
-    rid[1]="da81525b-b4d5-410b-ab8b-e5dd97aa7420",
-    rid[2]="7b12f432-82b8-4170-a578-8e6acbb1f658";
-    rid[3]="f6327045-c041-4c9e-8a14-c430e990a3c2";
+    rid[0]="read_id_50";
+    rid[1]="read_id_3999",
+    rid[2]="read_id_0";
+    rid[3]="read_id_4";
 
     ret = slow5_get_batch(&rec, sp, rid, num_rid, num_thread);
     assert(ret==num_rid);
@@ -433,6 +498,173 @@ int main(){
 
     return 0;
 }
-//gcc -Wall python/slow5threads.c -I include/ lib/libslow5.a  -lpthread -lz -g -O2 -DDEBUG=1
+
+
+int write_func(){
+
+    slow5_file_t *sf = slow5_open_write(FILE_PATH_WRITE,"w");
+    if(sf==NULL){
+        fprintf(stderr,"Error in opening file\n");
+        exit(EXIT_FAILURE);
+    }
+
+  /*********************** Header ******************/
+
+    slow5_hdr_t *header=sf->header;
+    //add a header group attribute called run_id
+    if (slow5_hdr_add_attr("run_id", header) != 0){
+        fprintf(stderr,"Error adding run_id attribute\n");
+        exit(EXIT_FAILURE);
+    }
+    //add another header group attribute called asic_id
+    if (slow5_hdr_add_attr("asic_id", header) != 0){
+        fprintf(stderr,"Error adding asic_id attribute\n");
+        exit(EXIT_FAILURE);
+    }
+
+    //set the run_id attribute to "run_0" for read group 0
+    if (slow5_hdr_set("run_id", "run_0", 0, header) != 0){
+        fprintf(stderr,"Error setting run_id attribute in read group 0\n");
+        exit(EXIT_FAILURE);
+    }
+    //set the asic_id attribute to "asic_0" for read group 1
+    if (slow5_hdr_set("asic_id", "asic_id_0", 0, header) != 0){
+        fprintf(stderr,"Error setting asic_id attribute in read group 0\n");
+        exit(EXIT_FAILURE);
+    }
+
+    //add auxilliary field: channel number
+    if (slow5_aux_meta_add(sf->header->aux_meta, "channel_number", SLOW5_STRING)!=0){
+        fprintf(stderr,"Error adding channel_number auxilliary field\n");
+        exit(EXIT_FAILURE);
+    }
+
+    //add axuilliary field: median_before
+    if (slow5_aux_meta_add(sf->header->aux_meta, "median_before", SLOW5_DOUBLE)!=0){
+        fprintf(stderr,"Error adding median_before auxilliary field\n");
+        exit(EXIT_FAILURE);
+    }
+
+    //add axuilliary field: read_number
+    if(slow5_aux_meta_add_wrapper(sf->header, "read_number", SLOW5_INT32_T)!=0){
+        fprintf(stderr,"Error adding read_number auxilliary field\n");
+        exit(EXIT_FAILURE);
+    }
+    //add axuilliary field: start_mux
+    if(slow5_aux_meta_add_wrapper(sf->header, "start_mux", SLOW5_UINT8_T)!=0){
+        fprintf(stderr,"Error adding start_mux auxilliary field\n");
+        exit(EXIT_FAILURE);
+    }
+    //add auxilliary field: start_time
+    if(slow5_aux_meta_add_wrapper(sf->header, "start_time", SLOW5_UINT64_T)!=0){
+        fprintf(stderr,"Error adding start_time auxilliary field\n");
+        exit(EXIT_FAILURE);
+    }
+
+    if(slow5_header_write(sf) < 0){
+        fprintf(stderr,"Error writing header!\n");
+        exit(EXIT_FAILURE);
+    }
+
+
+    slow5_rec_t *rec[4000];
+    int ret=0;
+    int batch_size = 4000;
+    int num_thread = 8;
+
+
+    /******************* SLOW5 records ************************/
+    for(int i=0;i<batch_size;i++){
+        
+        
+        slow5_rec_t *slow5_record = rec[i] = slow5_rec_init();
+
+        if(slow5_record == NULL){
+            fprintf(stderr,"Could not allocate space for a slow5 record.");
+            exit(EXIT_FAILURE);
+        }
+
+        //primary fields
+        char tmp_read_id[100];
+        sprintf(tmp_read_id,"read_id_%d",i);
+        slow5_record -> read_id = strdup(tmp_read_id);
+        if(slow5_record->read_id == NULL){
+            fprintf(stderr,"Could not allocate space for strdup.");
+            exit(EXIT_FAILURE);
+        }
+        slow5_record -> read_id_len = strlen(slow5_record -> read_id);
+        slow5_record -> read_group = 0;
+        slow5_record -> digitisation = 4096.0;
+        slow5_record -> offset = 3.0+i;
+        slow5_record -> range = 10.0+i;
+        slow5_record -> sampling_rate = 4000.0;
+        slow5_record -> len_raw_signal = 10+i;
+        slow5_record -> raw_signal = malloc(sizeof(int16_t)*(10+i));
+        if(slow5_record->raw_signal == NULL){
+            fprintf(stderr,"Could not allocate space for raw signal.");
+            exit(EXIT_FAILURE);
+        }
+        for(int j=0;j<10+i;j++){
+            slow5_record->raw_signal[j] = j+i;
+        }
+
+        //auxiliary fileds
+        char *channel_number = "channel_number";
+        double median_before = 0.1+i;
+        int32_t read_number = 10+i;
+        uint8_t start_mux = (1+i)%4;
+        uint64_t start_time = 100+i;
+
+        if(slow5_rec_set_string_wrapper(slow5_record, sf->header, "channel_number", channel_number)!=0){
+            fprintf(stderr,"Error setting channel_number auxilliary field\n");
+            exit(EXIT_FAILURE);
+        }
+        if(slow5_rec_set_wrapper(slow5_record, sf->header, "median_before", &median_before)!=0){
+            fprintf(stderr,"Error setting median_before auxilliary field\n");
+            exit(EXIT_FAILURE);
+        }
+        if(slow5_rec_set_wrapper(slow5_record, sf->header, "read_number", &read_number)!=0){
+            fprintf(stderr,"Error setting read_number auxilliary field\n");
+            exit(EXIT_FAILURE);
+        }
+
+        if(slow5_rec_set_wrapper(slow5_record, sf->header, "start_mux", &start_mux)!=0){
+            fprintf(stderr,"Error setting start_mux auxilliary field\n");
+            exit(EXIT_FAILURE);
+        }
+
+        if(slow5_rec_set_wrapper(slow5_record, sf->header, "start_time", &start_time)!=0){
+            fprintf(stderr,"Error setting start_time auxilliary field\n");
+            exit(EXIT_FAILURE);
+        }   
+    }
+    //end of record setup
+    
+    ret = slow5_write_batch(rec,sf,batch_size,num_thread);
+
+    if(ret<batch_size){
+        fprintf(stderr,"Writing failed\n");
+        exit(EXIT_FAILURE);
+    }
+    
+    slow5_close_write(sf);
+
+    for(int i=0;i<batch_size;i++){
+        slow5_rec_free(rec[i]);
+    }
+
+    return 0;
+}
+
+int main(){
+
+    write_func();
+    read_func();
+
+
+    return 0;
+}
+    
+//gcc -Wall python/slow5threads.c python/slow5_write.c -I include/ lib/libslow5.a  -lpthread -lz -DDEBUGTHREAD=1 -O2 -g
 
 #endif

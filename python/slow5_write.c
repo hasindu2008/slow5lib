@@ -30,6 +30,7 @@ slow5_file_t *slow5_open_write(char *filename, char *mode){
     }
     header->aux_meta = aux_meta;
 
+    //not thred safe
     if(sf->format == SLOW5_FORMAT_BINARY){
         slow5_press_method_t press_out = {SLOW5_COMPRESS_ZLIB, SLOW5_COMPRESS_SVB_ZD};
         sf->compress = slow5_press_init(press_out);
