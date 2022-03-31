@@ -65,6 +65,8 @@ KSORT_INIT(str_slow5, ksstr_t, ks_lt_str)
 #define SLOW5_AUX_ARRAY_CAP_INIT (256) /* Initial capacity for parsing auxiliary array: 2^8 */
 #define SLOW5_AUX_ARRAY_STR_CAP_INIT (1024) /* Initial capacity for storing auxiliary array string: 2^10 */
 
+#define SLOW5_FSTREAM_BUFF_SIZE (131072)  /* buffer size for freads and fwrites */
+
 static inline void slow5_free(struct slow5_file *s5p);
 static int slow5_rec_aux_parse(char *tok, char *read_mem, uint64_t offset, size_t read_size, struct slow5_rec *read, enum slow5_fmt format, struct slow5_aux_meta *aux_meta);
 static inline khash_t(slow5_s2a) *slow5_rec_aux_init(void);
@@ -117,11 +119,29 @@ struct slow5_file *slow5_init(FILE *fp, const char *pathname, enum slow5_fmt for
         slow5_errno = SLOW5_ERR_UNK;
         return NULL;
     }
+
+    char *fread_buff = (char *)calloc(SLOW5_FSTREAM_BUFF_SIZE, sizeof(char));
+    if (!fread_buff) {
+        SLOW5_MALLOC_ERROR();
+        slow5_errno = SLOW5_ERR_MEM;
+        return NULL;
+    }
+
+    if (setvbuf(fp, fread_buff, _IOFBF, SLOW5_FSTREAM_BUFF_SIZE) != 0){
+        SLOW5_WARNING("Could not set a large buffer for file stream of '%s': %s.", pathname, strerror(errno));;
+        free(fread_buff);
+        fread_buff = NULL;
+    }
+    else {
+        SLOW5_LOG_DEBUG("Buffer for file stream of '%s' was set to %d.", pathname, SLOW5_FSTREAM_BUFF_SIZE);
+    }
+
     // TODO Attempt to determine from magic number
 
     slow5_press_method_t method;
     struct slow5_hdr *header = slow5_hdr_init(fp, format, &method);
     if (!header) {
+        free(fread_buff);
         SLOW5_ERROR("Parsing slow5 header of file '%s' failed.", pathname);
         return NULL;
     }
@@ -130,6 +150,7 @@ struct slow5_file *slow5_init(FILE *fp, const char *pathname, enum slow5_fmt for
     if (!s5p) {
         SLOW5_MALLOC_ERROR();
         slow5_hdr_free(header);
+        free(fread_buff);
         slow5_errno = SLOW5_ERR_MEM;
         return NULL;
     }
@@ -137,9 +158,11 @@ struct slow5_file *slow5_init(FILE *fp, const char *pathname, enum slow5_fmt for
     s5p->fp = fp;
     s5p->format = format;
     s5p->header = header;
+    s5p->meta.fread_buffer = fread_buff;
 
     s5p->compress = slow5_press_init(method);
     if (!s5p->compress) {
+        free(fread_buff);
         slow5_hdr_free(header);
         free(s5p);
         return NULL;
@@ -147,6 +170,7 @@ struct slow5_file *slow5_init(FILE *fp, const char *pathname, enum slow5_fmt for
 
     if ((s5p->meta.fd = fileno(fp)) == -1) {
         SLOW5_ERROR("Obtaining file descriptor with fileno() failed: %s.", strerror(errno));
+        free(fread_buff);
         slow5_press_free(s5p->compress);
         slow5_hdr_free(header);
         free(s5p);
@@ -157,6 +181,7 @@ struct slow5_file *slow5_init(FILE *fp, const char *pathname, enum slow5_fmt for
     s5p->meta.pathname = pathname;
     if ((s5p->meta.start_rec_offset = ftello(fp)) == -1) {
         SLOW5_ERROR("Obtaining file offset with ftello() failed: %s.", strerror(errno));
+        free(fread_buff);
         slow5_press_free(s5p->compress);
         slow5_hdr_free(header);
         free(s5p);
@@ -338,6 +363,7 @@ static inline void slow5_free(struct slow5_file *s5p) {
         slow5_press_free(s5p->compress);
         slow5_hdr_free(s5p->header);
         slow5_idx_free(s5p->index);
+        free(s5p->meta.fread_buffer);
         free(s5p);
     }
 }

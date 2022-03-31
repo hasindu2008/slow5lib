@@ -1,7 +1,9 @@
 
 # distutils: language = c++
 # cython: language_level=3
+# cython: profile=True
 import sys
+import time
 import logging
 from libc.stdlib cimport malloc, free
 from libc.string cimport strdup
@@ -24,6 +26,7 @@ cdef class Open:
     cdef pyslow5.slow5_rec_t *rec
     cdef pyslow5.slow5_rec_t *read
     cdef pyslow5.slow5_rec_t *write
+    cdef pyslow5.slow5_rec_t **trec
     cdef bint index_state
     cdef bint header_state
     cdef bint header_add_attr_state
@@ -56,6 +59,7 @@ cdef class Open:
     cdef pyslow5.float e8
     cdef double e9
     cdef char e10
+    cdef int e11
     cdef pyslow5.int8_t *e12
     cdef pyslow5.int16_t *e13
     cdef pyslow5.int32_t *e14
@@ -79,6 +83,8 @@ cdef class Open:
     cdef pyslow5.uint8_t start_mux_val
     cdef pyslow5.uint64_t start_time_val
 
+    cdef pyslow5.float total_time_slow5_get_next
+    cdef pyslow5.float total_time_yield_reads
 
     def __cinit__(self, pathname, mode, DEBUG=0):
         # Set to default NULL type
@@ -92,6 +98,7 @@ cdef class Open:
         self.m = ""
         # state for read/write. -1=null, 0=read, 1=write, 2=append
         self.state = -1
+        self.trec = NULL
         self.index_state = False
         self.header_state = False
         self.header_add_attr_state = False
@@ -114,7 +121,7 @@ cdef class Open:
         self.e8 = -1.0
         self.e9 = -1.0
         self.e10 = 0
-        # self.e11 = ?
+        self.e11 = 0
         self.e12 = NULL
         self.e13 = NULL
         self.e14 = NULL
@@ -140,6 +147,8 @@ cdef class Open:
 
 
         # cdef something end_reason # some enum
+        self.total_time_slow5_get_next = 0.0
+        self.total_time_yield_reads = 0.0
 
         # sets up logging level/verbosity
         self.V = DEBUG
@@ -221,6 +230,10 @@ cdef class Open:
 
 
     def __dealloc__(self):
+        # if self.p is not NULL:
+        #     free(self.p)
+        # if self.m is not NULL:
+        #     free(self.m)
         if self.rec is not NULL:
             slow5_rec_free(self.rec)
         if self.read is not NULL:
@@ -247,6 +260,10 @@ cdef class Open:
         free(self.start_mux)
         free(self.start_time)
 
+        self.logger.debug("pathname: {}".format(self.p))
+        self.logger.debug("total_time_slow5_get_next: {} seconds".format(self.total_time_slow5_get_next))
+        self.logger.debug("total_time_yield_reads: {} seconds".format(self.total_time_yield_reads))
+
 
     def _convert_to_pA(self, d):
         '''
@@ -264,7 +281,8 @@ cdef class Open:
         # for i in d['signal']:
         #     j = (i + offset) * raw_unit
         #     new_raw.append(float("{0:.2f}".format(round(j,2))))
-        new_raw = np.array(raw_unit * (d['signal'] + offset), dtype=np.float32)
+        # new_raw = np.array(raw_unit * (d['signal'] + offset), dtype=np.float32)
+        new_raw = (raw_unit * (d['signal'] + offset)).astype(np.float32)
         return new_raw
 
     # ==========================================================================
@@ -456,6 +474,13 @@ cdef class Open:
                 else:
                     self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype, self.aux_get_err, self.error_codes[self.aux_get_err]))
                     dic[name] = None
+            elif atype == 11:
+                self.e11 = slow5_aux_get_enum(self.rec, a_name, &self.aux_get_err)
+                if self.aux_get_err == 0:
+                    dic[name] = self.e11
+                else:
+                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                    dic[name] = None
             elif atype == 12:
                 self.e12 = slow5_aux_get_int8_array(self.rec, a_name, &self.aux_get_len, &self.aux_get_err)
                 if self.aux_get_err == 0:
@@ -568,6 +593,9 @@ cdef class Open:
                 else:
                     self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype, self.aux_get_err, self.error_codes[self.aux_get_err]))
                     dic[name] = None
+            elif atype == 22:
+                self.logger.debug("NOT IMPLEMENTED YET: get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                dic[name] = None
             else:
                 self.logger.debug("get_read_aux atype not known, skipping: {}".format(atype))
 
@@ -662,6 +690,13 @@ cdef class Open:
                     dic[name] = self.e10
                 else:
                     self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype, self.aux_get_err, self.error_codes[self.aux_get_err]))
+                    dic[name] = None
+            elif atype == 11:
+                self.e11 = slow5_aux_get_enum(self.read, a_name, &self.aux_get_err)
+                if self.aux_get_err == 0:
+                    dic[name] = self.e11
+                else:
+                    self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
                     dic[name] = None
             elif atype == 12:
                 self.e12 = slow5_aux_get_int8_array(self.read, a_name, &self.aux_get_len, &self.aux_get_err)
@@ -775,6 +810,9 @@ cdef class Open:
                 else:
                     self.logger.debug("get_aux_types {} self.aux_get_err is {}: {}".format(atype, self.aux_get_err, self.error_codes[self.aux_get_err]))
                     dic[name] = None
+            elif atype == 22:
+                self.logger.debug("NOT IMPLEMENTED YET: get_aux_types {} self.aux_get_err is {}: {}".format(atype), self.aux_get_err, self.error_codes[self.aux_get_err])
+                dic[name] = None
             else:
                 self.logger.debug("get_read_aux atype not known, skipping: {}".format(atype))
 
@@ -795,7 +833,10 @@ cdef class Open:
         ret = 0
         # While loops check ret of previous read for errors as fail safe
         while ret >= 0:
+            start_slow5_get_next = time.time()
             ret = slow5_get_next(&self.read, self.s5)
+            self.total_time_slow5_get_next = self.total_time_slow5_get_next + (time.time() - start_slow5_get_next)
+
             self.logger.debug("slow5_get_next return: {}".format(ret))
             # check for EOF or other errors
             if ret < 0:
@@ -873,8 +914,126 @@ cdef class Open:
             # if aux data update main dic
             if aux_dic:
                 row.update(aux_dic)
-
+            self.total_time_yield_reads = self.total_time_yield_reads + (time.time() - start_slow5_get_next)
             yield row
+
+
+    def seq_reads_multi(self, threads=4, batchsize=4096, pA=False, aux=None):
+        '''
+        returns generator for sequential reading of slow5 file
+        for pA and aux, see _get_read
+        threads: number of threads to use
+        batchsize: Number of reads to process with thread pool in parallel
+        '''
+        aux_dic = {}
+        row = {}
+        ret = 1
+        timedic = {"aux_total_time": 0,
+                   "primary_total_time": 0,
+                   "pA_total_time": 0,
+                   "signal_total_time": 0}
+
+        # While loops check ret of previous read for errors as fail safe
+        while ret > 0:
+            start_slow5_get_next = time.time()
+            ret = slow5_get_next_batch(&self.trec, self.s5, batchsize, threads)
+            self.total_time_slow5_get_next = self.total_time_slow5_get_next + (time.time() - start_slow5_get_next)
+            self.logger.debug("slow5_get_next_multi return: {}".format(ret))
+            # check for EOF or other errors
+            if ret < 0:
+                if ret == -1:
+                    self.logger.debug("slow5_get_next_multi reached end of file (EOF)(-1): {}: {}".format(ret, self.error_codes[ret]))
+                else:
+                    self.logger.error("slow5_get_next_multi error code: {}: {}".format(ret, self.error_codes[ret]))
+
+                break
+            for i in range(ret):
+                python_parse_read_start = time.time()
+                self.read = self.trec[i]
+                aux_dic = {}
+                row = {}
+                # get aux fields
+                aux_time_start = time.time()
+                if aux is not None:
+                    if not self.aux_names or not self.aux_types:
+                        self.aux_names = self.get_aux_names()
+                        self.aux_types = self.get_aux_types()
+                    if type(aux) is str:
+                        if aux == "all":
+                            aux_dic = self._get_seq_read_aux(self.aux_names, self.aux_types)
+                        else:
+                            found_single_aux = False
+                            for n, t in zip(self.aux_names, self.aux_types):
+                                if n == aux:
+                                    found_single_aux = True
+                                    aux_dic = self._get_read_aux([n], [t])
+                                    break
+                            if not found_single_aux:
+                                self.logger.warning("slow5_get_next_multi unknown aux name: {}".format(aux))
+                                aux_dic.update({aux: None})
+                    elif type(aux) is list:
+                        n_list = []
+                        t_list = []
+                        for n, t in zip(self.aux_names, self.aux_types):
+                            if n in aux:
+                                n_list.append(n)
+                                t_list.append(t)
+
+                        aux_dic = self._get_read_aux(n_list, t_list)
+                        # check for items in given list that do not exist
+                        n_set = set(n_list)
+                        aux_set = set(aux)
+                        if len(aux_set.difference(n_set)) > 0:
+                            for i in aux_set.difference(n_set):
+                                self.logger.warning("slow5_get_next_multi unknown aux name: {}".format(i))
+                                aux_dic.update({i: None})
+
+                    else:
+                        self.logger.debug("slow5_get_next_multi aux type unknown, accepts str or list: {}".format(aux))
+                timedic["aux_total_time"] = timedic["aux_total_time"] + (time.time() - aux_time_start)
+                # Get read data
+                primary_start_time = time.time()
+                if type(self.read.read_id) is bytes:
+                    row['read_id'] = self.read.read_id.decode()
+                else:
+                    row['read_id'] = self.read.read_id
+                # row['read_id'] = self.read.read_id.decode()
+                row['read_group'] = self.read.read_group
+                row['digitisation'] = self.read.digitisation
+                row['offset'] = self.read.offset
+                row['range'] = self.read.range
+                row['sampling_rate'] = self.read.sampling_rate
+                row['len_raw_signal'] = self.read.len_raw_signal
+                # row['signal'] = [self.read.raw_signal[i] for i in range(self.read.len_raw_signal)]
+                signal_start_time = time.time()
+                self.shape_seq[0] = <np.npy_intp> self.read.len_raw_signal
+                signal = np.PyArray_SimpleNewFromData(1, self.shape_seq,
+                            np.NPY_INT16, <void *> self.read.raw_signal)
+                np.PyArray_UpdateFlags(signal, signal.flags.num | np.NPY_OWNDATA)
+                row['signal'] = signal
+                timedic["signal_total_time"] = timedic["signal_total_time"] + (time.time() - signal_start_time)
+                timedic["primary_total_time"] = timedic["primary_total_time"] + (time.time() - primary_start_time)
+                # for i in range(self.read.len_raw_signal):
+                #     row['signal'].append(self.read.raw_signal[i])
+
+                # if pA=True, convert signal to pA
+                if pA:
+                    pA_start_time = time.time()
+                    row['signal'] = self._convert_to_pA(row)
+                    timedic["pA_total_time"] = timedic["pA_total_time"] + (time.time() - pA_start_time)
+                # if aux data update main dic
+                if aux_dic:
+                    row.update(aux_dic)
+                self.total_time_yield_reads = self.total_time_yield_reads + (time.time() - python_parse_read_start)
+                yield row
+            slow5_free_batch(&self.trec, ret)
+            if ret < batchsize:
+                self.logger.debug("slow5_get_next_multi has no more batches - batchsize:{} ret:{}".format(batchsize, ret))
+                break
+        self.read = NULL
+        self.logger.debug("seq_reads_multi timings:")
+        for i in timedic:
+            self.logger.debug("{}: {}".format(i, timedic[i]))
 
 
     def get_read_list(self, read_list, pA=False, aux=None):
