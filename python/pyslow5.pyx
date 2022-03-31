@@ -260,7 +260,7 @@ cdef class Open:
         free(self.start_mux)
         free(self.start_time)
 
-        self.logger.debug("pathname: {}".format(self.p))
+        self.logger.debug("pathname: {}".format(self.path))
         self.logger.debug("total_time_slow5_get_next: {} seconds".format(self.total_time_slow5_get_next))
         self.logger.debug("total_time_yield_reads: {} seconds".format(self.total_time_yield_reads))
 
