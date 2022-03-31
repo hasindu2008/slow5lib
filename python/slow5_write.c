@@ -82,7 +82,15 @@ slow5_file_t *slow5_open_write_append(char *filename, char *mode){
             fprintf(stderr,"Fseek to the end of the BLOW file failed before the EOF failed.");
             exit(EXIT_FAILURE);
         }
-    }    
+    } else if (slow5File->format==SLOW5_FORMAT_ASCII){
+        if(fseek(slow5File->fp, 0 , SEEK_END) != 0){
+            fprintf(stderr,"Fseek to the end of the file failed.");
+            exit(EXIT_FAILURE);
+        }        
+    }  else {
+        fprintf(stderr,"Unknown format.");
+        exit(EXIT_FAILURE);
+    } 
 
     return slow5File;
 
@@ -137,7 +145,7 @@ int slow5_rec_set_string_wrapper(struct slow5_rec *read, slow5_hdr_t *header, co
 
 #ifdef DEBUG
 
-#define FILE_NAME "test.blow5"
+#define FILE_NAME "test.slow5"
 
 void single_read_group_file(){
 
