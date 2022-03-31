@@ -1388,6 +1388,11 @@ cdef class Open:
         checked_record, checked_aux = self._record_type_validation(record, aux)
         self.logger.debug("write_record: _record_type_validation done")
 
+        # check if in append state
+        # if so, we can skip header setup
+        if self.state == 2:
+            self.header_state = True
+
         # if all checks are good, test self.header_state for 1 time write
         if not self.header_state:
             self.logger.debug("write_record: checking header stuff...")
@@ -1501,7 +1506,6 @@ cdef class Open:
 
         self.logger.debug("write_record: function complete, returning 0")
         return 0
-
 
     def close(self):
         '''
