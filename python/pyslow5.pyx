@@ -5,6 +5,7 @@
 import sys
 import time
 import logging
+from itertools import chain
 from libc.stdlib cimport malloc, free
 from libc.string cimport strdup
 cimport pyslow5
@@ -27,6 +28,7 @@ cdef class Open:
     cdef pyslow5.slow5_rec_t *read
     cdef pyslow5.slow5_rec_t *write
     cdef pyslow5.slow5_rec_t **trec
+    cdef char **rid
     cdef bint index_state
     cdef bint header_state
     cdef bint header_add_attr_state
@@ -99,6 +101,7 @@ cdef class Open:
         # state for read/write. -1=null, 0=read, 1=write, 2=append
         self.state = -1
         self.trec = NULL
+        self.rid = NULL
         self.index_state = False
         self.header_state = False
         self.header_add_attr_state = False
@@ -383,6 +386,151 @@ cdef class Open:
         if aux_dic:
             dic.update(aux_dic)
         return dic
+
+    def _get_batches(self, read_list, size):
+        """
+        batchify readIDs
+        """
+        for i in range(0, len(read_list), size):
+            yield read_list[i:i+size]
+
+    def _get_read_multi(self, read_list, threads, batchsize, pA, aux):
+        '''
+        read_list = list of readIDs
+        pA = Bool for converting signal to picoamps
+        aux = str 'name'/'all' or list of names of auxiliary fields added to return dictionary
+        returns dic = dictionary of main fields for read_id, with any aux fields added
+        threads = how many threads to use to go fast
+        '''
+        if not self.index_state:
+            self.logger.debug("FILE: {}, mode: {}".format(self.path, self.mode))
+            # self.logger.debug("FILE: {}, mode: {}".format(self.path, self.m))
+            self.logger.debug("Creating/loading index...")
+            ret = slow5_idx_load(self.s5)
+            if ret != 0:
+                self.logger.warning("slow5_idx_load return not 0: {}: {}".format(ret, self.error_codes[ret]))
+            else:
+                self.index_state = True
+
+        self.logger.debug("Setting up batching...")
+        self.logger.debug("read_list: {}".format([i for i in read_list]))
+        num_reads = len(read_list)
+        if num_reads > batchsize:
+            batches = self._get_batches(read_list, size=batchsize)
+        else:
+            batches = self._get_batches(read_list, size=num_reads)
+
+        # TODO. Populate rid with read IDs from batch
+        # each needs to be be readID.encode()
+
+        self.logger.debug("batch for loop start")
+        for batch in chain(batches):
+            self.logger.debug("Batch: {}".format(",".join([i for i in batch])))
+            batch_len = len(batch)
+            self.logger.debug("Starting rid assignment")
+            self.rid = <char **> malloc(sizeof(char*)*batch_len)
+            for i in range(batch_len):
+                self.logger.debug("readID: {}, bin: {}".format(batch[i], batch[i].encode()))
+                self.rid[i] = strdup(batch[i].encode())
+            self.logger.debug("rid assignment complete")
+
+
+            self.logger.debug("slow5_get_batch: num_reads: {}".format(batch_len))
+            ret = slow5_get_batch(&self.trec, self.s5, self.rid, batch_len, threads);
+            self.logger.debug("get_read_multi slow5_get_batch ret: {}".format(ret))
+            if ret < 0:
+                self.logger.error("slow5_get_next error code: {}: {}".format(ret, self.error_codes[ret]))
+                break
+            if ret == 0:
+                self.logger.debug("No more reads: {}".format(ret))
+                break
+
+            for i in range(ret):
+                python_parse_read_start = time.time()
+                self.rec = self.trec[i]
+                dic = {}
+                aux_dic = {}
+
+                # check for aux fields
+                if aux is not None:
+                    if not self.aux_names or not self.aux_types:
+                        self.aux_names = self.get_aux_names()
+                        self.aux_types = self.get_aux_types()
+                    if type(aux) is str:
+                        # special type 'all'
+                        if aux == "all":
+                            aux_dic = self._get_read_aux(self.aux_names, self.aux_types)
+                        else:
+                            found_single_aux = False
+                            for n, t in zip(self.aux_names, self.aux_types):
+                                if n == aux:
+                                    found_single_aux = True
+                                    aux_dic = self._get_read_aux([n], [t])
+                                    break
+                            if not found_single_aux:
+                                self.logger.warning("get_read unknown aux name: {}".format(aux))
+                                aux_dic.update({aux: None})
+                    elif type(aux) is list:
+                        n_list = []
+                        t_list = []
+                        for n, t in zip(self.aux_names, self.aux_types):
+                            if n in aux:
+                                n_list.append(n)
+                                t_list.append(t)
+
+                        aux_dic = self._get_read_aux(n_list, t_list)
+                        # Check for items given that did not exist
+                        n_set = set(n_list)
+                        aux_set = set(aux)
+                        if len(aux_set.difference(n_set)) > 0:
+                            for i in aux_set.difference(n_set):
+                                self.logger.warning("get_read unknown aux name: {}".format(i))
+                                aux_dic.update({i: None})
+
+                    else:
+                        self.logger.debug("get_read aux type unknown, accepts str or list: {}".format(aux))
+
+                # get read data
+                if type(self.rec.read_id) is bytes:
+                    dic['read_id'] = self.rec.read_id.decode()
+                else:
+                    dic['read_id'] = self.rec.read_id
+                dic['read_group'] = self.rec.read_group
+                dic['digitisation'] = self.rec.digitisation
+                dic['offset'] = self.rec.offset
+                dic['range'] = self.rec.range
+                dic['sampling_rate'] = self.rec.sampling_rate
+                dic['len_raw_signal'] = self.rec.len_raw_signal
+                # This could be handled by numpy.fromiter() or similar
+                # Probably MUCH faster
+                # https://stackoverflow.com/questions/7543675/how-to-convert-pointer-to-c-array-to-python-array
+                # https://groups.google.com/g/cython-users/c/KnjF7ViaHUM
+                # dic['signal'] = [self.rec.raw_signal[i] for i in range(self.rec.len_raw_signal)]
+                # cdef np.npy_intp shape_get[1]
+                self.shape_get[0] = <np.npy_intp> self.rec.len_raw_signal
+                signal = np.PyArray_SimpleNewFromData(1, self.shape_get,
+                            np.NPY_INT16, <void *> self.rec.raw_signal)
+                np.PyArray_UpdateFlags(signal, signal.flags.num | np.NPY_OWNDATA)
+                dic['signal'] = signal
+
+                # if pA=True, convert signal to pA
+                if pA:
+                    dic['signal'] = self._convert_to_pA(dic)
+                # if aux data, add to main dic
+                if aux_dic:
+                    dic.update(aux_dic)
+                yield dic
+
+            slow5_free_batch(&self.trec, ret)
+            # for i in range(batch_len):
+            #     free(&self.rid[i])
+            # if ret < batchsize:
+            #     self.logger.debug("slow5_get_next_multi has no more batches - batchsize:{} ret:{}".format(batchsize, ret))
+            #     break
+        self.rec = NULL
+        self.logger.debug("seq_reads_multi timings:")
+        # for i in timedic:
+        #     self.logger.debug("{}: {}".format(i, timedic[i]))
 
 
     def _get_read_aux(self, aux_names, aux_types):
@@ -1044,6 +1192,17 @@ cdef class Open:
         '''
         for r in read_list:
             yield self._get_read(r, pA, aux)
+
+
+    def get_read_list_multi(self, read_list, threads=4, batchsize=100, pA=False, aux=None):
+        '''
+        returns generator for random access of slow5 file
+        read_list = list of readIDs, if readID not in file, None type returned (need EOF to work)
+        for pA and aux see _get_read
+        threads = number of threads to use to do batched random access
+        '''
+        for r in self._get_read_multi(read_list, threads, batchsize, pA, aux):
+            yield r
 
 
     def get_header_names(self):
