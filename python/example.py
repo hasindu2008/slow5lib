@@ -371,6 +371,26 @@ for read in reads:
     print("read_number", read['read_number'])
 
 print("==============================================")
+
+print("get_reads_multi with aux:")
+
+read_list = ['r0',
+             'r1',
+             'r2',
+             'r3',
+             'r4',
+             'r5',
+             '0a238451-b9ed-446d-a152-badd074006c4',
+             '0d624d4b-671f-40b8-9798-84f2ccc4d7fc']
+
+s53 = slow5.Open('examples/example2.slow5','r', DEBUG=debug)
+reads = s53.get_read_list_multi(read_list, threads=2, batchsize=3, pA=True, aux='all')
+print("type check reads:", type(reads))
+for read in reads:
+    print(read['read_id'])
+    print("read_number", read['read_number'])
+
+print("==============================================")
 # print("seq_reads with big file:")
 # start_time = time.time()
 # s53 = slow5.Open('/home/jamfer/Data/SK/multi_fast5/s5/FAK40634_d1cc054609fe2c5fcdeac358864f9dc81c8bb793_95.blow5','r', DEBUG=debug)
