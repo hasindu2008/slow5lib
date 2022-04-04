@@ -521,8 +521,6 @@ cdef class Open:
             free(self.rid)
         self.rec = NULL
         self.logger.debug("seq_reads_multi timings:")
-        # for i in timedic:
-        #     self.logger.debug("{}: {}".format(i, timedic[i]))
 
 
     def _get_read_aux(self, aux_names, aux_types):
