@@ -390,6 +390,52 @@ for read in reads:
     print(read['read_id'])
     print("read_number", read['read_number'])
 
+
+print("==============================================")
+print("write reads with aux multi")
+
+F = slow5.Open('examples/example_write_aux_multi.slow5','w', DEBUG=debug)
+header = F.get_empty_header()
+header2 = F.get_empty_header()
+
+counter = 0
+for i in header:
+    header[i] = "test_{}".format(counter)
+    counter += 1
+
+for i in header2:
+    header2[i] = "test_{}".format(counter)
+    counter += 1
+
+ret = F.write_header(header)
+print("ret: write_header(): {}".format(ret))
+ret = F.write_header(header2, read_group=1)
+print("ret: write_header(): {}".format(ret))
+
+s58 = slow5.Open('examples/example2.slow5','r', DEBUG=debug)
+reads = s58.seq_reads(aux='all')
+
+records = {}
+auxs = {}
+for read in reads:
+    # record, aux = F.get_empty_record(aux=True)
+    record = F.get_empty_record()
+    for i in read:
+        if i == "read_id":
+            readID = read[i]
+        if i in record:
+            record[i] = read[i]
+        # if i in aux:
+        #     aux[i] = read[i]
+    records[readID] = record
+    # auxs[readID] = aux
+print(records)
+# print(auxs)
+ret = F.write_record_batch(records, threads=2)
+print("ret: write_record(): {}".format(ret))
+
+F.close()
+
 print("==============================================")
 # print("seq_reads with big file:")
 # start_time = time.time()

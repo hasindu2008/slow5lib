@@ -27,6 +27,7 @@ cdef class Open:
     cdef pyslow5.slow5_rec_t *rec
     cdef pyslow5.slow5_rec_t *read
     cdef pyslow5.slow5_rec_t *write
+    cdef pyslow5.slow5_rec_t **twrite
     cdef pyslow5.slow5_rec_t **trec
     cdef char **rid
     cdef bint index_state
@@ -94,6 +95,7 @@ cdef class Open:
         self.rec = NULL
         self.read = NULL
         self.write = NULL
+        self.twrite = NULL
         self.path = ""
         self.p = ""
         self.mode = ""
@@ -1450,19 +1452,19 @@ cdef class Open:
                     self.logger.debug("_record_type_validation: aux passed tests...")
                     if a == "channel_number":
                         self.channel_number_val=strdup(aux[a].encode())
-                        new_aux[a] = 1
+                        new_aux[a] = aux[a]
                     elif a == "median_before":
                         self.median_before_val = <double>aux[a]
-                        new_aux[a] = 1
+                        new_aux[a] = aux[a]
                     elif a == "read_number":
                         self.read_number_val = <int32_t>aux[a]
-                        new_aux[a] = 1
+                        new_aux[a] = aux[a]
                     elif a == "start_mux":
                         self.start_mux_val = <uint8_t>aux[a]
-                        new_aux[a] = 1
+                        new_aux[a] = aux[a]
                     elif a == "start_time":
                         self.start_time_val = <uint64_t>aux[a]
-                        new_aux[a] = 1
+                        new_aux[a] = aux[a]
                     elif a == "end_reason":
                         continue
 
@@ -1640,7 +1642,7 @@ cdef class Open:
 
         self.logger.debug("write_record: slow5_rec_write()")
         # write the record
-        slow5_rec_write(self.s5, self.write);
+        slow5_rec_write(self.s5, self.write)
 
         self.channel_number_val = NULL
         self.median_before_val = -1.0
@@ -1655,6 +1657,178 @@ cdef class Open:
 
         self.logger.debug("write_record: function complete, returning 0")
         return 0
+
+
+    def write_record_batch(self, records, threads=4, batchsize=4096, aux=None):
+        '''
+        write a batch of records
+        same as write_record, but in batches
+        records = dic of read rics, where the key for each is the readID
+        if aux, aux is also a dic of dics, whhere the key for each is teh readID
+        records = {readID_0: {read_dic}, readID_1: {read_dic}}
+        '''
+        aux_types = {"channel_number": type("string"),
+                     "median_before": type(1.0),
+                     "read_number": type(10),
+                     "start_mux": type(1),
+                     "start_time": type(100),
+                     "end_reason": None}
+        # check an empty dic wasn't given
+        if aux is not None:
+            if len(aux) == 0:
+                aux = None
+        self.logger.debug("Setting up batching...")
+        num_reads = len(records)
+        read_list = list(records.keys())
+        if num_reads > batchsize:
+            batches = self._get_batches(read_list, size=batchsize)
+        else:
+            batches = self._get_batches(read_list, size=num_reads)
+
+
+        self.logger.debug("batch for loop start")
+        for batch in chain(batches):
+            batch_len = len(batch)
+            self.twrite = <slow5_rec_t **> malloc(sizeof(slow5_rec_t*)*batch_len)
+            self.logger.debug("write_record: _record_type_validation running")
+            checked_records = {}
+            checked_auxs = {}
+            for idx in batch:
+                if aux is not None:
+                    checked_record, checked_aux = self._record_type_validation(records[idx], aux[idx])
+                    checked_records[idx] = checked_record
+                    checked_auxs[idx] = checked_aux
+                else:
+                    checked_record, checked_aux = self._record_type_validation(records[idx], aux)
+                    checked_records[idx] = checked_record
+                    self.logger.debug("write_record: _record_type_validation done")
+            if len(checked_aux) == 0:
+                checked_aux = None
+            for idx in range(batch_len):
+
+                # check if in append state
+                # if so, we can skip header setup
+                if self.state == 2:
+                    self.header_state = True
+
+                # if all checks are good, test self.header_state for 1 time write
+                if not self.header_state:
+                    self.logger.debug("write_record: checking header stuff...")
+                    error = False
+                    if aux is not None:
+                        if checked_aux is not None:
+                            slow5_aux_types = self._aux_header_type_validation(aux_types)
+                            for a in slow5_aux_types:
+                                if slow5_aux_types[a] is None:
+                                    continue
+                                ret = slow5_aux_meta_add_wrapper(self.s5.header, a.encode(), slow5_aux_types[a])
+                                if ret < 0:
+                                    self.logger.error("write_record: slow5_aux_meta_add_wrapper {}: {} could not set to C s5.header.aux_meta struct".format(a, checked_aux[a]))
+                                    error = True
+                        else:
+                            error = True
+
+                    if error:
+                        self.logger.error("write_record: aux_meta fields failed to initialise")
+                        return -1
+                    # write the header
+                    self.logger.debug("write_record: writting header...")
+                    ret = slow5_header_write(self.s5)
+                    if ret < 0:
+                        self.logger.error("write_record: slow5_header_write could not write header")
+                        return -1
+                    # set state true so only done once
+                    self.header_state = True
+                    self.logger.debug("write_record: header written")
+
+                # Add values to read struct
+                self.logger.debug("write_record: slow5_rec_init()")
+
+                self.twrite[idx] = slow5_rec_init()
+                if self.twrite[idx] == NULL:
+                    self.logger.error("write_record: failed to allocate space for slow5 record (self.twrite[idx])")
+                    return -1
+
+                self.logger.debug("write_record: self.write assignments...")
+                checked_records[batch[idx]]["read_id"] = checked_records[batch[idx]]["read_id"].encode()
+                self.twrite[idx].read_id = checked_records[batch[idx]]["read_id"]
+                self.twrite[idx].read_id_len = len(checked_records[batch[idx]]["read_id"])
+                self.twrite[idx].read_group = checked_records[batch[idx]]["read_group"]
+                self.twrite[idx].digitisation = checked_records[batch[idx]]["digitisation"]
+                self.twrite[idx].offset = checked_records[batch[idx]]["offset"]
+                self.twrite[idx].range = checked_records[batch[idx]]["range"]
+                self.twrite[idx].sampling_rate = checked_records[batch[idx]]["sampling_rate"]
+                self.twrite[idx].len_raw_signal = checked_records[batch[idx]]["len_raw_signal"]
+                self.logger.debug("write_record: self.write.raw_signal malloc...")
+                self.twrite[idx].raw_signal = <int16_t *> malloc(sizeof(int16_t)*checked_records[batch[idx]]["len_raw_signal"])
+                self.logger.debug("write_record: self.write.raw_signal malloc done")
+                self.logger.debug("write_record: self.write assignments done")
+
+                self.logger.debug("write_record: self.write processing raw_signal")
+                for i in range(checked_records[batch[idx]]["len_raw_signal"]):
+                    self.twrite[idx].raw_signal[i] = checked_records[batch[idx]]["signal"][i]
+
+                self.logger.debug("write_record: self.write raw_signal done")
+                # cdef char **attr = NULL
+
+                if aux is not None:
+                    self.logger.debug("write_record: aux stuff...")
+                    if checked_auxs[batch[idx]] is None:
+                        self.logger.error("write_record: checked_aux is None".format(a, checked_auxs[batch[idx]][a]))
+                        return -1
+
+                    for a in checked_auxs[batch[idx]]:
+                        self.logger.debug("write_record: checked_aux: {}: {}".format(a, checked_auxs[batch[idx]][a]))
+                        if checked_auxs[batch[idx]][a] is None:
+                            continue
+                        if a == "channel_number":
+                            self.logger.debug("write_record: slow5_rec_set_string_wrapper running...")
+                            self.logger.debug("write_record: slow5_rec_set_string_wrapper type: {}".format(type(checked_auxs[batch[idx]][a])))
+                            ret = slow5_rec_set_string_wrapper(self.twrite[idx], self.s5.header, self.channel_number, <const char *>self.channel_number_val)
+                            self.logger.debug("write_record: slow5_rec_set_string_wrapper running done: ret = {}".format(ret))
+                            if ret < 0:
+                                self.logger.error("write_record: slow5_rec_set_string_wrapper could not write aux value {}: {}".format(a, checked_auxs[batch[idx]][a]))
+                                #### We should free here
+                                return -1
+                        elif a == "median_before":
+                            ret = slow5_rec_set_wrapper(self.twrite[idx], self.s5.header, self.median_before, <const void *>&self.median_before_val)
+                        elif a == "read_number":
+                            ret = slow5_rec_set_wrapper(self.twrite[idx], self.s5.header, self.read_number, <const void *>&self.read_number_val)
+                        elif a == "start_mux":
+                            ret = slow5_rec_set_wrapper(self.twrite[idx], self.s5.header, self.start_mux, <const void *>&self.start_mux_val)
+                        elif a == "start_time":
+                            ret = slow5_rec_set_wrapper(self.twrite[idx], self.s5.header, self.start_time, <const void *>&self.start_time_val)
+                        elif a == "end_reason":
+                            # not implemented yet becuase of variability in ONT versioning
+                            ret = 0
+                        if ret < 0:
+                            self.logger.error("write_record: slow5_rec_set_wrapper could not write aux value {}: {}".format(a, checked_aux[a]))
+                            return -1
+
+                    self.logger.debug("write_record: aux stuff done")
+
+            self.logger.debug("write_record: slow5_write_batch()")
+
+            # write the record
+            slow5_write_batch(self.twrite, self.s5, batchsize, threads)
+
+
+            if aux is not None:
+                self.channel_number_val = NULL
+                self.median_before_val = -1.0
+                self.read_number_val = -1
+                self.start_mux_val = -1
+                self.start_time_val = -1
+
+            # free memory
+            self.logger.debug("write_record: slow5_rec_free()")
+            # self.write = NULL
+            # slow5_rec_free(self.write)
+            for i in range(batch_len):
+                slow5_rec_free(self.twrite[i])
+
+            self.logger.debug("write_record: function complete, returning 0")
+            return 0
 
     def close(self):
         '''
