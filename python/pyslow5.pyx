@@ -264,6 +264,7 @@ cdef class Open:
         free(self.read_number)
         free(self.start_mux)
         free(self.start_time)
+        free(self.end_reason)
 
         self.logger.debug("pathname: {}".format(self.path))
         self.logger.debug("total_time_slow5_get_next: {} seconds".format(self.total_time_slow5_get_next))
@@ -1677,7 +1678,7 @@ cdef class Open:
         if aux is not None:
             if len(aux) == 0:
                 aux = None
-        self.logger.debug("Setting up batching...")
+        self.logger.debug("write_record_batch: Setting up batching...")
         num_reads = len(records)
         read_list = list(records.keys())
         if num_reads > batchsize:
@@ -1686,11 +1687,11 @@ cdef class Open:
             batches = self._get_batches(read_list, size=num_reads)
 
 
-        self.logger.debug("batch for loop start")
+        self.logger.debug("write_record_batch: batch for loop start")
         for batch in chain(batches):
             batch_len = len(batch)
             self.twrite = <slow5_rec_t **> malloc(sizeof(slow5_rec_t*)*batch_len)
-            self.logger.debug("write_record: _record_type_validation running")
+            self.logger.debug("write_record_batch: _record_type_validation running")
             checked_records = {}
             checked_auxs = {}
             for idx in batch:
@@ -1701,7 +1702,7 @@ cdef class Open:
                 else:
                     checked_record, checked_aux = self._record_type_validation(records[idx], aux)
                     checked_records[idx] = checked_record
-            self.logger.debug("write_record: _record_type_validation done")
+            self.logger.debug("write_record_batch: _record_type_validation done")
             if len(checked_aux) == 0:
                 checked_aux = None
             for idx in range(batch_len):
@@ -1713,7 +1714,7 @@ cdef class Open:
 
                 # if all checks are good, test self.header_state for 1 time write
                 if not self.header_state:
-                    self.logger.debug("write_record: checking header stuff...")
+                    self.logger.debug("write_record_batch: checking header stuff...")
                     error = False
                     if aux is not None:
                         if checked_aux is not None:
@@ -1723,33 +1724,33 @@ cdef class Open:
                                     continue
                                 ret = slow5_aux_meta_add_wrapper(self.s5.header, a.encode(), slow5_aux_types[a])
                                 if ret < 0:
-                                    self.logger.error("write_record: slow5_aux_meta_add_wrapper {}: {} could not set to C s5.header.aux_meta struct".format(a, checked_aux[a]))
+                                    self.logger.error("write_record_batch: slow5_aux_meta_add_wrapper {}: {} could not set to C s5.header.aux_meta struct".format(a, checked_aux[a]))
                                     error = True
                         else:
                             error = True
 
                     if error:
-                        self.logger.error("write_record: aux_meta fields failed to initialise")
+                        self.logger.error("write_record_batch: aux_meta fields failed to initialise")
                         return -1
                     # write the header
-                    self.logger.debug("write_record: writting header...")
+                    self.logger.debug("write_record_batch: writting header...")
                     ret = slow5_header_write(self.s5)
                     if ret < 0:
-                        self.logger.error("write_record: slow5_header_write could not write header")
+                        self.logger.error("write_record_batch: slow5_header_write could not write header")
                         return -1
                     # set state true so only done once
                     self.header_state = True
-                    self.logger.debug("write_record: header written")
+                    self.logger.debug("write_record_batch: header written")
 
                 # Add values to read struct
-                self.logger.debug("write_record: slow5_rec_init()")
+                self.logger.debug("write_record_batch: slow5_rec_init()")
 
                 self.twrite[idx] = slow5_rec_init()
                 if self.twrite[idx] == NULL:
-                    self.logger.error("write_record: failed to allocate space for slow5 record (self.twrite[idx])")
+                    self.logger.error("write_record_batch: failed to allocate space for slow5 record (self.twrite[idx])")
                     return -1
 
-                self.logger.debug("write_record: self.write assignments...")
+                self.logger.debug("write_record_batch: self.write assignments...")
                 checked_records[batch[idx]]["read_id"] = checked_records[batch[idx]]["read_id"].encode()
                 self.twrite[idx].read_id = checked_records[batch[idx]]["read_id"]
                 self.twrite[idx].read_id_len = len(checked_records[batch[idx]]["read_id"])
@@ -1759,35 +1760,35 @@ cdef class Open:
                 self.twrite[idx].range = checked_records[batch[idx]]["range"]
                 self.twrite[idx].sampling_rate = checked_records[batch[idx]]["sampling_rate"]
                 self.twrite[idx].len_raw_signal = checked_records[batch[idx]]["len_raw_signal"]
-                self.logger.debug("write_record: self.write.raw_signal malloc...")
+                self.logger.debug("write_record_batch: self.write.raw_signal malloc...")
                 self.twrite[idx].raw_signal = <int16_t *> malloc(sizeof(int16_t)*checked_records[batch[idx]]["len_raw_signal"])
-                self.logger.debug("write_record: self.write.raw_signal malloc done")
-                self.logger.debug("write_record: self.write assignments done")
+                self.logger.debug("write_record_batch: self.write.raw_signal malloc done")
+                self.logger.debug("write_record_batch: self.write assignments done")
 
-                self.logger.debug("write_record: self.write processing raw_signal")
+                self.logger.debug("write_record_batch: self.write processing raw_signal")
                 for i in range(checked_records[batch[idx]]["len_raw_signal"]):
                     self.twrite[idx].raw_signal[i] = checked_records[batch[idx]]["signal"][i]
 
-                self.logger.debug("write_record: self.write raw_signal done")
+                self.logger.debug("write_record_batch: self.write raw_signal done")
                 # cdef char **attr = NULL
 
                 if aux is not None:
-                    self.logger.debug("write_record: aux stuff...")
+                    self.logger.debug("write_record_batch: aux stuff...")
                     if checked_auxs[batch[idx]] is None:
-                        self.logger.error("write_record: checked_aux is None".format(a, checked_auxs[batch[idx]][a]))
+                        self.logger.error("write_record_batch: checked_aux is None".format(a, checked_auxs[batch[idx]][a]))
                         return -1
 
                     for a in checked_auxs[batch[idx]]:
-                        self.logger.debug("write_record: checked_aux: {}: {}".format(a, checked_auxs[batch[idx]][a]))
+                        self.logger.debug("write_record_batch: checked_aux: {}: {}".format(a, checked_auxs[batch[idx]][a]))
                         if checked_auxs[batch[idx]][a] is None:
                             continue
                         if a == "channel_number":
-                            self.logger.debug("write_record: slow5_rec_set_string_wrapper running...")
-                            self.logger.debug("write_record: slow5_rec_set_string_wrapper type: {}".format(type(checked_auxs[batch[idx]][a])))
+                            self.logger.debug("write_record_batch: slow5_rec_set_string_wrapper running...")
+                            self.logger.debug("write_record_batch: slow5_rec_set_string_wrapper type: {}".format(type(checked_auxs[batch[idx]][a])))
                             ret = slow5_rec_set_string_wrapper(self.twrite[idx], self.s5.header, self.channel_number, <const char *>self.channel_number_val)
-                            self.logger.debug("write_record: slow5_rec_set_string_wrapper running done: ret = {}".format(ret))
+                            self.logger.debug("write_record_batch: slow5_rec_set_string_wrapper running done: ret = {}".format(ret))
                             if ret < 0:
-                                self.logger.error("write_record: slow5_rec_set_string_wrapper could not write aux value {}: {}".format(a, checked_auxs[batch[idx]][a]))
+                                self.logger.error("write_record_batch: slow5_rec_set_string_wrapper could not write aux value {}: {}".format(a, checked_auxs[batch[idx]][a]))
                                 #### We should free here
                                 return -1
                         elif a == "median_before":
@@ -1802,16 +1803,20 @@ cdef class Open:
                             # not implemented yet becuase of variability in ONT versioning
                             ret = 0
                         if ret < 0:
-                            self.logger.error("write_record: slow5_rec_set_wrapper could not write aux value {}: {}".format(a, checked_aux[a]))
+                            self.logger.error("write_record_batch: slow5_rec_set_wrapper could not write aux value {}: {}".format(a, checked_aux[a]))
                             return -1
 
-                    self.logger.debug("write_record: aux stuff done")
+                    self.logger.debug("write_record_batch: aux stuff done")
 
-            self.logger.debug("write_record: slow5_write_batch()")
+            self.logger.debug("write_record_batch: slow5_write_batch()")
 
             # write the record
+            if batch_len <= 0:
+                self.logger.debug("write_record_batch: batch_len 0 or less")
+                break
+
             slow5_write_batch(self.twrite, self.s5, batch_len, threads)
-            self.logger.debug("write_record: free()")
+            self.logger.debug("write_record_batch: free()")
             for i in range(batch_len):
                 free(self.twrite[i])
 
@@ -1824,8 +1829,8 @@ cdef class Open:
                 self.start_time_val = -1
 
         # free memory
-        self.twrite = NULL
-        self.logger.debug("write_record: function complete, returning 0")
+        # self.twrite = NULL
+        self.logger.debug("write_record_batch: function complete, returning 0")
         return 0
 
     def close(self):
