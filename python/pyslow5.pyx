@@ -1701,7 +1701,7 @@ cdef class Open:
                 else:
                     checked_record, checked_aux = self._record_type_validation(records[idx], aux)
                     checked_records[idx] = checked_record
-                    self.logger.debug("write_record: _record_type_validation done")
+            self.logger.debug("write_record: _record_type_validation done")
             if len(checked_aux) == 0:
                 checked_aux = None
             for idx in range(batch_len):
@@ -1811,6 +1811,9 @@ cdef class Open:
 
             # write the record
             slow5_write_batch(self.twrite, self.s5, batch_len, threads)
+            self.logger.debug("write_record: free()")
+            for i in range(batch_len):
+                free(self.twrite[i])
 
 
             if aux is not None:
@@ -1821,11 +1824,7 @@ cdef class Open:
                 self.start_time_val = -1
 
         # free memory
-        self.logger.debug("write_record: slow5_rec_free()")
-        # self.write = NULL
-        # slow5_rec_free(self.write)
-        # for i in range(batch_len):
-        #     slow5_rec_free(self.twrite[i])
+        self.twrite = NULL
         self.logger.debug("write_record: function complete, returning 0")
         return 0
 
