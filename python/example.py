@@ -418,20 +418,20 @@ reads = s58.seq_reads(aux='all')
 records = {}
 auxs = {}
 for read in reads:
-    # record, aux = F.get_empty_record(aux=True)
-    record = F.get_empty_record()
+    record, aux = F.get_empty_record(aux=True)
+    # record = F.get_empty_record()
     for i in read:
         if i == "read_id":
             readID = read[i]
         if i in record:
             record[i] = read[i]
-        # if i in aux:
-        #     aux[i] = read[i]
+        if i in aux:
+            aux[i] = read[i]
     records[readID] = record
-    # auxs[readID] = aux
+    auxs[readID] = aux
 print(records)
-# print(auxs)
-ret = F.write_record_batch(records, threads=2)
+print(auxs)
+ret = F.write_record_batch(records, threads=2, batchsize=3, aux=auxs)
 print("ret: write_record(): {}".format(ret))
 
 F.close()

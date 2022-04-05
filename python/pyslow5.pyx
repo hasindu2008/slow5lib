@@ -1810,7 +1810,7 @@ cdef class Open:
             self.logger.debug("write_record: slow5_write_batch()")
 
             # write the record
-            slow5_write_batch(self.twrite, self.s5, batchsize, threads)
+            slow5_write_batch(self.twrite, self.s5, batch_len, threads)
 
 
             if aux is not None:
@@ -1820,15 +1820,14 @@ cdef class Open:
                 self.start_mux_val = -1
                 self.start_time_val = -1
 
-            # free memory
-            self.logger.debug("write_record: slow5_rec_free()")
-            # self.write = NULL
-            # slow5_rec_free(self.write)
-            for i in range(batch_len):
-                slow5_rec_free(self.twrite[i])
-
-            self.logger.debug("write_record: function complete, returning 0")
-            return 0
+        # free memory
+        self.logger.debug("write_record: slow5_rec_free()")
+        # self.write = NULL
+        # slow5_rec_free(self.write)
+        # for i in range(batch_len):
+        #     slow5_rec_free(self.twrite[i])
+        self.logger.debug("write_record: function complete, returning 0")
+        return 0
 
     def close(self):
         '''
