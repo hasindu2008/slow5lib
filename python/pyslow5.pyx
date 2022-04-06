@@ -1044,6 +1044,10 @@ cdef class Open:
             self.shape_seq[0] = <np.npy_intp> self.read.len_raw_signal
             signal = np.PyArray_SimpleNewFromData(1, self.shape_seq,
                         np.NPY_INT16, <void *> self.read.raw_signal)
+            #this is to prevent slow5lib from reusing the buffer it allocated for rawsignal as np seems to be not deepcopying           
+            self.read.len_raw_signal = 0;
+            self.read.raw_signal = NULL;
+
             np.PyArray_UpdateFlags(signal, signal.flags.num | np.NPY_OWNDATA)
             row['signal'] = signal
             # for i in range(self.read.len_raw_signal):

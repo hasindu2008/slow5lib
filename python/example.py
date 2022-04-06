@@ -428,9 +428,9 @@ for read in reads:
         if i in aux:
             aux[i] = read[i]
     records[readID] = record
-    auxs[readID] = aux
-print(records)
-print(auxs)
+    auxs[readID] = aux  
+print(records) 
+print(auxs) 
 ret = F.write_record_batch(records, threads=2, batchsize=3, aux=auxs)
 print("ret: write_record(): {}".format(ret))
 
