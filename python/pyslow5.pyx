@@ -378,8 +378,8 @@ cdef class Open:
         # dic['signal'] = [self.rec.raw_signal[i] for i in range(self.rec.len_raw_signal)]
         # cdef np.npy_intp shape_get[1]
         self.shape_get[0] = <np.npy_intp> self.rec.len_raw_signal
-        signal = np.PyArray_SimpleNewFromData(1, self.shape_get,
-                    np.NPY_INT16, <void *> self.rec.raw_signal)
+        signal = copy.deepcopy(np.PyArray_SimpleNewFromData(1, self.shape_get,
+                    np.NPY_INT16, <void *> self.rec.raw_signal))
         np.PyArray_UpdateFlags(signal, signal.flags.num | np.NPY_OWNDATA)
         dic['signal'] = signal
 
@@ -508,8 +508,8 @@ cdef class Open:
                 # dic['signal'] = [self.rec.raw_signal[i] for i in range(self.rec.len_raw_signal)]
                 # cdef np.npy_intp shape_get[1]
                 self.shape_get[0] = <np.npy_intp> self.rec.len_raw_signal
-                signal = np.PyArray_SimpleNewFromData(1, self.shape_get,
-                            np.NPY_INT16, <void *> self.rec.raw_signal)
+                signal = copy.deepcopy(np.PyArray_SimpleNewFromData(1, self.shape_get,
+                            np.NPY_INT16, <void *> self.rec.raw_signal))
                 np.PyArray_UpdateFlags(signal, signal.flags.num | np.NPY_OWNDATA)
                 dic['signal'] = signal
 
@@ -1043,12 +1043,13 @@ cdef class Open:
             row['len_raw_signal'] = self.read.len_raw_signal
             # row['signal'] = [self.read.raw_signal[i] for i in range(self.read.len_raw_signal)]
             self.shape_seq[0] = <np.npy_intp> self.read.len_raw_signal
+            # signal = copy.deepcopy(np.PyArray_SimpleNewFromData(1, self.shape_seq,
+            #             np.NPY_INT16, <void *> self.read.raw_signal))
             signal = copy.deepcopy(np.PyArray_SimpleNewFromData(1, self.shape_seq,
                         np.NPY_INT16, <void *> self.read.raw_signal))
             #this is to prevent slow5lib from reusing the buffer it allocated for rawsignal as np seems to be not deepcopying
             # self.read.len_raw_signal = 0;
             # self.read.raw_signal = NULL;
-
             np.PyArray_UpdateFlags(signal, signal.flags.num | np.NPY_OWNDATA)
             row['signal'] = signal
             # for i in range(self.read.len_raw_signal):
@@ -1153,8 +1154,8 @@ cdef class Open:
                 # row['signal'] = [self.read.raw_signal[i] for i in range(self.read.len_raw_signal)]
                 signal_start_time = time.time()
                 self.shape_seq[0] = <np.npy_intp> self.read.len_raw_signal
-                signal = np.PyArray_SimpleNewFromData(1, self.shape_seq,
-                            np.NPY_INT16, <void *> self.read.raw_signal)
+                signal = copy.deepcopy(np.PyArray_SimpleNewFromData(1, self.shape_seq,
+                            np.NPY_INT16, <void *> self.read.raw_signal))
                 np.PyArray_UpdateFlags(signal, signal.flags.num | np.NPY_OWNDATA)
                 row['signal'] = signal
                 timedic["signal_total_time"] = timedic["signal_total_time"] + (time.time() - signal_start_time)

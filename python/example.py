@@ -428,9 +428,9 @@ for read in reads:
         if i in aux:
             aux[i] = read[i]
     records[readID] = record
-    auxs[readID] = aux  
-print(records) 
-print(auxs) 
+    auxs[readID] = aux
+print(records)
+print(auxs)
 ret = F.write_record_batch(records, threads=2, batchsize=3, aux=auxs)
 print("ret: write_record(): {}".format(ret))
 
@@ -461,7 +461,145 @@ print("==============================================")
 # print("get_read in: {} seconds".format(seq_multi_time))
 #
 # print("==============================================")
+#
+# print("single seq/write with big file:")
+# start_time = time.time()
+# sR = slow5.Open('/home/jamfer/Data/SK/multi_fast5/s5/FAK40634_d1cc054609fe2c5fcdeac358864f9dc81c8bb793_95.blow5','r', DEBUG=debug)
+# reads = sR.seq_reads(aux='all')
+# sW = slow5.Open('/home/jamfer/Data/SK/multi_fast5/s5/single_read_write.blow5','w', DEBUG=debug)
+#
+# header = F.get_empty_header()
+#
+# counter = 0
+# for i in header:
+#     header[i] = "test_{}".format(counter)
+#     counter += 1
+#
+# ret = sW.write_header(header)
+# print("ret: write_header(): {}".format(ret))
+#
+# for read in reads:
+#     record, aux = sW.get_empty_record(aux=True)
+#     for i in read:
+#         if i in record:
+#             record[i] = read[i]
+#         if i in aux:
+#             aux[i] = read[i]
+#     ret = sW.write_record(record, aux)
+#
+# single_seq_write_time = round(time.time() - start_time, 4)
+# print("single seq/write in: {} seconds".format(single_seq_write_time))
+#
+# print("==============================================")
+# print("multi seq, single write with big file:")
+# start_time = time.time()
+# sR = slow5.Open('/home/jamfer/Data/SK/multi_fast5/s5/FAK40634_d1cc054609fe2c5fcdeac358864f9dc81c8bb793_95.blow5','r', DEBUG=debug)
+# reads = sR.seq_reads_multi(threads=4, batchsize=100, aux='all')
+# sW = slow5.Open('/home/jamfer/Data/SK/multi_fast5/s5/multi_read_single_write.blow5','w', DEBUG=debug)
+# header = F.get_empty_header()
+#
+# counter = 0
+# for i in header:
+#     header[i] = "test_{}".format(counter)
+#     counter += 1
+#
+# ret = sW.write_header(header)
+# print("ret: write_header(): {}".format(ret))
+#
+# for read in reads:
+#     record, aux = sW.get_empty_record(aux=True)
+#     for i in read:
+#         if i in record:
+#             record[i] = read[i]
+#         if i in aux:
+#             aux[i] = read[i]
+#     ret = sW.write_record(record, aux)
+#
+# multi_seq_single_write_time = round(time.time() - start_time, 4)
+# print("multi seq, single write in: {} seconds".format(multi_seq_single_write_time))
+#
+# print("==============================================")
+# print("single seq, multi write with big file:")
+# start_time = time.time()
+# sR = slow5.Open('/home/jamfer/Data/SK/multi_fast5/s5/FAK40634_d1cc054609fe2c5fcdeac358864f9dc81c8bb793_95.blow5','r', DEBUG=debug)
+# reads = sR.seq_reads(aux='all')
+# sW = slow5.Open('/home/jamfer/Data/SK/multi_fast5/s5/single_read_multi_write.blow5','w', DEBUG=debug)
+#
+# header = sW.get_empty_header()
+#
+# counter = 0
+# for i in header:
+#     header[i] = "test_{}".format(counter)
+#     counter += 1
+#
+# ret = sW.write_header(header)
+# print("ret: write_header(): {}".format(ret))
+#
+# records = {}
+# auxs = {}
+# for read in reads:
+#     record, aux = sW.get_empty_record(aux=True)
+#     for i in read:
+#         if i == "read_id":
+#             readID = read[i]
+#         if i in record:
+#             record[i] = read[i]
+#         if i in aux:
+#             aux[i] = read[i]
+#     records[readID] = record
+#     auxs[readID] = aux
+#     if len(records) >= 100:
+#         ret = sW.write_record_batch(records, threads=4, batchsize=100, aux=auxs)
+#         records = {}
+#         auxs = {}
+#
+# single_seq_multi_write_time = round(time.time() - start_time, 4)
+# print("single seq, multi write in: {} seconds".format(single_seq_multi_write_time))
+#
+# print("==============================================")
+# print("multi seq/write with big file:")
+# start_time = time.time()
+# sR = slow5.Open('/home/jamfer/Data/SK/multi_fast5/s5/FAK40634_d1cc054609fe2c5fcdeac358864f9dc81c8bb793_95.blow5','r', DEBUG=debug)
+# reads = sR.seq_reads_multi(threads=4, batchsize=100, aux='all')
+# sW = slow5.Open('/home/jamfer/Data/SK/multi_fast5/s5/multi_read_write.blow5','w', DEBUG=debug)
+#
+#
+# header = sW.get_empty_header()
+#
+# counter = 0
+# for i in header:
+#     header[i] = "test_{}".format(counter)
+#     counter += 1
+#
+# ret = sW.write_header(header)
+# print("ret: write_header(): {}".format(ret))
+#
+# records = {}
+# auxs = {}
+# for read in reads:
+#     record, aux = sW.get_empty_record(aux=True)
+#     for i in read:
+#         if i == "read_id":
+#             readID = read[i]
+#         if i in record:
+#             record[i] = read[i]
+#         if i in aux:
+#             aux[i] = read[i]
+#     records[readID] = record
+#     auxs[readID] = aux
+#     if len(records) >= 100:
+#         ret = sW.write_record_batch(records, threads=4, batchsize=100, aux=auxs)
+#         records = {}
+#         auxs = {}
+# multi_seq_write_time = round(time.time() - start_time, 4)
+# print("multi seq/write in: {} seconds".format(multi_seq_write_time))
+#
+# print("==============================================")
+#
+# print("big file times:")
+# print("single seq/write in: {} seconds".format(single_seq_write_time))
+# print("multi seq, single write in: {} seconds".format(multi_seq_single_write_time))
+# print("single seq, multi write in: {} seconds".format(single_seq_multi_write_time))
+# print("multi seq/write in: {} seconds".format(multi_seq_write_time))
 
-# print("Seq time: {}".format(seq_time))
-# print("Seq multi time: {}".format(seq_multi_time))
 print("done")
