@@ -236,10 +236,10 @@ cdef class Open:
 
 
     def __dealloc__(self):
-        # if self.p is not NULL:
-        #     free(self.p)
-        # if self.m is not NULL:
-        #     free(self.m)
+        if self.p is not NULL:
+            free(self.p)
+        if self.m is not NULL:
+            free(self.m)
         if self.rec is not NULL:
             slow5_rec_free(self.rec)
         if self.read is not NULL:
@@ -248,18 +248,20 @@ cdef class Open:
             slow5_rec_free(self.write)
         if self.state in [1, 2]:
             if not self.close_state:
-                slow5_close_write(self.s5)
-                self.close_state = True
-                self.logger.debug("{} closed".format(self.path))
+                if self.s5 is not NULL:
+                    slow5_close_write(self.s5)
+                    self.close_state = True
+                    self.logger.debug("{} closed".format(self.path))
             else:
                 self.logger.debug("{} already closed".format(self.path))
         if self.state == 0:
-            if self.s5 is not NULL:
-                pyslow5.slow5_idx_unload(self.s5)
-                pyslow5.slow5_close(self.s5)
+            if not self.close_state:
+                if self.s5 is not NULL:
+                    slow5_idx_unload(self.s5)
+                    slow5_close(self.s5)
+                    self.close_state = True
+                    self.logger.debug("{} closed".format(self.path))
 
-        free(self.p)
-        free(self.m)
         free(self.channel_number)
         free(self.median_before)
         free(self.read_number)
@@ -522,7 +524,8 @@ cdef class Open:
                 yield dic
 
             slow5_free_batch(&self.trec, ret)
-            free(self.rid)
+            for i in range(batch_len):
+                free(self.rid[i])
         self.rec = NULL
         self.logger.debug("seq_reads_multi timings:")
 
@@ -1047,9 +1050,6 @@ cdef class Open:
             #             np.NPY_INT16, <void *> self.read.raw_signal))
             signal = copy.deepcopy(np.PyArray_SimpleNewFromData(1, self.shape_seq,
                         np.NPY_INT16, <void *> self.read.raw_signal))
-            #this is to prevent slow5lib from reusing the buffer it allocated for rawsignal as np seems to be not deepcopying
-            # self.read.len_raw_signal = 0;
-            # self.read.raw_signal = NULL;
             np.PyArray_UpdateFlags(signal, signal.flags.num | np.NPY_OWNDATA)
             row['signal'] = signal
             # for i in range(self.read.len_raw_signal):
@@ -1606,7 +1606,6 @@ cdef class Open:
         self.logger.debug("write_record: self.write processing raw_signal")
         for i in range(checked_record["len_raw_signal"]):
             self.write.raw_signal[i] = checked_record["signal"][i]
-
         self.logger.debug("write_record: self.write raw_signal done")
         # cdef char **attr = NULL
 
@@ -1649,18 +1648,22 @@ cdef class Open:
 
         self.logger.debug("write_record: slow5_rec_write()")
         # write the record
-        slow5_rec_write(self.s5, self.write)
+        ret = slow5_rec_write(self.s5, self.write)
+        self.logger.debug("write_record: slow5_rec_write() ret: {}".format(ret))
 
+        free(self.channel_number_val)
         self.channel_number_val = NULL
         self.median_before_val = -1.0
         self.read_number_val = -1
         self.start_mux_val = -1
         self.start_time_val = -1
 
+
         # free memory
         self.logger.debug("write_record: slow5_rec_free()")
+        free(self.write.raw_signal)
+        free(self.write)
         self.write = NULL
-        slow5_rec_free(self.write)
 
         self.logger.debug("write_record: function complete, returning 0")
         return 0
@@ -1821,13 +1824,19 @@ cdef class Open:
                 self.logger.debug("write_record_batch: batch_len 0 or less")
                 break
 
-            slow5_write_batch(self.twrite, self.s5, batch_len, threads)
+            ret = slow5_write_batch(self.twrite, self.s5, batch_len, threads)
+            if ret < batch_len:
+                self.logger.error("write_record_batch: write failed")
+                return -1
+
             self.logger.debug("write_record_batch: free()")
             for i in range(batch_len):
+                free(self.twrite[i].raw_signal)
                 free(self.twrite[i])
 
 
             if aux is not None:
+                free(self.channel_number_val)
                 self.channel_number_val = NULL
                 self.median_before_val = -1.0
                 self.read_number_val = -1
@@ -1843,11 +1852,20 @@ cdef class Open:
         '''
         close file so EOF is written
         '''
-        if self.state == 1:
+        if self.state in [1,2]:
             if not self.close_state:
-                slow5_close_write(self.s5)
-                self.close_state = True
-                self.logger.debug("{} closed".format(self.path))
+                if self.s5 is not NULL:
+                    slow5_close_write(self.s5)
+                    self.close_state = True
+                    self.logger.debug("{} closed".format(self.path))
+            else:
+                self.logger.warning("{} already closed".format(self.path))
+        elif self.state == 0:
+            if not self.close_state:
+                if self.s5 is not NULL:
+                    slow5_close(self.s5)
+                    self.close_state = True
+                    self.logger.debug("{} closed".format(self.path))
             else:
                 self.logger.warning("{} already closed".format(self.path))
         else:

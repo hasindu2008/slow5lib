@@ -125,7 +125,8 @@ for attr in names:
     val = s5.get_header_value(attr)
     print("{}: {}".format(attr, val))
 
-
+s5.close()
+print("==============================================")
 s52 = slow5.Open('examples/example2.slow5','r', DEBUG=debug)
 print("get_read check, 0d624d4b-671f-40b8-9798-84f2ccc4d7fc")
 read1 = s52.get_read("0d624d4b-671f-40b8-9798-84f2ccc4d7fc", aux=["read_number", "start_mux", "blah"])
@@ -184,6 +185,7 @@ for read in reads:
     print(read['read_id'])
     print("read_number", read['read_number'])
 
+s52.close()
 print("==============================================")
 
 print("write reads no aux")
@@ -239,6 +241,7 @@ for read in reads:
     ret = F.write_record(record)
     print("ret: write_record(): {}".format(ret))
 
+s58.close()
 F.close()
 
 F2 = slow5.Open('examples/example_write_append.blow5','a', DEBUG=debug)
@@ -262,6 +265,7 @@ for read in reads:
     ret = F2.write_record(record)
     print("ret: write_record(): {}".format(ret))
 
+s58.close()
 F.close()
 
 
@@ -299,6 +303,7 @@ for read in reads:
     ret = F.write_record(record, aux)
     print("ret: write_record(): {}".format(ret))
 
+s58.close()
 F.close()
 
 print("==============================================")
@@ -335,6 +340,7 @@ for read in reads:
     ret = F.write_record(record, aux)
     print("ret: write_record(): {}".format(ret))
 
+s58.close()
 F.close()
 
 F2 = slow5.Open('examples/example_write_append_aux.blow5','a', DEBUG=debug)
@@ -356,6 +362,7 @@ for read in reads:
     ret = F2.write_record(record, aux)
     print("ret: write_record(): {}".format(ret))
 
+s58.close()
 F.close()
 
 
@@ -383,6 +390,8 @@ read_list = ['r0',
              '0a238451-b9ed-446d-a152-badd074006c4',
              '0d624d4b-671f-40b8-9798-84f2ccc4d7fc']
 
+s53.close()
+
 s53 = slow5.Open('examples/example2.slow5','r', DEBUG=debug)
 reads = s53.get_read_list_multi(read_list, threads=2, batchsize=3, pA=True, aux='all')
 print("type check reads:", type(reads))
@@ -390,7 +399,7 @@ for read in reads:
     print(read['read_id'])
     print("read_number", read['read_number'])
 
-
+s53.close()
 print("==============================================")
 print("write reads with aux multi")
 
@@ -434,6 +443,7 @@ print(auxs)
 ret = F.write_record_batch(records, threads=2, batchsize=3, aux=auxs)
 print("ret: write_record(): {}".format(ret))
 
+s58.close()
 F.close()
 
 print("==============================================")
