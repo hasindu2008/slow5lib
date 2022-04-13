@@ -1,4 +1,3 @@
-
 # distutils: language = c++
 # cython: language_level=3
 # cython: profile=True
@@ -20,7 +19,7 @@ np.import_array()
 
 #
 # Class Open for reading and writing slow5/blow5 files
-# p.m attribute sets the read/write state and file extension sets the type
+# m attribute sets the read/write state and file extension of p sets the type
 #
 
 cdef class Open:
@@ -89,6 +88,9 @@ cdef class Open:
 
     cdef pyslow5.float total_time_slow5_get_next
     cdef pyslow5.float total_time_yield_reads
+    cdef pyslow5.float total_single_write_time
+    cdef pyslow5.float total_multi_write_signal_time
+    cdef pyslow5.float total_multi_write_time
 
     def __cinit__(self, pathname, mode, DEBUG=0):
         # Set to default NULL type
@@ -155,6 +157,9 @@ cdef class Open:
         # cdef something end_reason # some enum
         self.total_time_slow5_get_next = 0.0
         self.total_time_yield_reads = 0.0
+        self.total_single_write_time = 0.0
+        self.total_multi_write_signal_time = 0.0
+        self.total_multi_write_time = 0.0
 
         # sets up logging level/verbosity
         self.V = DEBUG
@@ -184,15 +189,13 @@ cdef class Open:
                             -14: ["SLOW5_ERR_MAGIC", "magic number invalid"],
                             -15: ["SLOW5_ERR_VERSION", "version incompatible"],
                             -16: ["SLOW5_ERR_HDRPARSE", "header parsing error"],
-                            -17: ["SLOW5_ERR_TYPE", "error relating to slow5 type"],
-                                                        }
+                            -17: ["SLOW5_ERR_TYPE", "error relating to slow5 type"]}
         p = str.encode(pathname)
         self.path = pathname
         self.p = strdup(p)
         m = str.encode(mode)
         self.mode = mode
         self.m = strdup(m)
-        # print binary strings of filepath and mode
         self.logger.debug("FILE: {}, mode: {}".format(self.path, self.mode))
         self.logger.debug("FILE: {}, mode: {}".format(self.p, self.m))
         # Set state based on mode for file opening
@@ -205,7 +208,6 @@ cdef class Open:
             self.state = 2
         else:
             self.state = -1
-            # TODO: some error output
         # opens file and creates slow5 object for reading
         if self.state == 0:
             self.s5 = pyslow5.slow5_open(self.p, self.m)
@@ -223,11 +225,6 @@ cdef class Open:
         # check object was actually created.
         if self.s5 is NULL:
             raise MemoryError()
-        # load or create and load index
-        # self.logger.debug("Creating/loading index...")
-        # ret = slow5_idx_load(self.s5)
-        # if ret != 0:
-        #     self.logger.warning("slow5_idx_load return not 0: {}: {}".format(ret, self.error_codes[ret]))
 
 
     def __init__(self, pathname, mode, DEBUG=0):
@@ -272,6 +269,9 @@ cdef class Open:
         self.logger.debug("pathname: {}".format(self.path))
         self.logger.debug("total_time_slow5_get_next: {} seconds".format(self.total_time_slow5_get_next))
         self.logger.debug("total_time_yield_reads: {} seconds".format(self.total_time_yield_reads))
+        self.logger.debug("total_single_write_time: {} seconds".format(self.total_single_write_time))
+        self.logger.debug("total_multi_write_signal_time: {} seconds".format(self.total_multi_write_signal_time))
+        self.logger.debug("total_multi_write_time: {} seconds".format(self.total_multi_write_time))
 
 
     def _convert_to_pA(self, d):
@@ -281,6 +281,7 @@ cdef class Open:
         for (int32_t j = 0; j < nsample; j++) {
             rawptr[j] = (rawptr[j] + offset) * raw_unit;
         }
+        TODO: Use memory view for the loop so it's faster
         '''
         digitisation = d['digitisation']
         range = d['range']
@@ -1037,23 +1038,17 @@ cdef class Open:
                 row['read_id'] = self.read.read_id.decode()
             else:
                 row['read_id'] = self.read.read_id
-            # row['read_id'] = self.read.read_id.decode()
             row['read_group'] = self.read.read_group
             row['digitisation'] = self.read.digitisation
             row['offset'] = self.read.offset
             row['range'] = self.read.range
             row['sampling_rate'] = self.read.sampling_rate
             row['len_raw_signal'] = self.read.len_raw_signal
-            # row['signal'] = [self.read.raw_signal[i] for i in range(self.read.len_raw_signal)]
             self.shape_seq[0] = <np.npy_intp> self.read.len_raw_signal
-            # signal = copy.deepcopy(np.PyArray_SimpleNewFromData(1, self.shape_seq,
-            #             np.NPY_INT16, <void *> self.read.raw_signal))
             signal = copy.deepcopy(np.PyArray_SimpleNewFromData(1, self.shape_seq,
                         np.NPY_INT16, <void *> self.read.raw_signal))
             np.PyArray_UpdateFlags(signal, signal.flags.num | np.NPY_OWNDATA)
             row['signal'] = signal
-            # for i in range(self.read.len_raw_signal):
-            #     row['signal'].append(self.read.raw_signal[i])
 
             # if pA=True, convert signal to pA
             if pA:
@@ -1151,7 +1146,6 @@ cdef class Open:
                 row['range'] = self.read.range
                 row['sampling_rate'] = self.read.sampling_rate
                 row['len_raw_signal'] = self.read.len_raw_signal
-                # row['signal'] = [self.read.raw_signal[i] for i in range(self.read.len_raw_signal)]
                 signal_start_time = time.time()
                 self.shape_seq[0] = <np.npy_intp> self.read.len_raw_signal
                 signal = copy.deepcopy(np.PyArray_SimpleNewFromData(1, self.shape_seq,
@@ -1160,9 +1154,6 @@ cdef class Open:
                 row['signal'] = signal
                 timedic["signal_total_time"] = timedic["signal_total_time"] + (time.time() - signal_start_time)
                 timedic["primary_total_time"] = timedic["primary_total_time"] + (time.time() - primary_start_time)
-                # for i in range(self.read.len_raw_signal):
-                #     row['signal'].append(self.read.raw_signal[i])
-
                 # if pA=True, convert signal to pA
                 if pA:
                     pA_start_time = time.time()
@@ -1209,7 +1200,6 @@ cdef class Open:
         get all header names and return list
         '''
         headers = []
-        # ret = slow5_header_names(self.s5.header)
         ret = slow5_get_hdr_keys(self.s5.header, &self.head_len)
 
         self.logger.debug("slow5_get_hdr_keys head_len: {}".format(self.head_len))
@@ -1604,10 +1594,16 @@ cdef class Open:
         self.logger.debug("write_record: self.write assignments done")
 
         self.logger.debug("write_record: self.write processing raw_signal")
+        start_write_copy_signal = time.time()
+        # grabs buffer of numby array so the for loop operats in C not python = super fast
+        memview = memoryview(checked_record["signal"])
         for i in range(checked_record["len_raw_signal"]):
-            self.write.raw_signal[i] = checked_record["signal"][i]
+            self.write.raw_signal[i] = memview[i]
+        # for i in range(checked_record["len_raw_signal"]):
+        #     self.write.raw_signal[i] = checked_record["signal"][i]
+        end_write_copy_signal = (time.time() - start_write_copy_signal)
+        self.total_single_write_time = self.total_single_write_time + end_write_copy_signal
         self.logger.debug("write_record: self.write raw_signal done")
-        # cdef char **attr = NULL
 
         if aux:
             self.logger.debug("write_record: aux stuff...")
@@ -1677,6 +1673,7 @@ cdef class Open:
         if aux, aux is also a dic of dics, whhere the key for each is teh readID
         records = {readID_0: {read_dic}, readID_1: {read_dic}}
         '''
+        start_multi_write = time.time()
         aux_types = {"channel_number": type("string"),
                      "median_before": type(1.0),
                      "read_number": type(10),
@@ -1775,11 +1772,17 @@ cdef class Open:
                 self.logger.debug("write_record_batch: self.write assignments done")
 
                 self.logger.debug("write_record_batch: self.write processing raw_signal")
+                start_write_copy_signal = time.time()
+                # grabs buffer of numby array so the for loop operats in C not python = super fast
+                memview = memoryview(checked_records[batch[idx]]["signal"])
                 for i in range(checked_records[batch[idx]]["len_raw_signal"]):
-                    self.twrite[idx].raw_signal[i] = checked_records[batch[idx]]["signal"][i]
+                    self.twrite[idx].raw_signal[i] = memview[i]
+                # for i in range(checked_records[batch[idx]]["len_raw_signal"]):
+                #     self.twrite[idx].raw_signal[i] = checked_records[batch[idx]]["signal"][i]
+                end_write_copy_signal = (time.time() - start_write_copy_signal)
+                self.total_multi_write_signal_time = self.total_multi_write_signal_time + end_write_copy_signal
 
                 self.logger.debug("write_record_batch: self.write raw_signal done")
-                # cdef char **attr = NULL
 
                 if aux is not None:
                     self.logger.debug("write_record_batch: aux stuff...")
@@ -1843,6 +1846,8 @@ cdef class Open:
                 self.start_mux_val = -1
                 self.start_time_val = -1
 
+        end_multi_write = time.time() - start_multi_write
+        self.total_multi_write_time = self.total_multi_write_time + end_multi_write
         # free memory
         # self.twrite = NULL
         self.logger.debug("write_record_batch: function complete, returning 0")
