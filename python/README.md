@@ -1,10 +1,11 @@
 # pyslow5 python library
 
-The slow5 python library (pyslow5) allows a user to read slow5 and blow5 files.
+The slow5 python library (pyslow5) allows a user to read and write slow5/blow5 files.
 
 ## Installation
 
 Initial setup and example info for environment
+
 ###### slow5lib needs python3.4.2 or higher.
 
 If you only want to use the python library, then you can simply install using pip
@@ -61,7 +62,8 @@ git clone git@github.com:hasindu2008/slow5lib.git
 cd slow5lib
 make
 
-# CHOOSE A OR B:
+# CHOOSE A OR B:  
+# (B is the cleanest method)
 # |=======================================================================|
 # |A. Install with pip if wheel is present, otherwise it uses setuptools  |
     python3 -m pip install . --use-feature=in-tree-build
@@ -91,7 +93,7 @@ python3 -m pip uninstall pyslow5
 
 #### `Open(FILE, mode, DEBUG=0)`:
 
-The pyslow5 libraryr has one main Class, `pyslow5.Open` which opens a slow5/blow5 (slow5 for easy reference) file for reading.
+The pyslow5 library has one main Class, `pyslow5.Open` which opens a slow5/blow5 (slow5 for easy reference) file for reading/writing.
 
 `FILE`: the file or filepath of the slow5 file to open
 `mode`: mode in which to open the file.
@@ -143,6 +145,40 @@ for read in s5.seq_reads(pA=True, aux='all'):
     print("================================")
 ```
 
+
+#### `seq_reads_multi(threads=4, batchsize=4096, pA=False, aux=None)`:
+
+Access all reads sequentially in an opened slow5, using multiple threads.
++ If readID is not found, `None` is returned.
++ threads = number of threads to use in C backend.
++ batchsize = number of reads to fetch at a time. Higher numbers use more ram, but is more efficient with more threads.
++ pA = Bool for converting signal to picoamps.
++ aux = `str` '<attr_name>'/'all' or list of names of auxiliary fields added to return dictionary, `None` if `<attr_name>` not found
++ returns `dict` = dictionary of main fields for read_id, with any aux fields added
+
+Example:
+
+```python
+# create generator
+reads = s5.seq_reads_multi(threads=2, batchsize=3)
+
+# print all readIDs
+for read in reads:
+    print(read['read_id'])
+
+# or use directly in a for loop
+for read in s5.seq_reads_multi(threads=2, batchsize=3, pA=True, aux='all'):
+    print("read_id:", read['read_id'])
+    print("read_group:", read['read_group'])
+    print("digitisation:", read['digitisation'])
+    print("offset:", read['offset'])
+    print("range:", read['range'])
+    print("sampling_rate:", read['sampling_rate'])
+    print("len_raw_signal:", read['len_raw_signal'])
+    print("signal:", read['signal'][:10])
+    print("================================")
+```
+
 #### `get_read(readID, pA=False, aux=None)`:
 
 Access a specific read using a unique readID. This is a ranom access method, using the index.
@@ -164,7 +200,7 @@ if read is not None:
 
 #### `get_read_list(read_list, pA=False, aux=None)`:
 
-Access a list of specific reads using a list `read_list` of unique readIDs. This is a random access method using the index, so order of readIDs does impact access speed.
+Access a list of specific reads using a list `read_list` of unique readIDs. This is a random access method using the index. If an index does not exist, it will create one first.
 + If readID is not found, `None` is returned.
 + pA = Bool for converting signal to picoamps.
 + aux = `str` '<attr_name>'/'all' or list of names of auxiliary fields added to return dictionary, `None` if `<attr_name>` not found
@@ -176,6 +212,28 @@ Example:
 read_list = ["r1", "r3", "null_read", "r5", "r2", "r1"]
 selected_reads = s5.get_read_list(read_list)
 for r, read in zip(read_list,selected_reads):
+    if read is not None:
+        print(r, read['read_id'])
+    else:
+        print(r, "read not found")
+```
+
+
+#### `get_read_list_multi(read_list, threads=4, batchsize=100, pA=False, aux=None):`:
+
+Access a list of specific reads using a list `read_list` of unique readIDs using multiple threads. This is a random access method using the index. If an index does not exist, it will create one first.
++ If readID is not found, `None` is returned.
++ threads = number of threads to use in C backend
++ batchsize = number of reads to fetch at a time. Higher numbers use more ram, but is more efficient with more threads.
++ pA = Bool for converting signal to picoamps.
++ aux = `str` '<attr_name>'/'all' or list of names of auxiliary fields added to return dictionary, `None` if `<attr_name>` not found
++ returns `dict` = dictionary of main fields for read_id, with any aux fields added
+Example:
+
+```python
+read_list = ["r1", "r3", "null_read", "r5", "r2", "r1"]
+selected_reads = s5.get_read_list_multi(read_list, threads=2, batchsize=3)
+for r, read in zip(read_list, selected_reads):
     if read is not None:
         print(r, read['read_id'])
     else:
@@ -211,7 +269,7 @@ This can mostly be ignored, but will be used in error tracing in the future, as 
 
 ### Writing a file
 
-To write a file, `mode` in `Open()` must be set to `'w'`
+To write a file, `mode` in `Open()` must be set to `'w'` and when appending, `'a'`
 
 #### `get_empty_header()`:
 
@@ -233,6 +291,7 @@ header = s5.get_empty_header()
 Write header to file
 
 + `header` = populated dictionary from `get_empty_header()`
++ read_group = read group integer for when multiple runs are written to the same slow5 file
 + returns 0 on success, <0 on error with error code
 
 You must write `read_group=0` (default) first before writing any other read_groups, and it is advised to write read_groups in sequential order.
@@ -311,6 +370,31 @@ record, aux = s5.get_empty_record(aux=True)
 #....
 # Write record
 ret = s5.write_record(record, aux)
+print("ret: write_record(): {}".format(ret))
+```
+
+
+#### `write_record_batch(records, threads=4, batchsize=4096, aux=None)`:
+
+Write a record and optional aux fields, using multiple threads
+
++ records = a dictionary of dictionaries where each entry is a populated form of `get_empty_record()` with the key of each being the read['read_id'].
++ threads = number of threads to use in the C backend.
++ batchsize = number of reads to write at a time. If parsing 1000 records, with batchsize=250 and threads=4, 4 threads will be spawned 4 times to write 250 records to the file before returning
++ aux = an empty aux record returned by `get_empty_record(aux=True)`
++ returns 0 on success and -1 on error/failure
+
+Example:
+
+```python
+
+record, aux = s5.get_empty_record(aux=True)
+# populate record, aux
+#....
+records[record['read_id']] = record
+auxs[record['read_id']] = aux
+# Write record
+ret = s5.write_record_batch(records, threads=2, batchsize=3, aux=auxs)
 print("ret: write_record(): {}".format(ret))
 ```
 
