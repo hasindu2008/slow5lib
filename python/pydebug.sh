@@ -8,3 +8,4 @@ CFLAGS="-fsanitize=address -fno-omit-frame-pointer" python3 setup.py build
 cp build/lib.*/*.so  ./
 echo $GCC_ASAN_PRELOAD
 LD_PRELOAD=$GCC_ASAN_PRELOAD  python3 < python/example.py
+# LD_PRELOAD=$GCC_ASAN_PRELOAD  python3 -m unittest -v python/test.py
