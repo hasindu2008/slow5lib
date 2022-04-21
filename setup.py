@@ -7,7 +7,6 @@ except ImportError:
     from distutils.extension import Extension
 
 import sys
-import os
 import platform
 
 include_dirs = []
@@ -18,9 +17,9 @@ include_dirs = []
 # for the install.
 try:
     import numpy as np
-    include_dirs = ['include/', np.get_include(), 'thirdparty/streamvbyte/include', 'src/']
+    include_dirs = ['include/', np.get_include(), 'thirdparty/streamvbyte/include']
 except ImportError:
-    include_dirs = ['include/', 'thirdparty/streamvbyte/include', 'src/']
+    include_dirs = ['include/', 'thirdparty/streamvbyte/include']
     def np(*args, ** kwargs ):
         import numpy as np
         return np(*args, ** kwargs)
@@ -44,11 +43,11 @@ depends=['python/pyslow5.pxd', 'python/pyslow5.h',
             'slow5/slow5.h', 'slow5/slow5_defs.h', 'slow5/slow5_error.h', 'slow5/slow5_press.h',
             'python/slow5threads.h',
             'slow5/klib/khash.h', 'slow5/klib/kvec.h',
-            'src/slow5_extra.h', 'src/slow5_idx.h', 'src/slow5_misc.h', 'src/klib/ksort.h' , 'src/slow5_extra.h',
+            'src/slow5_extra.h', 'src/slow5_idx.h', 'src/slow5_misc.h', 'src/klib/ksort.h',
             'thirdparty/streamvbyte/include/streamvbyte.h', 'thirdparty/streamvbyte/include/streamvbyte_zigzag.h']
-# extra_compile_args = ['-g', '-Wall', '-O2', '-std=c99']
-extra_compile_args = []
-os.environ["CFLAGS"] = '-g -Wall -O2 -std=c99'
+extra_compile_args = ['-g', '-Wall', '-O2', '-std=c99']
+# extra_compile_args = []
+# os.environ["CFLAGS"] = '-g -Wall -O2 -std=c99'
 
 arch=platform.machine()
 if arch in ["aarch64", "arm64"]:
