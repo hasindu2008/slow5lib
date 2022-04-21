@@ -1,8 +1,9 @@
 #ifndef PYSLOW5_WRITE_H
 #define PYSLOW5_WRITE_H
 
-slow5_file_t *slow5_open_write(char *filename, char *mode);
-slow5_file_t *slow5_open_write_append(char *filename, char *mode);
+//these functionalities will be moved to the slow5lib API in a while, but names will change
+slow5_file_t *slow5_open_write(const char *filename, const char *mode);
+slow5_file_t *slow5_open_write_append(const char *filename, const char *mode);
 int slow5_close_write(slow5_file_t *sf);
 int slow5_header_write(slow5_file_t *sf);
 int slow5_rec_write(slow5_file_t *sf, slow5_rec_t *rec);

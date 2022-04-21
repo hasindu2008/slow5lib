@@ -5,3 +5,11 @@ header_attribute
 random_read_pthreads
 random_read_openmp
 *.idx
+example_write_aux_multi.slow5
+example_write.slow5
+example_write_append.blow5
+example_write_append_aux.blow5
+example_write_aux.slow5
+example_write_aux_multi.slow5
+example_write_aux_multi.slow5
+example_write_append.slow5
