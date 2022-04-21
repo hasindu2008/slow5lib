@@ -537,6 +537,7 @@ cdef class Open:
             slow5_free_batch(&self.trec, ret)
             for i in range(batch_len):
                 free(self.rid[i])
+            free(self.rid)
         self.rec = NULL
         self.logger.debug("seq_reads_multi timings:")
 
@@ -1218,6 +1219,7 @@ cdef class Open:
             return headers
 
         headers = [ret[i].decode() for i in range(self.head_len)]
+        free(ret)
         return headers
 
 
@@ -1475,37 +1477,6 @@ cdef class Open:
                     elif a == "end_reason":
                         continue
             self.logger.debug("_record_type_validation: doing aux stuff...")
-            for a in aux:
-                if a not in py_aux_types:
-                    self.logger.error("_record_type_validation {}: {} user aux field not in pyslow5 aux_types".format(a, aux[a]))
-                    return None, None
-                if aux[a] is None:
-                    continue
-                if type(aux[a]) != py_aux_types[a]:
-                    self.logger.error("_record_type_validation {}: {} user aux field type mismatch with pyslow5 aux_types".format(a, aux[a]))
-                    return None, None
-                else:
-                    self.logger.debug("_record_type_validation: aux passed tests...")
-                    if a == "channel_number":
-                        self.channel_number_val=strdup(aux[a].encode())
-                        new_aux[a] = aux[a]
-                    elif a == "median_before":
-                        self.median_before_val = <double>aux[a]
-                        new_aux[a] = aux[a]
-                    elif a == "read_number":
-                        self.read_number_val = <int32_t>aux[a]
-                        new_aux[a] = aux[a]
-                    elif a == "start_mux":
-                        self.start_mux_val = <uint8_t>aux[a]
-                        new_aux[a] = aux[a]
-                    elif a == "start_time":
-                        self.start_time_val = <uint64_t>aux[a]
-                        new_aux[a] = aux[a]
-                    elif a == "end_reason":
-                        continue
-
-            self.logger.debug("_record_type_validation: aux stuff done")
-
 
         return user_record, new_aux
 
@@ -1687,7 +1658,7 @@ cdef class Open:
 
         self.logger.debug("write_record: self.write assignments...")
         checked_record["read_id"] = checked_record["read_id"].encode()
-        self.write.read_id = checked_record["read_id"]
+        self.write.read_id = strdup(checked_record["read_id"])
         self.write.read_id_len = len(checked_record["read_id"])
         self.write.read_group = checked_record["read_group"]
         self.write.digitisation = checked_record["digitisation"]
@@ -1754,18 +1725,18 @@ cdef class Open:
         ret = slow5_rec_write(self.s5, self.write)
         self.logger.debug("write_record: slow5_rec_write() ret: {}".format(ret))
 
-        free(self.channel_number_val)
-        self.channel_number_val = NULL
-        self.median_before_val = -1.0
-        self.read_number_val = -1
-        self.start_mux_val = -1
-        self.start_time_val = -1
+        if aux is not None:
+            free(self.channel_number_val)
+            self.channel_number_val = NULL
+            self.median_before_val = -1.0
+            self.read_number_val = -1
+            self.start_mux_val = -1
+            self.start_time_val = -1
 
 
         # free memory
         self.logger.debug("write_record: slow5_rec_free()")
-        free(self.write.raw_signal)
-        free(self.write)
+        slow5_rec_free(self.write)
         self.write = NULL
 
         self.logger.debug("write_record: function complete, returning 0")
@@ -1881,7 +1852,7 @@ cdef class Open:
 
                 self.logger.debug("write_record_batch: self.write assignments...")
                 checked_records[batch[idx]]["read_id"] = checked_records[batch[idx]]["read_id"].encode()
-                self.twrite[idx].read_id = checked_records[batch[idx]]["read_id"]
+                self.twrite[idx].read_id = strdup(checked_records[batch[idx]]["read_id"])
                 self.twrite[idx].read_id_len = len(checked_records[batch[idx]]["read_id"])
                 self.twrite[idx].read_group = checked_records[batch[idx]]["read_group"]
                 self.twrite[idx].digitisation = checked_records[batch[idx]]["digitisation"]
@@ -1957,8 +1928,8 @@ cdef class Open:
 
             self.logger.debug("write_record_batch: free()")
             for i in range(batch_len):
-                free(self.twrite[i].raw_signal)
-                free(self.twrite[i])
+                slow5_rec_free(self.twrite[i])
+            free(self.twrite)
 
 
             self.logger.debug("write_record_batch: free() aux")
