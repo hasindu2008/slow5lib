@@ -85,6 +85,11 @@ cdef class Open:
     cdef pyslow5.int32_t read_number_val
     cdef pyslow5.uint8_t start_mux_val
     cdef pyslow5.uint64_t start_time_val
+    cdef char **channel_number_val_array
+    cdef double *median_before_val_array
+    cdef pyslow5.int32_t *read_number_val_array
+    cdef pyslow5.uint8_t *start_mux_val_array
+    cdef pyslow5.uint64_t *start_time_val_array
 
     cdef pyslow5.float total_time_slow5_get_next
     cdef pyslow5.float total_time_yield_reads
@@ -152,6 +157,11 @@ cdef class Open:
         read_number_val = -1
         start_mux_val = -1
         start_time_val = -1
+        channel_number_val_array = NULL
+        median_before_val_array = NULL
+        read_number_val_array = NULL
+        start_mux_val_array = NULL
+        start_time_val_array = NULL
 
 
         # cdef something end_reason # some enum
@@ -1464,6 +1474,103 @@ cdef class Open:
                         new_aux[a] = aux[a]
                     elif a == "end_reason":
                         continue
+            self.logger.debug("_record_type_validation: doing aux stuff...")
+            for a in aux:
+                if a not in py_aux_types:
+                    self.logger.error("_record_type_validation {}: {} user aux field not in pyslow5 aux_types".format(a, aux[a]))
+                    return None, None
+                if aux[a] is None:
+                    continue
+                if type(aux[a]) != py_aux_types[a]:
+                    self.logger.error("_record_type_validation {}: {} user aux field type mismatch with pyslow5 aux_types".format(a, aux[a]))
+                    return None, None
+                else:
+                    self.logger.debug("_record_type_validation: aux passed tests...")
+                    if a == "channel_number":
+                        self.channel_number_val=strdup(aux[a].encode())
+                        new_aux[a] = aux[a]
+                    elif a == "median_before":
+                        self.median_before_val = <double>aux[a]
+                        new_aux[a] = aux[a]
+                    elif a == "read_number":
+                        self.read_number_val = <int32_t>aux[a]
+                        new_aux[a] = aux[a]
+                    elif a == "start_mux":
+                        self.start_mux_val = <uint8_t>aux[a]
+                        new_aux[a] = aux[a]
+                    elif a == "start_time":
+                        self.start_time_val = <uint64_t>aux[a]
+                        new_aux[a] = aux[a]
+                    elif a == "end_reason":
+                        continue
+
+            self.logger.debug("_record_type_validation: aux stuff done")
+
+
+        return user_record, new_aux
+
+
+    def _multi_record_type_validation(self, user_record, aux=None):
+        '''
+        internal function to validate and convert aux types before pushing to C side
+        returns None, None on error
+        '''
+
+        py_record_types = {"read_id": type("string"),
+                           "read_group": type(1),
+                           "digitisation": type(1.0),
+                           "offset": type(1.0),
+                           "range": type(1.0),
+                           "sampling_rate": type(1.0),
+                           "len_raw_signal": type(10),
+                           "signal": type(np.array([1, 2, 3], np.int16))}
+
+        py_aux_types = {"channel_number": type("string"),
+                        "median_before": type(1.0),
+                        "read_number": type(10),
+                        "start_mux": type(1),
+                        "start_time": type(100),
+                        "end_reason": None}
+
+        new_aux = {}
+
+        for a in user_record:
+            if user_record[a] is None:
+                continue
+            if a not in py_record_types:
+                self.logger.error("_record_type_validation {}: {} user primary field not in pyslow5 record_types".format(a, user_record[a]))
+                return None, None
+
+            if type(user_record[a]) != py_record_types[a]:
+                self.logger.error("_record_type_validation {}: {} user primary field type mismatch with pyslow5 record_types".format(a, user_record[a]))
+                return None, None
+
+        # check aux if given
+        if aux is not None:
+            self.logger.debug("_record_type_validation: doing aux stuff...")
+            for a in aux:
+                if a not in py_aux_types:
+                    self.logger.error("_record_type_validation {}: {} user aux field not in pyslow5 aux_types".format(a, aux[a]))
+                    return None, None
+                if aux[a] is None:
+                    continue
+                if type(aux[a]) != py_aux_types[a]:
+                    self.logger.error("_record_type_validation {}: {} user aux field type mismatch with pyslow5 aux_types".format(a, aux[a]))
+                    return None, None
+                else:
+                    self.logger.debug("_record_type_validation: aux passed tests...")
+                    if a == "channel_number":
+                        new_aux[a] = aux[a]
+                    elif a == "median_before":
+                        new_aux[a] = aux[a]
+                    elif a == "read_number":
+                        new_aux[a] = aux[a]
+                    elif a == "start_mux":
+                        new_aux[a] = aux[a]
+                    elif a == "start_time":
+                        new_aux[a] = aux[a]
+                    elif a == "end_reason":
+                        continue
 
             self.logger.debug("_record_type_validation: aux stuff done")
 
@@ -1700,10 +1807,26 @@ cdef class Open:
             self.logger.debug("write_record_batch: _record_type_validation running")
             checked_records = {}
             checked_auxs = {}
-            for idx in batch:
+            self.channel_number_val_array = <char **> malloc(sizeof(char*)*batch_len)
+            self.median_before_val_array = <double *> malloc(sizeof(double)*batch_len)
+            self.read_number_val_array = <int32_t *> malloc(sizeof(int32_t)*batch_len)
+            self.start_mux_val_array = <uint8_t *> malloc(sizeof(uint8_t)*batch_len)
+            self.start_time_val_array = <uint64_t *> malloc(sizeof(uint64_t)*batch_len)
+            for i, idx in enumerate(batch):
                 if aux is not None:
-                    checked_record, checked_aux = self._record_type_validation(records[idx], aux[idx])
+                    checked_record, checked_aux = self._multi_record_type_validation(records[idx], aux[idx])
                     checked_records[idx] = checked_record
+                    for a in checked_aux:
+                        if a == "channel_number":
+                            self.channel_number_val_array[i] = strdup(checked_aux[a].encode())
+                        elif a == "median_before":
+                            self.median_before_val_array[i] = <double>checked_aux[a]
+                        elif a == "read_number":
+                            self.read_number_val_array[i] = <int32_t>checked_aux[a]
+                        elif a == "start_mux":
+                            self.start_mux_val_array[i] = <uint8_t>checked_aux[a]
+                        elif a == "start_time":
+                            self.start_time_val_array[i] = <uint64_t>checked_aux[a]
                     checked_auxs[idx] = checked_aux
                 else:
                     checked_record, checked_aux = self._record_type_validation(records[idx], aux)
@@ -1797,20 +1920,20 @@ cdef class Open:
                         if a == "channel_number":
                             self.logger.debug("write_record_batch: slow5_rec_set_string_wrapper running...")
                             self.logger.debug("write_record_batch: slow5_rec_set_string_wrapper type: {}".format(type(checked_auxs[batch[idx]][a])))
-                            ret = slow5_rec_set_string_wrapper(self.twrite[idx], self.s5.header, self.channel_number, <const char *>self.channel_number_val)
+                            ret = slow5_rec_set_string_wrapper(self.twrite[idx], self.s5.header, self.channel_number, <const char *>self.channel_number_val_array[idx])
                             self.logger.debug("write_record_batch: slow5_rec_set_string_wrapper running done: ret = {}".format(ret))
                             if ret < 0:
                                 self.logger.error("write_record_batch: slow5_rec_set_string_wrapper could not write aux value {}: {}".format(a, checked_auxs[batch[idx]][a]))
                                 #### We should free here
                                 return -1
                         elif a == "median_before":
-                            ret = slow5_rec_set_wrapper(self.twrite[idx], self.s5.header, self.median_before, <const void *>&self.median_before_val)
+                            ret = slow5_rec_set_wrapper(self.twrite[idx], self.s5.header, self.median_before, <const void *>&self.median_before_val_array[idx])
                         elif a == "read_number":
-                            ret = slow5_rec_set_wrapper(self.twrite[idx], self.s5.header, self.read_number, <const void *>&self.read_number_val)
+                            ret = slow5_rec_set_wrapper(self.twrite[idx], self.s5.header, self.read_number, <const void *>&self.read_number_val_array[idx])
                         elif a == "start_mux":
-                            ret = slow5_rec_set_wrapper(self.twrite[idx], self.s5.header, self.start_mux, <const void *>&self.start_mux_val)
+                            ret = slow5_rec_set_wrapper(self.twrite[idx], self.s5.header, self.start_mux, <const void *>&self.start_mux_val_array[idx])
                         elif a == "start_time":
-                            ret = slow5_rec_set_wrapper(self.twrite[idx], self.s5.header, self.start_time, <const void *>&self.start_time_val)
+                            ret = slow5_rec_set_wrapper(self.twrite[idx], self.s5.header, self.start_time, <const void *>&self.start_time_val_array[idx])
                         elif a == "end_reason":
                             # not implemented yet becuase of variability in ONT versioning
                             ret = 0
@@ -1838,13 +1961,16 @@ cdef class Open:
                 free(self.twrite[i])
 
 
+            self.logger.debug("write_record_batch: free() aux")
             if aux is not None:
-                free(self.channel_number_val)
-                self.channel_number_val = NULL
-                self.median_before_val = -1.0
-                self.read_number_val = -1
-                self.start_mux_val = -1
-                self.start_time_val = -1
+                for i in range(batch_len):
+                    free(self.channel_number_val_array[i])
+
+                free(self.channel_number_val_array)
+                free(self.median_before_val_array)
+                free(self.read_number_val_array)
+                free(self.start_mux_val_array)
+                free(self.start_time_val_array)
 
         end_multi_write = time.time() - start_multi_write
         self.total_multi_write_time = self.total_multi_write_time + end_multi_write
