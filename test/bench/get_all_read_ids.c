@@ -31,6 +31,7 @@ int main(int argc, char *argv[]) {
     uint64_t num_reads = 0;
     char **read_ids = slow5_get_rids(sp, &num_reads);
 
+    puts("read_id");
     for(int i=0; i<num_reads; i++) {
         puts(read_ids[i]);
     }
