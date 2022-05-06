@@ -1,7 +1,7 @@
+#cython: language_level=3
 from libc.stdio cimport *
 from libc.stdint cimport *
 from libc.stdlib cimport *
-
 
 cdef extern from "pyslow5.h":
 
@@ -31,6 +31,11 @@ cdef extern from "pyslow5.h":
         SLOW5_STRING,
         SLOW5_ENUM_ARRAY
 
+    ctypedef struct slow5_aux_meta_t:
+        pass
+
+    ctypedef struct slow5_hdr_data_t:
+        pass
 
     ctypedef struct slow5_version:
         uint8_t major
@@ -42,7 +47,9 @@ cdef extern from "pyslow5.h":
     ctypedef struct slow5_hdr_t:
         slow5_version version;
         uint32_t num_read_groups;
-        pass
+        slow5_hdr_data_t data;
+        slow5_aux_meta_t *aux_meta;
+
     ctypedef struct slow5_idx_t:
         pass
     ctypedef enum slow5_fmt:
@@ -58,8 +65,8 @@ cdef extern from "pyslow5.h":
         slow5_idx_t *index
         slow5_file_meta_t meta
 
-
     ctypedef struct slow5_rec_t:
+        uint16_t read_id_len
         char* read_id
         uint32_t read_group
         double digitisation
@@ -71,18 +78,21 @@ cdef extern from "pyslow5.h":
         pass
 
 
-
     # Open a slow5 file
-    slow5_file_t *slow5_open(const char *pathname, const char *mode)
+    slow5_file_t *slow5_open(const char *pathname, const char *mode);
     const char **slow5_get_hdr_keys(const slow5_hdr_t *header, uint64_t *len);
     char *slow5_hdr_get(const char *attr, uint32_t read_group, const slow5_hdr_t *header);
-    int slow5_close(slow5_file_t *s5p)
-    int slow5_idx_load(slow5_file_t *s5p)
-    int slow5_get(const char *read_id, slow5_rec_t **read, slow5_file_t *s5p)
-    int slow5_get_next(slow5_rec_t **read, slow5_file_t *s5p)
+    void slow5_idx_unload(slow5_file_t *s5p);
+    int slow5_close(slow5_file_t *s5p);
+    int slow5_idx_load(slow5_file_t *s5p);
+    int slow5_get(const char *read_id, slow5_rec_t **read, slow5_file_t *s5p);
+    int slow5_get_next(slow5_rec_t **read, slow5_file_t *s5p);
     char **slow5_get_aux_names(const slow5_hdr_t *header, uint64_t *len);
     slow5_aux_type *slow5_get_aux_types(const slow5_hdr_t *header, uint64_t *len);
-    void slow5_rec_free(slow5_rec_t *read)
+    void slow5_rec_free(slow5_rec_t *read);
+
+
+
 
     int8_t slow5_aux_get_int8(const slow5_rec_t *read, const char *attr, int *err);
     int16_t slow5_aux_get_int16(const slow5_rec_t *read, const char *attr, int *err);
@@ -95,6 +105,7 @@ cdef extern from "pyslow5.h":
     float slow5_aux_get_float(const slow5_rec_t *read, const char *attr, int *err);
     double slow5_aux_get_double(const slow5_rec_t *read, const char *attr, int *err);
     char slow5_aux_get_char(const slow5_rec_t *read, const char *attr, int *err);
+    uint8_t slow5_aux_get_enum(const slow5_rec_t *read, const char *field, int *err);
     int8_t *slow5_aux_get_int8_array(const slow5_rec_t *read, const char *attr, uint64_t *len, int *err);
     int16_t *slow5_aux_get_int16_array(const slow5_rec_t *read, const char *attr, uint64_t *len, int *err);
     int32_t *slow5_aux_get_int32_array(const slow5_rec_t *read, const char *attr, uint64_t *len, int *err);
@@ -106,3 +117,40 @@ cdef extern from "pyslow5.h":
     float *slow5_aux_get_float_array(const slow5_rec_t *read, const char *attr, uint64_t *len, int *err);
     double *slow5_aux_get_double_array(const slow5_rec_t *read, const char *attr, uint64_t *len, int *err);
     char *slow5_aux_get_string(const slow5_rec_t *read, const char *attr, uint64_t *len, int *err);
+    uint8_t *slow5_aux_get_enum_array(const slow5_rec_t *read, const char *field, uint64_t *len, int *err);
+
+
+    # Write slow5 file
+
+    # from slow5.h
+    int slow5_hdr_add_attr(const char *attr, slow5_hdr_t *header);
+    int slow5_hdr_set(const char *attr, const char *value, uint32_t read_group, slow5_hdr_t *header);
+    int64_t slow5_hdr_add_rg(slow5_hdr_t *header);
+    slow5_rec_t *slow5_rec_init();
+
+    # from slow5_extra.h
+
+    int slow5_aux_meta_add(slow5_aux_meta_t *aux_meta, const char *attr, slow5_aux_type type);
+    int slow5_rec_set_string(slow5_rec_t *read, slow5_aux_meta_t *aux_meta, const char *attr, const char *data);
+    int slow5_rec_set(slow5_rec_t *read, slow5_aux_meta_t *aux_meta, const char *attr, const void *data);
+
+cdef extern from "slow5_write.h":
+
+    # Write slow5 file
+
+    #from slow5_write.h
+    slow5_file_t *slow5_open_write(char *filename, char *mode);
+    slow5_file_t *slow5_open_write_append(char *filename, char *mode);
+    int slow5_close_write(slow5_file_t *sf);
+    int slow5_header_write(slow5_file_t *sf);
+    int slow5_rec_write(slow5_file_t *sf, slow5_rec_t *rec);
+    int slow5_aux_meta_add_wrapper(slow5_hdr_t *header, const char *attr, slow5_aux_type type);
+    int slow5_rec_set_wrapper(slow5_rec_t *read, slow5_hdr_t *header, const char *attr, const void *data);
+    int slow5_rec_set_string_wrapper(slow5_rec_t *read, slow5_hdr_t *header, const char *attr, const char *data);
+
+cdef extern from "slow5threads.h":
+
+    int slow5_get_batch(slow5_rec_t ***read, slow5_file_t *s5p, char **rid, int num_rid, int num_threads);
+    int slow5_get_next_batch(slow5_rec_t ***read, slow5_file_t *s5p, int batch_size, int num_threads);
+    int slow5_write_batch(slow5_rec_t **read, slow5_file_t *s5p, int batch_size, int num_threads);
+    void slow5_free_batch(slow5_rec_t ***read, int num_rec);
