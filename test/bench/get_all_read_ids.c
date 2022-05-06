@@ -14,7 +14,7 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    slow5_file_t *sp = slow5_open(argv[0],"r");
+    slow5_file_t *sp = slow5_open(argv[1],"r");
     if(sp==NULL){
        fprintf(stderr,"Error in opening file\n");
        exit(EXIT_FAILURE);
