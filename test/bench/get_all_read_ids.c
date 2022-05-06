@@ -9,8 +9,8 @@
 
 int main(int argc, char *argv[]) {
 
-    if(argc != 2) {
-        fprintf(stderr, "Usage: %s <file>\n", argv[0]);
+    if(argc != 3) {
+        fprintf(stderr, "Usage: %s in_file.blow5 out_file.csv\n", argv[0]);
         return EXIT_FAILURE;
     }
 
@@ -31,10 +31,18 @@ int main(int argc, char *argv[]) {
     uint64_t num_reads = 0;
     char **read_ids = slow5_get_rids(sp, &num_reads);
 
-    puts("read_id");
-    for(int i=0; i<num_reads; i++) {
-        puts(read_ids[i]);
+
+    FILE *fp = fopen(argv[2],"w");
+    if(fp==NULL){
+        fprintf(stderr,"Error in opening file %s for writing\n",argv[2]);
+        exit(EXIT_FAILURE);
     }
+
+    fputs("read_id", fp);
+    for(int i=0; i<num_reads; i++) {
+        fputs(read_ids[i],fp);
+    }
+    fclose(fp);
 
     slow5_idx_unload(sp);
 
