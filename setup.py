@@ -8,6 +8,7 @@ except ImportError:
 
 import sys
 import platform
+import os
 
 include_dirs = []
 # import numpy as np
@@ -60,6 +61,17 @@ elif arch in ["x86_64"]:
 # include_dirs = ['include/', np.get_include(), 'thirdparty/streamvbyte/include']
 libraries = ['m', 'z']
 library_dirs = ['.']
+
+# a nasty hack to provide option to build with zstd
+zstd=0
+try:
+    zstd=os.environ["PYSLOW5_ZSTD"]
+except:
+    zstd=0
+
+if zstd=="1":
+    extra_compile_args.append('-DSLOW5_USE_ZSTD=1')
+    libraries.append('zstd')
 
 extensions = [Extension('pyslow5',
                   sources = sources,
