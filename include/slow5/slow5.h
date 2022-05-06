@@ -715,6 +715,12 @@ static inline ssize_t slow5_eof_print(void) {
 //returns null if no attributes
 const char **slow5_get_hdr_keys(const slow5_hdr_t *header,uint64_t *len);
 
+//gets the list of read ids from the SLOW5 index
+//the list of read is is a pointer and must not be freed by user
+//*len will have the number of read ids
+//NULL will be returned in case of error
+char **slow5_get_rids(const slow5_file_t *s5p, uint64_t *len);
+
 //get the pointer to auxilliary field names
 char **slow5_get_aux_names(const slow5_hdr_t *header,uint64_t *len);
 //get the pointer to auxilliary field types

@@ -2251,6 +2251,35 @@ int slow5_get(const char *read_id, struct slow5_rec **read, struct slow5_file *s
     return 0;
 }
 
+
+
+//gets the list of read ids from the SLOW5 index
+//the list of read is is a pointer and must not be freed by user
+//*len will have the number of read ids
+//NULL will be returned in ase of error
+char **slow5_get_rids(const slow5_file_t *s5p, uint64_t *len) {
+
+    if (!s5p->index) {
+        /* index not loaded */
+        SLOW5_ERROR("%s", "No slow5 index has been loaded.");
+        slow5_errno = SLOW5_ERR_NOIDX;
+        return NULL;
+        *len=0;
+    }
+
+    if(!s5p->index->ids){
+        SLOW5_ERROR("%s", "No read ID list in the index.");
+        slow5_errno = SLOW5_ERR_OTH;
+        return NULL;
+        *len=0;
+    }
+
+    *len = s5p->index->num_ids;
+    return s5p->index->ids;
+
+}
+
+
 /*
  * decompress record if s5p has a compression method then parse to read
  * set mem to decompressed mem and bytes to new bytes
