@@ -114,6 +114,20 @@ s5 = pyslow5.Open('examples/example.slow5','r')
 
 When opening a slow5 file for the first time, and index will be created and saved in the same directory as the file being read. This index will then be loaded. For files that already have an index, that index will be loaded.
 
+#### `get_read_ids()`:
+
+returns a list and total number of reads from the index.
+If there is no index, it creates one first.
+
+Example:
+
+```python
+read_ids, num_reads = s5.get_read_ids()
+
+print(read_ids)
+print("number of reads: {}".format(num_reads))
+```
+
 #### `seq_reads(pA=False, aux=None)`:
 
 Access all reads sequentially in an opened slow5.

@@ -90,6 +90,7 @@ cdef extern from "pyslow5.h":
     char **slow5_get_aux_names(const slow5_hdr_t *header, uint64_t *len);
     slow5_aux_type *slow5_get_aux_types(const slow5_hdr_t *header, uint64_t *len);
     void slow5_rec_free(slow5_rec_t *read);
+    char **slow5_get_rids(const slow5_file_t *s5p, uint64_t *len);
 
 
 

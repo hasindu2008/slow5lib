@@ -30,6 +30,8 @@ cdef class Open:
     cdef pyslow5.slow5_rec_t **twrite
     cdef pyslow5.slow5_rec_t **trec
     cdef char **rid
+    cdef char **rids
+    cdef pyslow5.uint64_t rids_len
     cdef bint index_state
     cdef bint header_state
     cdef bint header_add_attr_state
@@ -112,6 +114,8 @@ cdef class Open:
         self.state = -1
         self.trec = NULL
         self.rid = NULL
+        self.rids = NULL
+        self.rids_len = 0
         self.index_state = False
         self.header_state = False
         self.header_add_attr_state = False
@@ -974,6 +978,36 @@ cdef class Open:
                 self.logger.debug("get_read_aux atype not known, skipping: {}".format(atype))
 
         return dic
+
+
+    def get_read_ids(self):
+        '''
+        get all read_ids from index
+        if no index, build it then get read_ids
+        No idea why this is needed but whatever
+        '''
+        rids = []
+        if not self.index_state:
+            self.logger.debug("FILE: {}, mode: {}".format(self.path, self.mode))
+            # self.logger.debug("FILE: {}, mode: {}".format(self.path, self.m))
+            self.logger.debug("Creating/loading index...")
+            ret = slow5_idx_load(self.s5)
+            if ret != 0:
+                self.logger.warning("slow5_idx_load return not 0: {}: {}".format(ret, self.error_codes[ret]))
+            else:
+                self.index_state = True
+        self.rids = slow5_get_rids(self.s5, &self.rids_len)
+
+        if self.rids_len == 0:
+            self.logger.error("get_read_ids: length of read_ids is 0, something when wrong")
+
+        if self.rids is NULL:
+            self.logger.error("get_read_ids: returned rids is NULL, something when wrong")
+        else:
+            for i in range(self.rids_len):
+                rids.append(self.rids[i].decode())
+        rids_len = self.rids_len
+        return rids, rids_len
 
 
     def get_read(self, read_id, pA=False, aux=None):

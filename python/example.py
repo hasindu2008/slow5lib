@@ -447,6 +447,18 @@ s58.close()
 F.close()
 
 print("==============================================")
+print("get all readIDs from index")
+
+s58 = slow5.Open('examples/example2.slow5','r', DEBUG=debug)
+
+read_ids, num_reads = s58.get_read_ids()
+
+print(read_ids)
+print("number of reads: {}".format(num_reads))
+
+s58.close()
+
+print("==============================================")
 # print("seq_reads with big file:")
 # start_time = time.time()
 # s53 = slow5.Open('/home/jamfer/Data/SK/multi_fast5/s5/FAK40634_d1cc054609fe2c5fcdeac358864f9dc81c8bb793_95.blow5','r', DEBUG=debug)
