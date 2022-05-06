@@ -38,9 +38,10 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    fputs("read_id", fp);
+    fputs("read_id\n", fp);
     for(int i=0; i<num_reads; i++) {
         fputs(read_ids[i],fp);
+        fputc('\n',fp);
     }
     fclose(fp);
 
