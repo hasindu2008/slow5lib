@@ -5,6 +5,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <slow5/slow5.h>
+#include <sys/time.h>
+
+static inline double realtime(void) {
+    struct timeval tp;
+    struct timezone tzp;
+    gettimeofday(&tp, &tzp);
+    return tp.tv_sec + tp.tv_usec * 1e-6;
+}
 
 
 int main(int argc, char *argv[]) {
@@ -14,6 +22,9 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
+    double tot_time = 0;
+    double t0 = realtime();
+
     slow5_file_t *sp = slow5_open(argv[1],"r");
     if(sp==NULL){
        fprintf(stderr,"Error in opening file\n");
@@ -21,7 +32,6 @@ int main(int argc, char *argv[]) {
     }
 
     int ret=0;
-
     ret = slow5_idx_load(sp);
     if(ret<0){
         fprintf(stderr,"Error in loading index\n");
@@ -30,6 +40,8 @@ int main(int argc, char *argv[]) {
 
     uint64_t num_reads = 0;
     char **read_ids = slow5_get_rids(sp, &num_reads);
+
+    tot_time += realtime() - t0;
 
 
     FILE *fp = fopen(argv[2],"w");
@@ -45,8 +57,11 @@ int main(int argc, char *argv[]) {
     }
     fclose(fp);
 
+    t0 = realtime();
     slow5_idx_unload(sp);
-
     slow5_close(sp);
+    tot_time += realtime() - t0;
+
+    fprintf(stderr,"Time taken for getting read IDs: %f\n", tot_time);
 
 }
