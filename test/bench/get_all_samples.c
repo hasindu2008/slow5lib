@@ -95,4 +95,5 @@ int main(int argc, char *argv[]) {
 
     fprintf(stderr,"Time for getting samples %f\n", tot_time);
 
+    return 0;
 }

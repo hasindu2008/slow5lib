@@ -135,5 +135,6 @@ int main(int argc, char *argv[]) {
     free(rid);
 
     fprintf(stderr,"Time for getting samples %f\n", tot_time);
+    return 0;
 
 }
