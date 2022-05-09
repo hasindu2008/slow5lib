@@ -73,6 +73,7 @@ int main(int argc, char *argv[]) {
 
         int i=0;
         for(i=0; i<batch_size; i++){
+            int crap;
             if (fscanf(fpr,"%d,%s",&crap,tmp) < 2) {
                 break;
             }
