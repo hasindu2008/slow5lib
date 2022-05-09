@@ -34,6 +34,7 @@ int main(int argc, char *argv[]) {
     FILE *fpr = fopen(argv[2],"r");
     if(fpr==NULL){
         fprintf(stderr,"Error in opening file %s for reading\n",argv[2]);
+        perror("perr: ");;
         exit(EXIT_FAILURE);
     }
     if(fscanf(fpr,"%s",tmp)<1 || strcmp(tmp,",read_id")!=0){
@@ -43,7 +44,8 @@ int main(int argc, char *argv[]) {
 
     FILE *fpw = fopen(argv[3],"w");
     if(fpw==NULL){
-        fprintf(stderr,"Error in opening file %s for writing\n",argv[2]);
+        fprintf(stderr,"Error in opening file %s for writing\n",argv[3]);
+        perror("perr: ");;
         exit(EXIT_FAILURE);
     }
     fputs("read_id,sample_count\n", fpw);

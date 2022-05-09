@@ -35,6 +35,7 @@ int main(int argc, char *argv[]) {
     FILE *fp = fopen(argv[2],"w");
     if(fp==NULL){
         fprintf(stderr,"Error in opening file %s for writing\n",argv[2]);
+        perror("perr: ");
         exit(EXIT_FAILURE);
     }
     fputs("read_id,samples\n", fp);
@@ -46,6 +47,7 @@ int main(int argc, char *argv[]) {
     slow5_file_t *sp = slow5_open(argv[1],"r");
     if(sp==NULL){
        fprintf(stderr,"Error in opening file\n");
+       perror("perr: ");
        exit(EXIT_FAILURE);
     }
 
