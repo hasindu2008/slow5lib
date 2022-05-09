@@ -66,4 +66,5 @@ int main(int argc, char *argv[]) {
 
     fprintf(stderr,"Time taken for getting read IDs: %f\n", tot_time);
 
+    return 0;
 }
