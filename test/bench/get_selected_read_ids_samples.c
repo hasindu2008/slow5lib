@@ -37,7 +37,7 @@ int main(int argc, char *argv[]) {
         fprintf(stderr,"Error in opening file %s for reading\n",argv[2]);
         exit(EXIT_FAILURE);
     }
-    if(fscanf(fpr,"%s",tmp)<1 || strcmp(tmp,"read_id")!=0){
+    if(fscanf(fpr,"%s",tmp)<1 || strcmp(tmp,",read_id")!=0){
         fprintf(stderr,"Bad input CSV file. CSV header is expected to have read_id\n");
         exit(EXIT_FAILURE);
     }
@@ -74,7 +74,8 @@ int main(int argc, char *argv[]) {
 
         int i=0;
         for(i=0; i<batch_size; i++){
-            if (fscanf(fpr,"%s",tmp) < 1) {
+            int crap;
+            if (fscanf(fpr,"%d,%s",&crap,tmp) < 2) {
                 break;
             }
             rid[i] = strdup(tmp);
