@@ -1053,7 +1053,7 @@ cdef class Open:
                         for n, t in zip(self.aux_names, self.aux_types):
                             if n == aux:
                                 found_single_aux = True
-                                aux_dic = self._get_read_aux([n], [t])
+                                aux_dic = self._get_seq_read_aux([n], [t])
                                 break
                         if not found_single_aux:
                             self.logger.warning("get_read unknown aux name: {}".format(aux))
@@ -1066,7 +1066,7 @@ cdef class Open:
                             n_list.append(n)
                             t_list.append(t)
 
-                    aux_dic = self._get_read_aux(n_list, t_list)
+                    aux_dic = self._get_seq_read_aux(n_list, t_list)
                     # check for items in given list that do not exist
                     n_set = set(n_list)
                     aux_set = set(aux)
@@ -1153,7 +1153,7 @@ cdef class Open:
                             for n, t in zip(self.aux_names, self.aux_types):
                                 if n == aux:
                                     found_single_aux = True
-                                    aux_dic = self._get_read_aux([n], [t])
+                                    aux_dic = self._get_seq_read_aux([n], [t])
                                     break
                             if not found_single_aux:
                                 self.logger.warning("slow5_get_next_multi unknown aux name: {}".format(aux))
@@ -1166,7 +1166,7 @@ cdef class Open:
                                 n_list.append(n)
                                 t_list.append(t)
 
-                        aux_dic = self._get_read_aux(n_list, t_list)
+                        aux_dic = self._get_seq_read_aux(n_list, t_list)
                         # check for items in given list that do not exist
                         n_set = set(n_list)
                         aux_set = set(aux)
