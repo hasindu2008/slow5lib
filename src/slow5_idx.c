@@ -211,7 +211,7 @@ static int slow5_idx_build(struct slow5_idx *index, struct slow5_file *s5p) {
                         slow5_rid_len_t read_id_len;
                         memcpy(&read_id_len, read_decomp, sizeof read_id_len);
                         if(n < read_id_len + sizeof(slow5_rid_len_t)){
-                            SLOW5_WARNING("%s","Partial decompression failed. Read ID too long. Falling back to the slower method. Open an issue on GitHub");
+                            SLOW5_WARNING("%s","Partial decompression failed. Read ID too long. Falling back to the slower method. Open an issue on GitHub.");
                             free(read_decomp);
                             full_depress = 1;
                         }
