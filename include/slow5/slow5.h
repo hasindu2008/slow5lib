@@ -505,7 +505,10 @@ double *slow5_aux_get_double_array(const slow5_rec_t *read, const char *field, u
 char *slow5_aux_get_string(const slow5_rec_t *read, const char *field, uint64_t *len, int *err);
 uint8_t *slow5_aux_get_enum_array(const slow5_rec_t *read, const char *field, uint64_t *len, int *err);
 
-
+/****** Writing SLOW5 files ******.
+ * This is just around the corner.
+ * However, this is being procrastinated until someone requests. If anyone is interested please open a GitHub issue.
+ ***/
 
 
 /**************************************************************************************************
@@ -513,10 +516,10 @@ uint8_t *slow5_aux_get_enum_array(const slow5_rec_t *read, const char *field, ui
  **************************************************************************************************/
 
 /*
-IMPORTANT: The low-level API is not yet stable. Subject to changes in the future.
-Function proptotypes can be changed without notice or completely removed
-So do NOT use these functions in your code
-these functions are used by slow5tools and pyslow5 - so any change to a function here means slow5tools and pyslow5 must be fixed
+IMPORTANT: The low-level API is not yet finalised or documented, until someone requests.
+If anyone is interested, please open a GitHub issue, rather than trying to figure out from the code.
+Function prototypes can be changed without notice or completely removed. So do NOT use these functions in your code.
+these functions are used by slow5tools and pyslow5 - so any change to a function here means slow5tools and pyslow5 must be fixed.
 */
 
 /**

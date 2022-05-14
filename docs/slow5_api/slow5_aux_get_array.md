@@ -1,8 +1,8 @@
-# slow5_aux_get_\<array_datatype\>
+# slow5\_aux\_get\_\<array_datatype\>
 
 ## NAME
 
-slow5_aux_get_\<array_datatype\> - fetches an auxiliary field (an array datatype) of a SLOW5 record
+slow5\_aux\_get\_\<array_datatype\> - fetches an auxiliary field (an array datatype) of a SLOW5 record
 
 ## SYNOPSYS
 

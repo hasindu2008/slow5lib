@@ -1,8 +1,8 @@
-# slow5_aux_get_\<primitive_datatype\>
+# slow5\_aux\_get\_\<primitive_datatype\>
 
 ## NAME
 
-slow5_aux_get_\<primitive_datatype\> - fetches an auxiliary field (a primitive datatype) from a SLOW5 record
+slow5\_aux\_get\_\<primitive_datatype\> - fetches an auxiliary field (a primitive datatype) from a SLOW5 record
 
 ## SYNOPSYS
 

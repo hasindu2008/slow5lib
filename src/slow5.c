@@ -43,6 +43,12 @@ SOFTWARE.
 #include "slow5_misc.h"
 #include "klib/ksort.h"
 
+
+/* IMPORTANT: The comments in this are NOT the API documentation
+The API documentation is available at https://hasindu2008.github.io/slow5tools/
+The comments here are for internal use and do not rely on them. Open a GitHub issue for any questions.
+*/
+
 KSORT_INIT(str_slow5, ksstr_t, ks_lt_str)
 
 
