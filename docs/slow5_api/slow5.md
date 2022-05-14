@@ -1,5 +1,7 @@
 # slow5lib
 
+**Note: This documentation is far from being complete and perfect. So if you need a new functionality, want to clarify something, find something is not right, facing a wierd bug when using this API etc. do not hesitate to open an [issue](https://github.com/hasindu2008/slow5lib/issues). Nowadays, bioinformatics tools written in C/C++ are getting fewer and fewer, so I would be glad to help.**
+
 ## NAME
 
 slow5lib - slow5 Overview
