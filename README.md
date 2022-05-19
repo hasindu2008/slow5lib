@@ -37,20 +37,22 @@ On Fedora/CentOS : sudo dnf/yum install zlib-devel
 On OS X : brew install zlib
 ```
 
-*slow5lib* from version 0.3.0 onwards uses code from [StreamVByte](https://github.com/lemire/streamvbyte) and by default requires vector instructions (SSSE3 or higher for Intel/AMD and neon for ARM). If your processor is an ancient processor with no such vector instructions, invoke make as `make no_simd=1`.
-
 
 #### Optional zstd compression
 
 You can optionally enable [*zstd* compression](https://facebook.github.io/zstd) support when building *slow5lib* by invoking `make zstd=1`. This requires __zstd 1.3 or higher development libraries__ installed on your system:
 
 ```sh
-On Debian/Ubuntu : sudo apt-get libzstd1-dev
+On Debian/Ubuntu : sudo apt-get libzstd1-dev # libzstd-dev on newer distributions if libzstd1-dev is unavailable
 On Fedora/CentOS : sudo yum libzstd-devel
 On OS X : brew install zstd
 ```
 
 SLOW5 files compressed with *zstd* offer smaller file size and better performance compared to the default *zlib*. However, *zlib* runtime library is available by default on almost all distributions unlike *zstd* and thus files compressed with *zlib* will be more 'portable'.
+
+### Without SIMD
+
+*slow5lib* from version 0.3.0 onwards uses code from [StreamVByte](https://github.com/lemire/streamvbyte) and by default requires vector instructions (SSSE3 or higher for Intel/AMD and neon for ARM). If your processor is an ancient processor with no such vector instructions, invoke make as `make no_simd=1`.
 
 
 ## Usage
