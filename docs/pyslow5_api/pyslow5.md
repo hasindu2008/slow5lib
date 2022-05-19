@@ -12,12 +12,29 @@ If you only want to use the python library, then you can simply install using pi
 
 Using a virtual environment (see below if you need to install python)
 
+#### Optional zstd compression
+
+You can optionally enable [*zstd* compression](https://facebook.github.io/zstd) support when building *slow5lib/pyslow5*. This requires __zstd 1.3 or higher development libraries__ installed on your system:
+
+```sh
+On Debian/Ubuntu : sudo apt-get libzstd1-dev
+On Fedora/CentOS : sudo yum libzstd-devel
+On OS X : brew install zstd
+```
+
+SLOW5 files compressed with *zstd* offer smaller file size and better performance compared to the default *zlib*. However, *zlib* runtime library is available by default on almost all distributions unlike *zstd* and thus files compressed with *zlib* will be more 'portable'.
+
 ```bash
 python3 -m venv path/to/slow5libvenv
 source path/to/slow5libvenv/bin/activate
 python3 -m pip install --upgrade pip
 python3 -m pip install setuptools cython numpy wheel
 # do this separately, after the libs above
+# zlib only build
+python3 -m pip install pyslow5
+
+# for zstd build, run the following
+export PYSLOW5_ZSTD=1
 python3 -m pip install pyslow5
 ```
 
@@ -113,6 +130,20 @@ s5 = pyslow5.Open('examples/example.slow5','r')
 ```
 
 When opening a slow5 file for the first time, and index will be created and saved in the same directory as the file being read. This index will then be loaded. For files that already have an index, that index will be loaded.
+
+#### `get_read_ids()`:
+
+returns a list and total number of reads from the index.
+If there is no index, it creates one first.
+
+Example:
+
+```python
+read_ids, num_reads = s5.get_read_ids()
+
+print(read_ids)
+print("number of reads: {}".format(num_reads))
+```
 
 #### `seq_reads(pA=False, aux=None)`:
 
