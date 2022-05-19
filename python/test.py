@@ -332,6 +332,28 @@ class testMultiThreading(unittest.TestCase):
                 self.assertEqual(read['start_time'] ,results[i][2])
 
 
+class testMultiThreadingRandom(unittest.TestCase):
+    def setUp(self):
+        self.s5 = slow5.Open('examples/example2.slow5','r', DEBUG=debug)
+    def test_get_reads_multi(self):
+        results = [['r0', 1106.3899999999999, 78470500],
+                   ['r1', 1585.4299999999998, 36886851],
+                   ['r2', 1106.3899999999999, 78470500],
+                   ['r3', 1585.4299999999998, 36886851],
+                   ['r4', 1106.3899999999999, 78470500],
+                   ['r5', 1585.4299999999998, 36886851],
+                   ['0a238451-b9ed-446d-a152-badd074006c4', 1106.3899999999999, 78470500],
+                   ['0d624d4b-671f-40b8-9798-84f2ccc4d7fc', 1585.4299999999998, 36886851]]
+        read_list = [i[0] for i in results]
+        reads = self.s5.get_read_list_multi(read_list, threads=2, batchsize=3, pA=True, aux='all')
+        for i, read in enumerate(reads):
+            with self.subTest(i=i, attr=read['read_id']):
+                print(read['read_id'])
+                self.assertEqual(read['read_id'], results[i][0])
+                self.assertEqual(int(sum([round(i, 2) for i in read['signal'][:10]])), int(results[i][1]))
+                self.assertEqual(read['start_time'] ,results[i][2])
+
+
 class TestWriteData(unittest.TestCase):
     def setUp(self):
         self.s5 = slow5.Open('examples/example2.slow5','r', DEBUG=debug)
