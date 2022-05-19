@@ -50,7 +50,7 @@ On OS X : brew install zstd
 
 SLOW5 files compressed with *zstd* offer smaller file size and better performance compared to the default *zlib*. However, *zlib* runtime library is available by default on almost all distributions unlike *zstd* and thus files compressed with *zlib* will be more 'portable'.
 
-### Without SIMD
+#### Without SIMD
 
 *slow5lib* from version 0.3.0 onwards uses code from [StreamVByte](https://github.com/lemire/streamvbyte) and by default requires vector instructions (SSSE3 or higher for Intel/AMD and neon for ARM). If your processor is an ancient processor with no such vector instructions, invoke make as `make no_simd=1`.
 
@@ -102,9 +102,9 @@ To instructions to build *pyslow5* and the usage instructions are [here](https:/
 
 slow5lib is a reference implementation for SLOW5 format. Depending on the interest from the community, the following limitations could be overcome and more performance optimisations can be performed. Open a GitHub issue if you are interested. Contributions are welcome.
 
-- No native windows support: slow5lib works well on Windows through WSL, in fact, this is my primary development environment. I am not aware of anyone using native Windows for nanopore bioinformatics. However, if needed, (methods used for minimap2)[https://github.com/lh3/minimap2/issues/19] can be adopted.
+- No native windows support: slow5lib works well on Windows through WSL, in fact, this is my primary development environment. I am not aware of anyone using native Windows for nanopore bioinformatics. However, if needed, [methods used for minimap2](https://github.com/lh3/minimap2/issues/19) can be adopted.
 - Does not support big-endian systems: Big-endian systems are rare nowadays and I do not have access to one to test. If necessary, it is a matter of writing a layer that swaps the bytes before/after writing to disk. Note: Not to be confused with big.LITTLE architecture which is something else on which slow5lib already works.
-- When running with >64 threads, malloc() calls could reduce the thread efficiency. If that is the case, frequent mallocs could be replaced with kalloc in (klib)[https://github.com/attractivechaos/klib].
+- When running with >64 threads, malloc() calls could reduce the thread efficiency. If that is the case, frequent mallocs could be replaced with kalloc in [klib](https://github.com/attractivechaos/klib).
 - Aggressive compiler optimisations (e.g.,  -O3) and architecture-specific compiler optimisations (e.g., -march=native) are not used in the makefile. These flags will improve performance at the cost of limited portability. These could be provided in a separate make target.
 - multi-threaded decompression and parsing could be implemented inside the C library, but for efficiency and portability it is preferred to be done at user-level. For python bindings in-built multi-threading is already implemented.
 
