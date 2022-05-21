@@ -2,11 +2,7 @@ cmake_minimum_required(VERSION 3.14)
 
 # choose the architecture
 set(DEPLOY_PLATFORM x86)
-set_property(CACHE DEPLOY_PLATFORM PROPERTY STRINGS unknown x86 arm64-v8a armeabi-v7a)
-IF (${DEPLOY_PLATFORM} STREQUAL "unknown")
-    message(FATAL_ERROR "choose the DEPLOY_PLATFORM")
-    return() # This is to stop proceeding further and to stop opencv getting set to the default ANDROID_ABI
-ENDIF()
+#set_property(CACHE DEPLOY_PLATFORM PROPERTY STRINGS unknown x86 arm64-v8a armeabi-v7a)
 
 project(slow5lib)
 
