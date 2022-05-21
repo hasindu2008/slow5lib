@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.14)
 
 # choose the architecture
-set(DEPLOY_PLATFORM "unknown" CACHE STRING "choose the instruction set architecture")
+set(DEPLOY_PLATFORM "x86" CACHE STRING "choose the instruction set architecture")
 set_property(CACHE DEPLOY_PLATFORM PROPERTY STRINGS unknown x86 arm64-v8a armeabi-v7a)
 IF (${DEPLOY_PLATFORM} STREQUAL "unknown")
     message(FATAL_ERROR "choose the DEPLOY_PLATFORM")
