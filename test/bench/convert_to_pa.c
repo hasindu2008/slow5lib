@@ -157,7 +157,8 @@ int main(int argc, char *argv[]) {
     free(sums);
 
     fprintf(stderr,"Reads: %d\n",read_count);
-    fprintf(stderr,"Time for getting samples %f\n", tot_time);
+    fprintf(stderr,"Time for disc reading %f\n",disc_time);
+    fprintf(stderr,"Time for getting samples (disc+depress+parse) %f\n", tot_time);
 
     return 0;
 }
