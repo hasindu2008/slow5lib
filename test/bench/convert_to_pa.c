@@ -1,7 +1,7 @@
 //loads a batch of reads (signal+information needed for pA conversion) from file, process the batch (convert to pA and sum), and write output
 //only the time for loading a batch is measured
 //make zstd=1
-//gcc -Wall -O2 -I include/ -o convert_to_pa test/bench/convert_to_pa.c lib/libslow5.a python/slow5threads.c -lm -lz -lzstd -lpthread  -fopenmp
+//gcc -Wall -O2 -g -I include/ -o convert_to_pa test/bench/convert_to_pa.c lib/libslow5.a python/slow5threads.c -lm -lz -lzstd -fopenmp
 //only the time for loading a batch to memory (Disk I/O + decompression + parsing and filling the memory arrays) is measured
 
 #include <stdio.h>
@@ -9,17 +9,55 @@
 #include <slow5/slow5.h>
 #include <omp.h>
 #include <sys/time.h>
-//To fetch a batch of reads I am using the inefficient fork join threading framework I wrote for the Python API
-//the optimal implementation will be to use the slow5 low-level API  with a thread model in the user space
-//that loads raw bytes from disk for a batch (slow5_get_next_mem())
-//and then use multiple threads to decompress and parses them into the memory arrays (slow5_rec_depress_parse())
-#include "../../python/slow5threads.h"
+#include "../src/slow5_extra.h"
 
 static inline double realtime(void) {
     struct timeval tp;
     struct timezone tzp;
     gettimeofday(&tp, &tzp);
     return tp.tv_sec + tp.tv_usec * 1e-6;
+}
+
+
+
+/* load a data batch from disk */
+int load_raw_batch(char ***mem_records_a, size_t **mem_bytes_a, slow5_file_t *sf, int batch_size) {
+
+    char **mem_records = (char **)malloc(batch_size * sizeof(char *));
+    size_t *mem_bytes = (size_t *)malloc(batch_size * sizeof(size_t));
+
+
+    int32_t i = 0;
+    while (i < batch_size) {
+        mem_records[i] = (char *)slow5_get_next_mem(&(mem_bytes[i]), sf);
+
+        if (mem_records[i] == NULL) {
+            if (slow5_errno != SLOW5_ERR_EOF) {
+                fprintf(stderr,"Error reading from SLOW5 file %d\n", slow5_errno);
+                exit(EXIT_FAILURE);
+            }
+            else {
+                break;
+            }
+        }
+        else {
+            i++;
+        }
+    }
+
+    *mem_records_a = mem_records;
+    *mem_bytes_a = mem_bytes;
+
+    return i;
+}
+
+void free_raw_batch(char **mem_records, size_t *mem_bytes, int batch_size) {
+    for(int i=0;i<batch_size;i++) {
+        free(mem_records[i]);
+    }
+    free(mem_records);
+    free(mem_bytes);
+
 }
 
 
@@ -30,17 +68,18 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    slow5_rec_t **rec = NULL;
-    int ret=1;
     int batch_size = atoi(argv[3]); // an increased batch size imrpves multi-threaded efficiecy at the cost of memory
     int num_thread = atoi(argv[2]);
+    int ret=batch_size;
     omp_set_num_threads(num_thread);
 
     int read_count = 0;
 
     double *sums = malloc(sizeof(uint64_t)*batch_size);
     double tot_time = 0;
+    double disc_time = 0;
     double t0 = 0;
+    double t1 = 0;
 
     /**** Initialisation and opening of the file ***/
     t0 = realtime();
@@ -55,12 +94,27 @@ int main(int argc, char *argv[]) {
     tot_time += realtime() - t0;
     /**** End of init ***/
 
-    while(ret > 0){
+    while(ret == batch_size){
 
         /**** Fetching a batch (disk loading, decompression, parsing in to memory arrays) ***/
         t0 = realtime();
-        ret = slow5_get_next_batch(&rec,sp,batch_size,num_thread);
+        char **mem_records = NULL;
+        size_t *mem_bytes = NULL;
+        ret = load_raw_batch(&mem_records, &mem_bytes, sp, batch_size);
+        t1= realtime() - t0;
+        tot_time += t1;
+        disc_time += t1;
+
+        t0 = realtime();
         read_count += ret;
+        slow5_rec_t **rec = (slow5_rec_t**)calloc(batch_size,sizeof(slow5_rec_t*));
+        #pragma omp parallel for
+        for(int i=0;i<ret;i++){
+            if(slow5_rec_depress_parse(&mem_records[i], &mem_bytes[i], NULL, &rec[i], sp)!=0){
+                fprintf(stderr,"Error parsing the record %s",rec[i]->read_id);
+                exit(EXIT_FAILURE);
+            }
+        }
         tot_time += realtime() - t0;
         /**** Batch fetched ***/
 
@@ -84,13 +138,14 @@ int main(int argc, char *argv[]) {
 
         /**** Deinit ***/
         t0 = realtime();
-        slow5_free_batch(&rec,ret);
+        free_raw_batch(mem_records, mem_bytes, ret);
+        for(int i=0;i<ret;i++){
+            slow5_rec_free(rec[i]);
+        }
+        free(rec);
         tot_time += realtime() - t0;
         /**** End of Deinit***/
 
-        if(ret<batch_size){ //this indicates nothing left to read //need to handle errors
-            break;
-        }
     }
 
     /**** Deinit ***/
