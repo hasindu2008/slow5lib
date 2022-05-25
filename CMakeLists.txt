@@ -6,7 +6,22 @@ set(DEPLOY_PLATFORM x86)
 
 project(slow5lib)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -Wall -O2 -std=gnu99 -fopenmp")
+#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -Wall -O2 -std=gnu99 -fopenmp")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -Wall -O2 -std=gnu99")
+
+option(SLOW5_USE_ZSTD "Use ZSTD" OFF) #OFF by default
+if(SLOW5_USE_ZSTD)
+    add_compile_options("-DSLOW5_USE_ZSTD")
+    link_libraries("-lzstd")
+endif(SLOW5_USE_ZSTD)
+unset(SLOW5_USE_ZSTD CACHE)
+
+option(SLOW5_USE_OPENMP "Use OPENMP" OFF) #OFF by default
+if(SLOW5_USE_OPENMP)
+    add_compile_options("-fopenmp")
+    link_libraries("-fopenmp")
+endif(SLOW5_USE_OPENMP)
+unset(SLOW5_USE_OPENMP CACHE)
 
 include_directories(${PROJECT_SOURCE_DIR}/src)
 include_directories(${PROJECT_SOURCE_DIR}/test)
@@ -44,7 +59,7 @@ add_executable(slow5test test/unit_test_two_rg.c) #run make test to test all tes
 # link with dependencies
 IF (${DEPLOY_PLATFORM} STREQUAL "x86")
     target_link_libraries(slow5test slow5 streamvbyte_slow5 -lz -ldl -lm -lpthread -lrt)
-    target_link_libraries(slow5exmp slow5 streamvbyte_slow5 -lz -ldl -lm -lpthread -lrt -fopenmp)
+    target_link_libraries(slow5exmp slow5 streamvbyte_slow5 -lz -ldl -lm -lpthread -lrt)
 ELSE()
     target_link_libraries(slow5test slow5 streamvbyte_slow5 -lz -ldl -lm)
     target_link_libraries(slow5exmp slow5 streamvbyte_slow5 -lz -ldl -lm)
