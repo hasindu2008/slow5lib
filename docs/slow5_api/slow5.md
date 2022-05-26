@@ -10,6 +10,56 @@ slow5lib - slow5 Overview
 
 slow5lib is a library for reading and writing SLOW5 files. Compiling slow5lib requires a C compiler that conforms to at least c99 standard with X/Open 7, incorporating POSIX 2008 extension support.
 
+### Data Structures
+
+The *slow5_file_t* structure stores the file pointer, parsed SLOW5 header and other metadata of an opened SLOW5 file.
+The user can directly access the struct member *slow5_hdr_t *header* which contains the pointer to the parsed SLOW5 header.
+Other struct members are private and not supposed to be directly accessed.
+
+The *slow5_hdr_t* structure stores a parsed SLOW5 header. This structure has the following form:
+
+```
+typedef struct {
+
+    /* private struct members that are not supposed to be directly accessed are not shown.
+       the order of the memebers in this struct can subject to change.
+    */
+
+    struct slow5_version version;       // SLOW5 file version
+    uint32_t num_read_groups;           // Number of read groups
+
+} slow5_hdr_t;
+```
+
+The slow5_version structure contains the major, minor and patch version as follows:
+
+```
+struct slow5_version {
+    uint8_t major;  // major version
+    uint8_t minor;  // minor version
+    uint8_t patch;  // patch version
+};
+```
+
+The *slow5_rec_t* structure stores a parsed slow5 record. This structure has the following form:
+
+```
+typedef struct {
+    slow5_rid_len_t read_id_len;        // length of the read ID string (does not include null character)
+    char* read_id;                      // the read ID
+    uint32_t read_group;                // the read group
+    double digitisation;                // the number of quantisation levels - required to convert the signal to pico ampere
+    double offset;                      // offset value - required to convert the signal to pico ampere
+    double range;                       // range value - required to convert to pico ampere
+    double sampling_rate;               // the sampling rate at which the signal was acquired
+    uint64_t len_raw_signal;            // length of the raw signal array
+    int16_t* raw_signal;                // the actual raw signal array
+
+    /* Other private members for storing auxilliary field which are not to be directly accessed*/
+
+} slow5_rec_t;
+```
+
 
 ### High-level API for reading SLOW5 files
 
@@ -69,57 +119,9 @@ High-level API for reading SLOW5 files consists of following functions:
     Open a SLOW5 file. User can specify the SLOW5 format.
 -->
 
-The *slow5_file_t* structure stores the file pointer, parsed SLOW5 header and other metadata of an opened SLOW5 file.
-The user can directly access the struct member *slow5_hdr_t *header* which contains the pointer to the parsed SLOW5 header.
-Other struct members are private and not supposed to be directly accessed.
+### High-level API for writing SLOW5 files
 
-The *slow5_hdr_t* structure stores a parsed SLOW5 header. This structure has the following form:
-
-```
-typedef struct {
-
-    /* private struct members that are not supposed to be directly accessed are not shown.
-       the order of the memebers in this struct can subject to change.
-    */
-
-    struct slow5_version version;       // SLOW5 file version
-    uint32_t num_read_groups;           // Number of read groups
-
-} slow5_hdr_t;
-```
-
-The slow5_version structure contains the major, minor and patch version as follows:
-
-```
-struct slow5_version {
-    uint8_t major;  // major version
-    uint8_t minor;  // minor version
-    uint8_t patch;  // patch version
-};
-```
-
-The *slow5_rec_t* structure stores a parsed slow5 record. This structure has the following form:
-
-```
-typedef struct {
-    slow5_rid_len_t read_id_len;        // length of the read ID string (does not include null character)
-    char* read_id;                      // the read ID
-    uint32_t read_group;                // the read group
-    double digitisation;                // the number of quantisation levels - required to convert the signal to pico ampere
-    double offset;                      // offset value - required to convert the signal to pico ampere
-    double range;                       // range value - required to convert to pico ampere
-    double sampling_rate;               // the sampling rate at which the signal was acquired
-    uint64_t len_raw_signal;            // length of the raw signal array
-    int16_t* raw_signal;                // the actual raw signal array
-
-    /* Other private members for storing auxilliary field which are not to be directly accessed*/
-
-} slow5_rec_t;
-```
-
-### High-level API for reading SLOW5 files
-
-This is just around the corner. If anyone is interested please open a GitHub issue rather than trying to undocumented functions. Such an issue will expedite this, which would otherwise be procrastinated.
+This is just around the corner. If anyone is interested please open a GitHub issue rather than trying to undocumented functions. Such an [issue](https://github.com/hasindu2008/slow5lib/issues) will expedite this, which would otherwise be procrastinated.
 
 ### Low-level API for reading and writing SLOW5 files
 
