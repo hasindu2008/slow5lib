@@ -1,7 +1,7 @@
 //loads a batch of reads (signal+information needed for pA conversion) from file, process the batch (convert to pA and sum), and write output
 //only the time for loading a batch is measured
 //make zstd=1
-//gcc -Wall -O2 -g -I include/ -o convert_to_pa test/bench/convert_to_pa.c lib/libslow5.a python/slow5threads.c -lm -lz -lzstd -fopenmp
+//gcc -Wall -O2 -g -I include/ -o convert_to_pa test/bench/convert_to_pa.c lib/libslow5.a  -lm -lz -lzstd -fopenmp
 //only the time for loading a batch to memory (Disk I/O + decompression + parsing and filling the memory arrays) is measured
 
 #include <stdio.h>
@@ -68,7 +68,7 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    int batch_size = atoi(argv[3]); // an increased batch size imrpves multi-threaded efficiecy at the cost of memory
+    int batch_size = atoi(argv[3]);
     int num_thread = atoi(argv[2]);
     int ret=batch_size;
     omp_set_num_threads(num_thread);
