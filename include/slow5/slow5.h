@@ -297,6 +297,7 @@ struct slow5_file_meta {
     int fd;                     ///< file descriptor
     uint64_t start_rec_offset;  ///< offset (in bytes) of the first SLOW5 record (skipping the SLOW5 header; used for indexing)
     char *fread_buffer;         ///< buffer for fread
+    const char *mode;           ///< file mode
 };
 typedef struct slow5_file_meta slow5_file_meta_t;
 

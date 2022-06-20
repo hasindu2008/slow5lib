@@ -6,129 +6,15 @@ extern enum slow5_log_level_opt  slow5_log_level;
 extern enum slow5_exit_condition_opt  slow5_exit_condition;
 
 slow5_file_t *slow5_open_write(const char *filename, const char *mode){
-
-    FILE *fp = fopen(filename, "w");
-    if(fp==NULL){
-        SLOW5_ERROR_EXIT("Error opening file '%s': %s.", filename, strerror(errno));
-        slow5_errno = SLOW5_ERR_IO;
-        return NULL;
-    }
-
-    slow5_file_t *sf = slow5_init_empty(fp, filename, SLOW5_FORMAT_UNKNOWN);
-    if(sf==NULL){
-        SLOW5_ERROR_EXIT("Error initialising an empty SLOW5 file '%s'",filename); //todo error handling down the chain
-        fclose(fp);
-        return NULL;
-    }
-
-    slow5_hdr_t *header=sf->header;
-    if (slow5_hdr_add_rg(header) < 0){
-        SLOW5_ERROR_EXIT("Error adding read group 0 for %s",filename); //todo error handling down the chain
-        slow5_close(sf);
-        return NULL;
-    }
-    header->num_read_groups = 1;
-
-    struct slow5_aux_meta *aux_meta = slow5_aux_meta_init_empty();
-    if(aux_meta == NULL){
-        SLOW5_ERROR_EXIT("Error initializing aux meta for %s",filename); //todo error handling down the chain
-        slow5_close(sf);
-        return NULL;
-    }
-    header->aux_meta = aux_meta;
-
-    //not thread safe, this structure is only used in single threaded writes
-    if(sf->format == SLOW5_FORMAT_BINARY){
-        slow5_press_method_t press_out = {SLOW5_COMPRESS_ZLIB, SLOW5_COMPRESS_SVB_ZD};
-        sf->compress = slow5_press_init(press_out);
-        if(!sf->compress){
-            SLOW5_ERROR_EXIT("Could not initialise the slow5 compression method. %s","");
-            slow5_close(sf);
-            return NULL;
-        }
-    }
-
-    return sf;
+    return slow5_open(filename,"w");
 }
 
 slow5_file_t *slow5_open_write_append(const char *filename, const char *mode){
-
-    slow5_file_t* slow5File = slow5_open(filename, "r");
-    if(!slow5File){
-        SLOW5_ERROR_EXIT("Error opening file '%s': %s.", filename, strerror(errno));
-        slow5_errno = SLOW5_ERR_IO;
-        return NULL;
-    }
-
-    if(slow5File->format==SLOW5_FORMAT_BINARY){
-        if(fseek(slow5File->fp , 0, SEEK_END) !=0 ){
-            SLOW5_ERROR_EXIT("Fseek to the end of file failed '%s': %s.", filename, strerror(errno));
-            slow5_errno = SLOW5_ERR_IO;
-            slow5_close(slow5File);
-            return NULL;
-        }
-        const char eof[] = SLOW5_BINARY_EOF;
-        if(slow5_is_eof(slow5File->fp, eof, sizeof eof)!=1){
-            SLOW5_ERROR_EXIT("No valid slow5 EOF marker at the end of the SLOW5 file %s.",filename); //should be a warning instead?
-            //todo error code
-            slow5_close(slow5File);
-            return NULL;
-        }
-    }
-
-    int ret = fclose(slow5File->fp);
-    if(ret != 0){
-        SLOW5_ERROR_EXIT("Closing %s after reading the header failed\n", filename);
-        //todo free what is inside slow5File
-        slow5_errno = SLOW5_ERR_IO;
-        return NULL;
-    }
-
-    //opening a file like this twice is unnecessary if we use open_with, but lazy for now
-    slow5File->fp = fopen(filename, "r+");
-    if(slow5File->fp == NULL){
-        SLOW5_ERROR_EXIT("Error opening file for appending'%s': %s.", filename, strerror(errno));
-        slow5_errno = SLOW5_ERR_IO;
-         //todo free what is inside slow5File
-        return NULL;
-    }
-
-    if(slow5File->format==SLOW5_FORMAT_BINARY){
-        const char eof[] = SLOW5_BINARY_EOF;
-        if(fseek(slow5File->fp, - (sizeof *eof) * (sizeof eof) , SEEK_END) != 0){
-            SLOW5_ERROR_EXIT("Fseek to the end of file failed '%s': %s.", filename, strerror(errno));
-            slow5_errno = SLOW5_ERR_IO;
-            slow5_close(slow5File);
-            return NULL;
-        }
-    } else if (slow5File->format==SLOW5_FORMAT_ASCII){
-        if(fseek(slow5File->fp, 0 , SEEK_END) != 0){
-            SLOW5_ERROR_EXIT("Fseek to the end of file failed '%s': %s.", filename, strerror(errno));
-            slow5_errno = SLOW5_ERR_IO;
-            slow5_close(slow5File);
-            return NULL;
-        }
-    } else {
-        SLOW5_ERROR("Unknown slow5 format for file '%s'. Extension must be '%s' or '%s'.",
-                filename, SLOW5_ASCII_EXTENSION, SLOW5_BINARY_EXTENSION);
-        slow5_errno = SLOW5_ERR_UNK;
-        slow5_close(slow5File);
-        return NULL;
-    }
-
-    return slow5File;
-
+    return slow5_open(filename,"a");
 }
 
 
 int slow5_close_write(slow5_file_t *sf){
-    if(sf->format == SLOW5_FORMAT_BINARY){
-        if(slow5_eof_fwrite(sf->fp) < 0){
-            SLOW5_ERROR_EXIT("%s","Error writing EOF!\n");
-            //todo free sf
-            return -1;
-        }
-    }
     int ret = slow5_close(sf);
     return ret;
 }
