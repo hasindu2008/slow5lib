@@ -43,8 +43,17 @@ set(slow5_press src/slow5_press.c)
 # add_executable(slow5exmp ${openmp_get_reads})
 
 add_subdirectory(thirdparty/streamvbyte)
-add_library(slow5 SHARED ${slow5_} ${slow5_idx} ${slow5_misc} ${slow5_press})
-# add_library(slow5 STATIC ${slow5_} ${slow5_idx} ${slow5_misc} ${slow5_press})
+
+option(SLOW5_LINK_STATIC "libslow5 will create a static lib" OFF) #OFF by default
+if(SLOW5_LINK_STATIC)
+    message( STATUS "libslow5 will create a static lib" )
+    add_library(slow5 STATIC ${slow5_} ${slow5_idx} ${slow5_misc} ${slow5_press})
+else()
+    message( STATUS "libslow5 will create a shared lib" )
+    add_library(slow5 SHARED ${slow5_} ${slow5_idx} ${slow5_misc} ${slow5_press})
+endif(SLOW5_LINK_STATIC)
+unset(SLOW5_LINK_STATIC CACHE)
+
 target_link_libraries(slow5 streamvbyte_slow5)
 
 # Build a static lib
