@@ -509,7 +509,13 @@ uint8_t *slow5_aux_get_enum_array(const slow5_rec_t *read, const char *field, ui
 /****** Writing SLOW5 files ******.
  * This is just around the corner.
  * However, this is being procrastinated until someone requests. If anyone is interested please open a GitHub issue.
- ***/
+***/
+int slow5_hdr_write(slow5_file_t *sf);
+int slow5_hdr_add(const char *attr, struct slow5_hdr *header);
+int slow5_aux_add(slow5_hdr_t *header, const char *attr, enum slow5_aux_type type);
+int slow5_aux_set(struct slow5_rec *read, slow5_hdr_t *header, const char *attr, const void *data);
+int slow5_aux_set_string(struct slow5_rec *read, slow5_hdr_t *header, const char *attr, const char *data);
+int slow5_write(slow5_file_t *sf, slow5_rec_t *rec);
 
 
 /**************************************************************************************************

@@ -469,7 +469,7 @@ int slow5_close(struct slow5_file *s5p) {
         ret = EOF;
     } else {
 
-        if(strcmp(s5p->meta.mode, "w") == 0 || strcmp(s5p->meta.mode, "a") == 0){
+        if(s5p->meta.mode && (strcmp(s5p->meta.mode, "w") == 0 || strcmp(s5p->meta.mode, "a") == 0)){
             SLOW5_INFO("Writing EOF marker to file '%s'", s5p->meta.pathname);
             if(s5p->format == SLOW5_FORMAT_BINARY){
                 if(slow5_eof_fwrite(s5p->fp) < 0){
@@ -1247,6 +1247,19 @@ int slow5_hdr_fwrite(FILE *fp, struct slow5_hdr *header, enum slow5_fmt format, 
     return ret;
 }
 
+
+int slow5_hdr_write(slow5_file_t *sf){
+
+    slow5_press_method_t method={SLOW5_COMPRESS_NONE,SLOW5_COMPRESS_NONE};
+    if (sf->format == SLOW5_FORMAT_BINARY){
+        method.record_method = sf->compress->record_press->method;
+        method.signal_method = sf->compress->signal_press->method;
+    }
+    int ret = slow5_hdr_fwrite(sf->fp, sf->header, sf->format, method);
+    return ret;
+}
+
+
 /**
  * Get a header data map.
  *
@@ -1420,6 +1433,10 @@ int slow5_hdr_add_attr(const char *attr, struct slow5_hdr *header) {
     }
 
     return 0;
+}
+
+int slow5_hdr_add(const char *attr, struct slow5_hdr *header){
+    return slow5_hdr_add_attr(attr, header);
 }
 
 /**
@@ -2088,6 +2105,12 @@ int slow5_aux_meta_add(struct slow5_aux_meta *aux_meta, const char *attr, enum s
     return 0;
 }
 
+int slow5_aux_add(slow5_hdr_t *header, const char *attr, enum slow5_aux_type type){
+    int ret = slow5_aux_meta_add(header->aux_meta, attr, type);
+    return ret;
+}
+
+
 // Return
 // 0    success
 // -1   null input
@@ -2401,7 +2424,6 @@ int slow5_get(const char *read_id, struct slow5_rec **read, struct slow5_file *s
     free(mem);
     return 0;
 }
-
 
 
 //gets the list of read ids from the SLOW5 index
@@ -3241,6 +3263,13 @@ int slow5_rec_set(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, const
     return 0;
 }
 
+
+int slow5_aux_set(struct slow5_rec *read, slow5_hdr_t *header, const char *attr, const void *data){
+    int ret = slow5_rec_set(read, header->aux_meta, attr, data);
+    return ret;
+}
+
+
 // For array types
 // Return
 // 0    success
@@ -3286,6 +3315,11 @@ int slow5_rec_set_array(struct slow5_rec *read, struct slow5_aux_meta *aux_meta,
     slow5_rec_set_aux_map(read->aux_map, attr, data_cast, len, aux_meta->sizes[i] * len, aux_meta->types[i]);
 
     return 0;
+}
+
+int slow5_aux_set_string(struct slow5_rec *read, slow5_hdr_t *header, const char *attr, const char *data) {
+    int ret = slow5_rec_set_string(read, header->aux_meta, attr, data);
+    return ret;
 }
 
 static inline void slow5_rec_set_aux_map(khash_t(slow5_s2a) *aux_map, const char *attr, const uint8_t *data, size_t len, uint64_t bytes, enum slow5_aux_type type) {
@@ -3606,6 +3640,13 @@ int slow5_rec_fwrite(FILE *fp, struct slow5_rec *read, struct slow5_aux_meta *au
     free(read_mem);
     return ret;
 }
+
+
+int slow5_write(slow5_file_t *sf, slow5_rec_t *rec){
+    int ret = slow5_rec_fwrite(sf->fp, rec, sf->header->aux_meta, sf->format, sf->compress);
+    return ret;
+}
+
 
 /**
  * Get the read entry in the specified format.

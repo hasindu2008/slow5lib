@@ -1,49 +1,14 @@
+// an example programme that uses slow5lib to write a SLOW5 file
+
 #include <stdio.h>
+#include <stdlib.h>
 #include <slow5/slow5.h>
-
-extern enum slow5_log_level_opt  slow5_log_level;
-extern enum slow5_exit_condition_opt  slow5_exit_condition;
-
-slow5_file_t *slow5_open_write(const char *filename, const char *mode){
-    return slow5_open(filename,"w");
-}
-
-slow5_file_t *slow5_open_write_append(const char *filename, const char *mode){
-    return slow5_open(filename,"a");
-}
-
-
-int slow5_close_write(slow5_file_t *sf){
-    return slow5_close(sf);
-}
-
-int slow5_header_write(slow5_file_t *sf){
-    return slow5_hdr_write(sf);
-}
-
-int slow5_rec_write(slow5_file_t *sf, slow5_rec_t *rec){
-    return slow5_write(sf,rec);
-}
-
-int slow5_aux_meta_add_wrapper(slow5_hdr_t *header, const char *attr, enum slow5_aux_type type){
-    return slow5_aux_add(header, attr, type);
-}
-
-int slow5_rec_set_wrapper(struct slow5_rec *read, slow5_hdr_t *header, const char *attr, const void *data){
-    return slow5_aux_set(read, header, attr, data);
-}
-
-int slow5_rec_set_string_wrapper(struct slow5_rec *read, slow5_hdr_t *header, const char *attr, const char *data) {
-    return slow5_aux_set_string(read, header, attr, data);
-}
-
-#ifdef PYSLOW5_WRITE_DEBUG
 
 #define FILE_NAME "test.slow5"
 
-void single_read_group_file(){
+int main(){
 
-    slow5_file_t *sf = slow5_open_write(FILE_NAME, "w");
+    slow5_file_t *sf = slow5_open(FILE_NAME, "w");
     if(sf==NULL){
         fprintf(stderr,"Error opening file!\n");
         exit(EXIT_FAILURE);
@@ -54,12 +19,12 @@ void single_read_group_file(){
 
     slow5_hdr_t *header=sf->header;
     //add a header group attribute called run_id
-    if (slow5_hdr_add_attr("run_id", header) != 0){
+    if (slow5_hdr_add("run_id", header) != 0){
         fprintf(stderr,"Error adding run_id attribute\n");
         exit(EXIT_FAILURE);
     }
     //add another header group attribute called asic_id
-    if (slow5_hdr_add_attr("asic_id", header) != 0){
+    if (slow5_hdr_add("asic_id", header) != 0){
         fprintf(stderr,"Error adding asic_id attribute\n");
         exit(EXIT_FAILURE);
     }
@@ -76,34 +41,34 @@ void single_read_group_file(){
     }
 
     //add auxilliary field: channel number
-    if (slow5_aux_meta_add(sf->header->aux_meta, "channel_number", SLOW5_STRING)!=0){
+    if (slow5_aux_add(sf->header, "channel_number", SLOW5_STRING)!=0){
         fprintf(stderr,"Error adding channel_number auxilliary field\n");
         exit(EXIT_FAILURE);
     }
 
     //add axuilliary field: median_before
-    if (slow5_aux_meta_add(sf->header->aux_meta, "median_before", SLOW5_DOUBLE)!=0){
+    if (slow5_aux_add(sf->header, "median_before", SLOW5_DOUBLE)!=0){
         fprintf(stderr,"Error adding median_before auxilliary field\n");
         exit(EXIT_FAILURE);
     }
 
     //add axuilliary field: read_number
-    if(slow5_aux_meta_add_wrapper(sf->header, "read_number", SLOW5_INT32_T)!=0){
+    if(slow5_aux_add(sf->header, "read_number", SLOW5_INT32_T)!=0){
         fprintf(stderr,"Error adding read_number auxilliary field\n");
         exit(EXIT_FAILURE);
     }
     //add axuilliary field: start_mux
-    if(slow5_aux_meta_add_wrapper(sf->header, "start_mux", SLOW5_UINT8_T)!=0){
+    if(slow5_aux_add(sf->header, "start_mux", SLOW5_UINT8_T)!=0){
         fprintf(stderr,"Error adding start_mux auxilliary field\n");
         exit(EXIT_FAILURE);
     }
     //add auxilliary field: start_time
-    if(slow5_aux_meta_add_wrapper(sf->header, "start_time", SLOW5_UINT64_T)!=0){
+    if(slow5_aux_add(sf->header, "start_time", SLOW5_UINT64_T)!=0){
         fprintf(stderr,"Error adding start_time auxilliary field\n");
         exit(EXIT_FAILURE);
     }
 
-    if(slow5_header_write(sf) < 0){
+    if(slow5_hdr_write(sf) < 0){
         fprintf(stderr,"Error writing header!\n");
         exit(EXIT_FAILURE);
     }
@@ -145,39 +110,39 @@ void single_read_group_file(){
     uint8_t start_mux = 1;
     uint64_t start_time = 100;
 
-    if(slow5_rec_set_string_wrapper(slow5_record, sf->header, "channel_number", channel_number)!=0){
+    if(slow5_aux_set_string(slow5_record, sf->header, "channel_number", channel_number)!=0){
         fprintf(stderr,"Error setting channel_number auxilliary field\n");
         exit(EXIT_FAILURE);
     }
-    if(slow5_rec_set_wrapper(slow5_record, sf->header, "median_before", &median_before)!=0){
+    if(slow5_aux_set(slow5_record, sf->header, "median_before", &median_before)!=0){
         fprintf(stderr,"Error setting median_before auxilliary field\n");
         exit(EXIT_FAILURE);
     }
-    if(slow5_rec_set_wrapper(slow5_record, sf->header, "read_number", &read_number)!=0){
+    if(slow5_aux_set(slow5_record, sf->header, "read_number", &read_number)!=0){
         fprintf(stderr,"Error setting read_number auxilliary field\n");
         exit(EXIT_FAILURE);
     }
 
-    if(slow5_rec_set_wrapper(slow5_record, sf->header, "start_mux", &start_mux)!=0){
+    if(slow5_aux_set(slow5_record, sf->header, "start_mux", &start_mux)!=0){
         fprintf(stderr,"Error setting start_mux auxilliary field\n");
         exit(EXIT_FAILURE);
     }
 
-    if(slow5_rec_set_wrapper(slow5_record, sf->header, "start_time", &start_time)!=0){
+    if(slow5_aux_set(slow5_record, sf->header, "start_time", &start_time)!=0){
         fprintf(stderr,"Error setting start_time auxilliary field\n");
         exit(EXIT_FAILURE);
     }
 
-    slow5_rec_write(sf, slow5_record);
+    slow5_write(sf, slow5_record);
 
     slow5_rec_free(slow5_record);
 
-    slow5_close_write(sf);
+    slow5_close(sf);
 
 
     // // now some appending fun
 
-    sf = slow5_open_write_append(FILE_NAME, "a");
+    sf = slow5_open(FILE_NAME, "a");
     if(sf==NULL){
         fprintf(stderr,"Error opening file!\n");
         exit(EXIT_FAILURE);
@@ -219,48 +184,40 @@ void single_read_group_file(){
     start_mux = 2;
     start_time = 200;
 
-    if(slow5_rec_set_string_wrapper(slow5_record, sf->header, "channel_number", channel_number)!=0){
+    if(slow5_aux_set_string(slow5_record, sf->header, "channel_number", channel_number)!=0){
         fprintf(stderr,"Error setting channel_number auxilliary field\n");
         exit(EXIT_FAILURE);
     }
-    if(slow5_rec_set_wrapper(slow5_record, sf->header, "median_before", &median_before)!=0){
+    if(slow5_aux_set(slow5_record, sf->header, "median_before", &median_before)!=0){
         fprintf(stderr,"Error setting median_before auxilliary field\n");
         exit(EXIT_FAILURE);
     }
-    if(slow5_rec_set_wrapper(slow5_record, sf->header, "read_number", &read_number)!=0){
+    if(slow5_aux_set(slow5_record, sf->header, "read_number", &read_number)!=0){
         fprintf(stderr,"Error setting read_number auxilliary field\n");
         exit(EXIT_FAILURE);
     }
 
-    if(slow5_rec_set_wrapper(slow5_record, sf->header, "start_mux", &start_mux)!=0){
+    if(slow5_aux_set(slow5_record, sf->header, "start_mux", &start_mux)!=0){
         fprintf(stderr,"Error setting start_mux auxilliary field\n");
         exit(EXIT_FAILURE);
     }
 
-    if(slow5_rec_set_wrapper(slow5_record, sf->header, "start_time", &start_time)!=0){
+    if(slow5_aux_set(slow5_record, sf->header, "start_time", &start_time)!=0){
         fprintf(stderr,"Error setting start_time auxilliary field\n");
         exit(EXIT_FAILURE);
     }
 
-    slow5_rec_write(sf, slow5_record);
+    slow5_write(sf, slow5_record);
 
     slow5_rec_free(slow5_record);
 
-    slow5_close_write(sf);
+    slow5_close(sf);
+
+    return 0;
 
 }
 
 
-int main(){
 
 
-    single_read_group_file();
-
-
-    return EXIT_SUCCESS;
-
-
-}
-
-#endif
-//gcc -Wall python/slow5_write.c  -I include/ lib/libslow5.a -lm -lz  -O2 -g -D PYSLOW5_WRITE_DEBUG=1
+//gcc -Wall examples/write_append.c  -I include/ lib/libslow5.a -lm -lz  -O2 -g
