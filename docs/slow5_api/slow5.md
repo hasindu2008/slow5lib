@@ -61,9 +61,9 @@ typedef struct {
 ```
 
 
-### High-level API for reading SLOW5 files
+### High-level API
 
-High-level API for reading SLOW5 files consists of following functions:
+High-level API for reading and writing SLOW5 files consists of following functions:
 
 * [slow5_open](slow5_open.md)<br/>
   &nbsp;&nbsp;&nbsp;&nbsp;opens a SLOW5 file
@@ -97,7 +97,6 @@ High-level API for reading SLOW5 files consists of following functions:
     - [slow5_aux_get_float](slow5_aux_get.md)
     - [slow5_aux_get_double](slow5_aux_get.md)
     - [slow5_aux_get_char](slow5_aux_get.md)
-
 *   [slow5_aux_get\_*\<array_datatype\>*](slow5_aux_get_array.md)<br/>
     &nbsp;&nbsp;&nbsp;&nbsp;fetches an auxiliary field (an array datatype) of a SLOW5 record
     &nbsp;&nbsp;&nbsp;&nbsp;Following functions are available:
@@ -113,16 +112,13 @@ High-level API for reading SLOW5 files consists of following functions:
     * [slow5_aux_get_double_array](slow5_aux_get_array.md)
     * [slow5_aux_get_string](slow5_aux_get_array.md)
 
+
+### Low-level API for reading and writing SLOW5 files
+
+Low-level API allows much more efficient access to BLOW5 files compared to the high-level API.  However, they are not yet finalised or documented. If anyone is interested, please open a GitHub issue, rather than trying to figure out from the code. Such an issue will expedite this, which would otherwise be procrastinated.  Unless, finalised and documented, these function prototypes are subject to change.
+
 <!--
 ### Low-level API for reading and writing SLOW5 files
 * [slow5_open_with](low_level_api/slow5_open_with.md)
     Open a SLOW5 file. User can specify the SLOW5 format.
 -->
-
-### High-level API for writing SLOW5 files
-
-This is just around the corner. If anyone is interested please open a GitHub issue rather than trying to undocumented functions. Such an [issue](https://github.com/hasindu2008/slow5lib/issues) will expedite this, which would otherwise be procrastinated.
-
-### Low-level API for reading and writing SLOW5 files
-
-Low-level API allows much more efficient access to BLOW5 files compared to the high-level API.  However, they are not yet finalised or documented. If anyone is interested, please open a GitHub issue, rather than trying to figure out from the code. Such an issue will expedite this, which would otherwise be procrastinated.  Unless, finalised and documented, these function prototypes are subject to change.

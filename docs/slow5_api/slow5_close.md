@@ -8,7 +8,7 @@ slow5_close - closes an open slow5 file and free the associated memory
 
 ## DESCRIPTION
 `slow5_close()` closes a slow5 file and frees the associated *slow5_file_t* structure from memory.
-The argument *s5p* is the *slow5_file_t* pointer returned by a previous `slow5_open()` call.
+The argument *s5p* is the *slow5_file_t* pointer returned by a previous `slow5_open()` call. If a BLOW5 file had been opened for writing or appending, the SLOW5 EOF marker is appended to the end of the file.
 
 The behaviour of `slow5_close()` is undefined if the parameter is an illegal pointer, or if `slow5_close()` has been previous invoked on the pointer.
 
@@ -22,7 +22,7 @@ Upon successful completion, `slow5_close()` returns 0. Otherwise, a negative val
 
 ## ERRORS
 
-* `SLOW5_ERR_IO`        
+* `SLOW5_ERR_IO`
   &nbsp;&nbsp;&nbsp;&nbsp;File I/O error, for instance, `fclose` failed.
 
 ## NOTES

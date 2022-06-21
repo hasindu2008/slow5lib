@@ -81,8 +81,8 @@ static char *get_missing_str(size_t *len);
 static int slow5_version_sanity(struct slow5_hdr *hdr);
 static struct slow5_version slow5_press_version_bump(struct slow5_version current, slow5_press_method_t method);
 
-static inline slow5_file_t *slow5_open_write(const char *filename, const char *mode);
-static inline slow5_file_t *slow5_open_write_append(const char *filename, const char *mode);
+static inline slow5_file_t *slow5_open_write(const char *filename);
+static inline slow5_file_t *slow5_open_append(const char *filename,  enum slow5_fmt format);
 
 enum slow5_log_level_opt slow5_log_level = SLOW5_LOG_INFO;
 enum slow5_exit_condition_opt slow5_exit_condition = SLOW5_EXIT_OFF;
@@ -201,40 +201,73 @@ struct slow5_file *slow5_init(FILE *fp, const char *pathname, enum slow5_fmt for
     return s5p;
 }
 
-// TODO this needs to be refined: talk to Sasha (he wrote this here)
+/*
+ * initialise an empty SLOW5 file structure
+ * if slow5_fmt is SLOW5_FORMAT_UNKNOWN determines format from pathname extension
+ * allocate memory for header, SLOW5 file structure and populate file number and offset
+ *
+ * errors
+ * SLOW5_ERR_OTH    big endian machine
+ * SLOW5_ERR_ARG    fp is NULL
+ * SLOW5_ERR_UNK    format could not be determined from extension
+ * SLOW5_ERR_MEM    memory allocation failed
+ * SLOW5_ERR_IO     ftello, fileno failed
+ */
 struct slow5_file *slow5_init_empty(FILE *fp, const char *pathname, enum slow5_fmt format) {
 
     if (slow5_is_big_endian()) {
         SLOW5_ERROR("%s","Big endian machine detected. slow5lib only support little endian at this time. Please open a github issue stating your machine spec <https://github.com/hasindu2008/slow5lib/issues>.");
+        slow5_errno = SLOW5_ERR_OTH;
         return NULL;
     }
-    // Pathname cannot be NULL at this point
-    if (fp == NULL) {
+    // pathname allowed to be NULL at this point
+    if (!fp) {
+        SLOW5_ERROR("Argument '%s' cannot be NULL.", SLOW5_TO_STR(fp));
+        slow5_errno = SLOW5_ERR_ARG;
         return NULL;
     }
 
     // Attempt to determine format from pathname
     if (format == SLOW5_FORMAT_UNKNOWN &&
             (format = slow5_path_get_fmt(pathname)) == SLOW5_FORMAT_UNKNOWN) {
+        SLOW5_ERROR("Unknown slow5 format for file '%s'. Extension must be '%s' or '%s'.",
+                pathname, SLOW5_ASCII_EXTENSION, SLOW5_BINARY_EXTENSION);
+        slow5_errno = SLOW5_ERR_UNK; //slow5_path_get_fmt does not set slow5_errno, so set here
         return NULL;
     }
 
     struct slow5_file *s5p;
     struct slow5_hdr *header = slow5_hdr_init_empty();
+    if (!header) {
+        SLOW5_ERROR("%s","Initiallising an empty slow5 header failed.");
+        return NULL;
+    }
+
     header->version = SLOW5_VERSION_STRUCT;
     s5p = (struct slow5_file *) calloc(1, sizeof *s5p);
-    SLOW5_MALLOC_CHK(s5p);
+    if (!s5p) {
+        SLOW5_MALLOC_ERROR();
+        slow5_errno = SLOW5_ERR_MEM;
+        return NULL;
+    }
 
     s5p->fp = fp;
     s5p->format = format;
     s5p->header = header;
 
     if ((s5p->meta.fd = fileno(fp)) == -1) {
+        SLOW5_ERROR("Obtaining file descriptor with fileno() failed: %s.", strerror(errno));
+        slow5_errno = SLOW5_ERR_IO;
         slow5_close(s5p);
         s5p = NULL;
     }
     s5p->meta.pathname = pathname;
-    s5p->meta.start_rec_offset = ftello(fp);
+    if ((s5p->meta.start_rec_offset = ftello(fp)) == -1) {
+        SLOW5_ERROR("Obtaining file offset with ftello() failed: %s.", strerror(errno));
+        slow5_errno = SLOW5_ERR_IO;
+        slow5_close(s5p);
+        s5p = NULL;
+    }
 
     return s5p;
 }
@@ -248,13 +281,9 @@ struct slow5_file *slow5_init_empty(FILE *fp, const char *pathname, enum slow5_f
  * If successful, return a slow5 file structure with the header parsed.
  * slow5_close() should be called when finished with the structure.
  *
- * The user at the moment is expected to give "r"
- * TODO : Make "r" into "rb" if BLOW5 - this is not an issue for POSIX systems as mode b is not used [https://man7.org/linux/man-pages/man3/fopen.3.html]
- *
- * slow5_open_with errors
  *
  * @param   pathname    relative or absolute path to slow5 file
- * @param   mode        only "r" for the moment for reading
+ * @param   mode        "r" for reading, "w" for writing a new file, "a" for appending to an existing file
  * @return              slow5 file structure
  */
 struct slow5_file *slow5_open(const char *pathname, const char *mode) {
@@ -275,9 +304,11 @@ struct slow5_file *slow5_open(const char *pathname, const char *mode) {
  * SLOW5_ERR_ARG    The pathname or mode provided was NULL.
  * SLOW5_ERR_IO     The file could not be opened. See errno for details.
  * slow5_init errors
+ * slow5_open_write errors
+ * slow5_open_append errors
  *
  * @param   pathname    path to slow5 file
- * @param   mode        only "r" for the moment
+ * @param   mode        "r" for reading, "w" for writing a new file, "a" for appending to an existing file
  * @param   format      format of the slow5 file
  * @return              slow5 file structure
  */
@@ -299,13 +330,21 @@ struct slow5_file *slow5_open_with(const char *pathname, const char *mode, enum 
     }
 
     else if (strcmp(mode, "w") == 0){
-        struct slow5_file *s5p = slow5_open_write(pathname, mode);
-        if(s5p) s5p->meta.mode = mode;
+        struct slow5_file *s5p = slow5_open_write(pathname);
+        if(s5p) {
+            s5p->meta.mode = mode;
+        } else{
+            SLOW5_EXIT_IF_ON_ERR();
+        }
         return s5p;
     }
     else if (strcmp(mode, "a") == 0){
-        struct slow5_file *s5p = slow5_open_write_append(pathname, mode);
-        if(s5p) s5p->meta.mode = mode;
+        struct slow5_file *s5p = slow5_open_append(pathname, format);
+        if(s5p) {
+            s5p->meta.mode = mode;
+        } else {
+            SLOW5_EXIT_IF_ON_ERR();
+        }
         return s5p;
     }
     else if (strcmp(mode, "r") != 0){
@@ -329,49 +368,55 @@ struct slow5_file *slow5_open_with(const char *pathname, const char *mode, enum 
         s5p->meta.mode = mode;
     }
 
-
     return s5p;
 }
 
-
-static inline slow5_file_t *slow5_open_write(const char *filename, const char *mode){
+/* Creates an empty SLOW5 file with the given pathname,
+*  initialise SLOW5 file structure with space for a single read group
+*  errors
+* SLOW5_ERR_IO     The file could not be opened. See errno for details.
+* slow5_init_empty errors
+* slow5_aux_meta_init_empty errors
+* slow5_press_init errors
+*/
+static inline slow5_file_t *slow5_open_write(const char *filename){
 
     FILE *fp = fopen(filename, "w");
     if(fp==NULL){
-        SLOW5_ERROR_EXIT("Error opening file '%s': %s.", filename, strerror(errno));
+        SLOW5_ERROR("Error opening file '%s': %s.", filename, strerror(errno));
         slow5_errno = SLOW5_ERR_IO;
         return NULL;
     }
 
     slow5_file_t *sf = slow5_init_empty(fp, filename, SLOW5_FORMAT_UNKNOWN);
-    if(sf==NULL){
-        SLOW5_ERROR_EXIT("Error initialising an empty SLOW5 file '%s'",filename); //todo error handling down the chain
+    if(!sf){
+        SLOW5_ERROR("Error initialising an empty SLOW5 file '%s'",filename);
         fclose(fp);
         return NULL;
     }
 
     slow5_hdr_t *header=sf->header;
-    if (slow5_hdr_add_rg(header) < 0){
-        SLOW5_ERROR_EXIT("Error adding read group 0 for %s",filename); //todo error handling down the chain
+    if (slow5_hdr_add_rg(header) < 0){ //todo error handling down the chain
+        SLOW5_ERROR("Error adding read group 0 for %s",filename);
         slow5_close(sf);
         return NULL;
     }
     header->num_read_groups = 1;
 
     struct slow5_aux_meta *aux_meta = slow5_aux_meta_init_empty();
-    if(aux_meta == NULL){
-        SLOW5_ERROR_EXIT("Error initializing aux meta for %s",filename); //todo error handling down the chain
+    if(!aux_meta){
+        SLOW5_ERROR("Error initializing aux meta for %s",filename);
         slow5_close(sf);
         return NULL;
     }
     header->aux_meta = aux_meta;
 
-    //not thread safe, this structure is only used in single threaded writes
+    //this structure is only to be used in single threaded writes
     if(sf->format == SLOW5_FORMAT_BINARY){
         slow5_press_method_t press_out = {SLOW5_COMPRESS_ZLIB, SLOW5_COMPRESS_SVB_ZD};
         sf->compress = slow5_press_init(press_out);
         if(!sf->compress){
-            SLOW5_ERROR_EXIT("Could not initialise the slow5 compression method. %s","");
+            SLOW5_ERROR("Could not initialise the slow5 compression method. %s","");
             slow5_close(sf);
             return NULL;
         }
@@ -380,72 +425,71 @@ static inline slow5_file_t *slow5_open_write(const char *filename, const char *m
     return sf;
 }
 
-static inline slow5_file_t *slow5_open_write_append(const char *filename, const char *mode){
+/* Opens a SLOW5 file with the given pathname for appending,
+*  populates the SLOW5 file structure and set file pointer to the end of the file
+*  errors
+* SLOW5_ERR_IO     The file could not be opened or fseek failed. See errno for details.
+* SLOW5_ERR_TRUNC  EOF marker not present
+* SLOW5_ERR_UNK    Unknown file format (not .slow5 or .blow5 extension)
+* slow5_init errors
+* slow5_is_eof errors
+*/
+static inline slow5_file_t *slow5_open_append(const char *filename, enum slow5_fmt format){
 
-    slow5_file_t* slow5File = slow5_open(filename, "r");
-    if(!slow5File){
-        SLOW5_ERROR_EXIT("Error opening file '%s': %s.", filename, strerror(errno));
+    FILE *fp = fopen(filename, "r+");
+    if (!fp) {
+        SLOW5_ERROR("Error opening file '%s': %s.", filename, strerror(errno));
         slow5_errno = SLOW5_ERR_IO;
         return NULL;
     }
 
-    if(slow5File->format==SLOW5_FORMAT_BINARY){
-        if(fseek(slow5File->fp , 0, SEEK_END) !=0 ){
-            SLOW5_ERROR_EXIT("Fseek to the end of file failed '%s': %s.", filename, strerror(errno));
+    struct slow5_file *s5p = slow5_init(fp, filename, format);
+    if (!s5p) {
+        if (fclose(fp) == EOF) {
+            SLOW5_ERROR("Error closing file '%s': %s.", filename, strerror(errno));
+        }
+        return NULL;
+    }
+
+    if(s5p->format==SLOW5_FORMAT_BINARY){
+        if(fseek(s5p->fp , 0, SEEK_END) !=0 ){
+            SLOW5_ERROR("Fseek to the end of file (SEEK_END) failed '%s': %s.", filename, strerror(errno));
             slow5_errno = SLOW5_ERR_IO;
-            slow5_close(slow5File);
+            slow5_close(s5p);
             return NULL;
         }
         const char eof[] = SLOW5_BINARY_EOF;
-        if(slow5_is_eof(slow5File->fp, eof, sizeof eof)!=1){
-            SLOW5_ERROR_EXIT("No valid slow5 EOF marker at the end of the SLOW5 file %s.",filename); //should be a warning instead?
-            //todo error code
-            slow5_close(slow5File);
+        if(slow5_is_eof(s5p->fp, eof, sizeof eof)!=1){
+            SLOW5_ERROR("No valid slow5 EOF marker at the end of the SLOW5 file %s.",filename);
+            slow5_close(s5p);
             return NULL;
         }
     }
 
-    int ret = fclose(slow5File->fp);
-    if(ret != 0){
-        SLOW5_ERROR_EXIT("Closing %s after reading the header failed\n", filename);
-        //todo free what is inside slow5File
-        slow5_errno = SLOW5_ERR_IO;
-        return NULL;
-    }
-
-    //opening a file like this twice is unnecessary if we use open_with, but lazy for now
-    slow5File->fp = fopen(filename, "r+");
-    if(slow5File->fp == NULL){
-        SLOW5_ERROR_EXIT("Error opening file for appending'%s': %s.", filename, strerror(errno));
-        slow5_errno = SLOW5_ERR_IO;
-         //todo free what is inside slow5File
-        return NULL;
-    }
-
-    if(slow5File->format==SLOW5_FORMAT_BINARY){
+    if(s5p->format==SLOW5_FORMAT_BINARY){
         const char eof[] = SLOW5_BINARY_EOF;
-        if(fseek(slow5File->fp, - (sizeof *eof) * (sizeof eof) , SEEK_END) != 0){
-            SLOW5_ERROR_EXIT("Fseek to the end of file failed '%s': %s.", filename, strerror(errno));
+        if(fseek(s5p->fp, - (sizeof *eof) * (sizeof eof) , SEEK_END) != 0){
+            SLOW5_ERROR("Fseek to the end of file (SEEK_END-eof_marker_size) failed '%s': %s.", filename, strerror(errno));
             slow5_errno = SLOW5_ERR_IO;
-            slow5_close(slow5File);
+            slow5_close(s5p);
             return NULL;
         }
-    } else if (slow5File->format==SLOW5_FORMAT_ASCII){
-        if(fseek(slow5File->fp, 0 , SEEK_END) != 0){
-            SLOW5_ERROR_EXIT("Fseek to the end of file failed '%s': %s.", filename, strerror(errno));
+    } else if (s5p->format==SLOW5_FORMAT_ASCII){
+        if(fseek(s5p->fp, 0 , SEEK_END) != 0){
+            SLOW5_ERROR("Fseek to the end of file failed '%s': %s.", filename, strerror(errno));
             slow5_errno = SLOW5_ERR_IO;
-            slow5_close(slow5File);
+            slow5_close(s5p);
             return NULL;
         }
     } else {
         SLOW5_ERROR("Unknown slow5 format for file '%s'. Extension must be '%s' or '%s'.",
                 filename, SLOW5_ASCII_EXTENSION, SLOW5_BINARY_EXTENSION);
         slow5_errno = SLOW5_ERR_UNK;
-        slow5_close(slow5File);
+        slow5_close(s5p);
         return NULL;
     }
 
-    return slow5File;
+    return s5p;
 
 }
 
@@ -475,14 +519,13 @@ int slow5_close(struct slow5_file *s5p) {
                 if(slow5_eof_fwrite(s5p->fp) < 0){
                     SLOW5_ERROR_EXIT("%s","Error writing EOF!\n");
                     slow5_errno = SLOW5_ERR_IO;
-                    //todo free sf
-                    return EOF;
+                    ret = EOF;
                 }
             }
         }
 
         if (fclose(s5p->fp) == EOF) {
-            SLOW5_ERROR("Error closing slow5 file '%s': %s.", s5p->meta.pathname, strerror(errno));
+            SLOW5_ERROR("Error closing slow5 file '%s': %s.", s5p->meta.pathname, strerror(errno)); //not critical - so do not call exit
             slow5_errno = SLOW5_ERR_IO;
             ret = EOF;
         }
@@ -525,7 +568,11 @@ static inline void slow5_free(struct slow5_file *s5p) {
 struct slow5_hdr *slow5_hdr_init_empty(void) {
 
     struct slow5_hdr *header = (struct slow5_hdr *) calloc(1, sizeof *(header));
-    SLOW5_MALLOC_CHK(header);
+    if (!header) {
+        SLOW5_MALLOC_ERROR();
+        slow5_errno = SLOW5_ERR_MEM;
+        return NULL;
+    }
 
     return header;
 }
@@ -1691,15 +1738,26 @@ int slow5_hdr_data_init(FILE *fp, char **bufp, size_t *cap, struct slow5_hdr *he
 
 struct slow5_aux_meta *slow5_aux_meta_init_empty(void) {
     struct slow5_aux_meta *aux_meta = (struct slow5_aux_meta *) calloc(1, sizeof *aux_meta);
-    SLOW5_MALLOC_CHK(aux_meta);
+    if(!aux_meta){
+        SLOW5_MALLOC_ERROR()
+        slow5_errno = SLOW5_ERR_MEM;
+        return NULL;
+    }
 
     aux_meta->cap = SLOW5_AUX_META_CAP_INIT;
     aux_meta->attrs = (char **) malloc(aux_meta->cap * sizeof *(aux_meta->attrs));
-    SLOW5_MALLOC_CHK(aux_meta->attrs);
     aux_meta->types = (enum slow5_aux_type *) malloc(aux_meta->cap * sizeof *(aux_meta->types));
-    SLOW5_MALLOC_CHK(aux_meta->types);
     aux_meta->sizes = (uint8_t *) malloc(aux_meta->cap * sizeof *(aux_meta->sizes));
-    SLOW5_MALLOC_CHK(aux_meta->sizes);
+
+    if(!aux_meta->attrs || !aux_meta->types || !aux_meta->sizes) {
+        SLOW5_MALLOC_ERROR()
+        slow5_errno = SLOW5_ERR_MEM;
+        free(aux_meta->attrs);
+        free(aux_meta->types);
+        free(aux_meta->sizes);
+        free(aux_meta);
+        return NULL;
+    }
 
     return aux_meta;
 }

@@ -337,17 +337,16 @@ newer functions can be added while keeping the existing ones intact
  * If successful, return a slow5 file structure with the header parsed.
  * slow5_close() should be called when finished with the structure.
  *
- * The user at the moment is expected to give "r"
- * TODO : Make "r" into "rb" if BLOW5 - this is not an issue for POSIX systems as mode b is not used [https://man7.org/linux/man-pages/man3/fopen.3.html]
  *
  * @param   pathname    relative or absolute path to slow5 file
- * @param   mode        only "r" for the moment for reading
+ * @param   mode        "r" for reading, "w" for writing a new file, "a" for appending to an existing file
  * @return              slow5 file structure
  */
 slow5_file_t *slow5_open(const char *pathname, const char *mode);
 
 /**
  * Close a slow5 file and free its memory.
+ * If the file had been opened for writing or appending, EOF marker will be written
  *
  * @param   s5p slow5 file structure
  * @return      same as fclose()
