@@ -1,34 +1,34 @@
-# slow5_hdr_get
+# slow5_aux_add
 
 ## NAME
 
-slow5_hdr_get -  fetches a header data attribute from a SLOW5 header
+slow5_aux_add -  adds an auxiliary field to a SLOW5 header
 
 ## SYNOPSYS
 
-`char *slow5_hdr_get(const char *attr, uint32_t read_group, const slow5_hdr_t *header)`
+`int slow5_aux_add(const char *field, enum slow5_aux_type type, slow5_hdr_t *header)`
 
 ## DESCRIPTION
-`slow5_hdr_get()` fetches the attribute value for specified attribute name *attr* of a specified read group *read_group* from a SLOW5 file header pointed by *header* and returns as a *char** pointers.
+`slow5_aux_add()` adds an auxiliary field named *field* of the datatype *type* to a SLOW5 file header pointed by *header*.
 
 The argument *header* points to a SLOW5 header of type *slow5_hdr_t* and typically this is the *s5p->header* member inside the *slow5_file_t *s5p* returned by  `slow5_open()`.
 
+<todo: Document enum types>
 
 ## RETURN VALUE
-Upon successful completion, `slow5_hdr_get()` returns the attribute value as *char** pointer. Otherwise, NULL is returned.
+Upon successful completion, `slow5_aux_add()` returns a non negative integer (>=0). Otherwise, a negative value is returned.
 
 ## ERRORS
 
-NULL is returned when an error occurs and can be due to following occasions (not an exhaustive list):
+A negative value is returned when an error occurs and can be due to following occasions (not an exhaustive list:
 
-- *attr* doesn't exist
-- *read_group* is out of range
 - input parameter is NULL
+- unsuitable datatype
+- other error
 
 ## NOTES
 
-The returned pointer is from an internal data structure and the user must NOT free this.
-In the future a error number will be set to indicate the error.
+
 
 ## EXAMPLES
 
@@ -37,22 +37,48 @@ In the future a error number will be set to indicate the error.
 #include <stdlib.h>
 #include <slow5/slow5.h>
 
-#define FILE_PATH "examples/example.slow5"
+#define FILE_PATH "test.slow5"
 
 int main(){
 
-    slow5_file_t *sp = slow5_open(FILE_PATH,"r");
+    slow5_file_t *sp = slow5_open(FILE_PATH, "w");
     if(sp==NULL){
-       fprintf(stderr,"Error in opening file\n");
-       exit(EXIT_FAILURE);
-    }
-    const slow5_hdr_t* header = sp->header;
-    char* read_group_0_run_id_value = slow5_hdr_get("run_id", 0, header);
-    if(read_group_0_run_id_value){
-        printf("%s\n",read_group_0_run_id_value);
+        fprintf(stderr,"Error opening file!\n");
+        exit(EXIT_FAILURE);
     }
 
-    slow5_close(sp);
+    slow5_hdr_t* header = sp->header;
+
+    //add auxilliary field: channel number
+    if (slow5_aux_add("channel_number", SLOW5_STRING, sp->header) < 0){
+        fprintf(stderr,"Error adding channel_number auxilliary field\n");
+        exit(EXIT_FAILURE);
+    }
+
+    //add auxilliary field: median_before
+    if (slow5_aux_add("median_before", SLOW5_DOUBLE, sp->header) < 0) {
+        fprintf(stderr,"Error adding median_before auxilliary field\n");
+        exit(EXIT_FAILURE);
+    }
+
+    //add auxilliary field: read_number
+    if(slow5_aux_add("read_number", SLOW5_INT32_T, sp->header) < 0){
+        fprintf(stderr,"Error adding read_number auxilliary field\n");
+        exit(EXIT_FAILURE);
+    }
+    //add auxilliary field: start_mux
+    if(slow5_aux_add("start_mux", SLOW5_UINT8_T, sp->header) < 0){
+        fprintf(stderr,"Error adding start_mux auxilliary field\n");
+        exit(EXIT_FAILURE);
+    }
+    //add auxilliary field: start_time
+    if(slow5_aux_add("start_time", SLOW5_UINT64_T, sp->header) < 0){
+        fprintf(stderr,"Error adding start_time auxilliary field\n");
+        exit(EXIT_FAILURE);
+    }
+
+
+    //....
 
 }
 ```

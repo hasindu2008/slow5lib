@@ -543,7 +543,7 @@ int slow5_hdr_add(const char *attr, slow5_hdr_t *header);
 int slow5_hdr_set(const char *attr, const char *value, uint32_t read_group, slow5_hdr_t *header);
 
 /**
- * Adds an auxilliary field to a SLOW5 header.
+ * Adds an auxiliary field to a SLOW5 header.
  * Return
  *
  * 0    success

@@ -21,7 +21,7 @@ Upon successful completion, `slow5_hdr_add()` returns a non negative integer (>=
 A negative returned when an error occurs and can be due to following occasions (not an exhaustive list):
 
 - if an input argument is NULL
-- *read_group* if the attribute already exists
+- if the attribute already exists
 - if internal error
 
 ## NOTES
@@ -48,12 +48,12 @@ int main(){
     slow5_hdr_t* header = sp->header;
 
     //add a header group attribute called run_id
-    if (slow5_hdr_add("run_id", header) != 0){
+    if (slow5_hdr_add("run_id", header) < 0){
         fprintf(stderr,"Error adding run_id attribute\n");
         exit(EXIT_FAILURE);
     }
     //add another header group attribute called asic_id
-    if (slow5_hdr_add("asic_id", header) != 0){
+    if (slow5_hdr_add("asic_id", header) < 0){
         fprintf(stderr,"Error adding asic_id attribute\n");
         exit(EXIT_FAILURE);
     }

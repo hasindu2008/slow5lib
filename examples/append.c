@@ -58,25 +58,25 @@ int main(){
     uint8_t start_mux = 2;
     uint64_t start_time = 200;
 
-    if(slow5_aux_set_string(slow5_record, "channel_number", channel_number, sp->header)!=0){
+    if(slow5_aux_set_string(slow5_record, "channel_number", channel_number, sp->header) < 0){
         fprintf(stderr,"Error setting channel_number auxilliary field\n");
         exit(EXIT_FAILURE);
     }
-    if(slow5_aux_set(slow5_record, "median_before", &median_before, sp->header)!=0){
+    if(slow5_aux_set(slow5_record, "median_before", &median_before, sp->header) < 0){
         fprintf(stderr,"Error setting median_before auxilliary field\n");
         exit(EXIT_FAILURE);
     }
-    if(slow5_aux_set(slow5_record, "read_number", &read_number, sp->header)!=0){
+    if(slow5_aux_set(slow5_record, "read_number", &read_number, sp->header) < 0){
         fprintf(stderr,"Error setting read_number auxilliary field\n");
         exit(EXIT_FAILURE);
     }
 
-    if(slow5_aux_set(slow5_record, "start_mux", &start_mux, sp->header)!=0){
+    if(slow5_aux_set(slow5_record, "start_mux", &start_mux, sp->header) < 0){
         fprintf(stderr,"Error setting start_mux auxilliary field\n");
         exit(EXIT_FAILURE);
     }
 
-    if(slow5_aux_set(slow5_record, "start_time", &start_time, sp->header)!=0){
+    if(slow5_aux_set(slow5_record, "start_time", &start_time, sp->header) < 0){
         fprintf(stderr,"Error setting start_time auxilliary field\n");
         exit(EXIT_FAILURE);
     }
