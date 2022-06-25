@@ -514,8 +514,8 @@ int slow5_close(struct slow5_file *s5p) {
     } else {
 
         if(s5p->meta.mode && (strcmp(s5p->meta.mode, "w") == 0 || strcmp(s5p->meta.mode, "a") == 0)){
-            SLOW5_INFO("Writing EOF marker to file '%s'", s5p->meta.pathname);
             if(s5p->format == SLOW5_FORMAT_BINARY){
+                SLOW5_INFO("Writing EOF marker to file '%s'", s5p->meta.pathname);
                 if(slow5_eof_fwrite(s5p->fp) < 0){
                     SLOW5_ERROR_EXIT("%s","Error writing EOF!\n");
                     slow5_errno = SLOW5_ERR_IO;
@@ -1295,14 +1295,14 @@ int slow5_hdr_fwrite(FILE *fp, struct slow5_hdr *header, enum slow5_fmt format, 
 }
 
 
-int slow5_hdr_write(slow5_file_t *sf){
+int slow5_hdr_write(slow5_file_t *s5p){
 
     slow5_press_method_t method={SLOW5_COMPRESS_NONE,SLOW5_COMPRESS_NONE};
-    if (sf->format == SLOW5_FORMAT_BINARY){
-        method.record_method = sf->compress->record_press->method;
-        method.signal_method = sf->compress->signal_press->method;
+    if (s5p->format == SLOW5_FORMAT_BINARY){
+        method.record_method = s5p->compress->record_press->method;
+        method.signal_method = s5p->compress->signal_press->method;
     }
-    int ret = slow5_hdr_fwrite(sf->fp, sf->header, sf->format, method);
+    int ret = slow5_hdr_fwrite(s5p->fp, s5p->header, s5p->format, method);
     return ret;
 }
 
@@ -1482,7 +1482,13 @@ int slow5_hdr_add_attr(const char *attr, struct slow5_hdr *header) {
     return 0;
 }
 
-int slow5_hdr_add(const char *attr, struct slow5_hdr *header){
+
+/*
+ * Add a new header data attribute.
+ *
+ * slow5_hdr_add is the wrapper to slow5_hdr_add_attr which exposed to public
+ */
+int slow5_hdr_add(const char *attr, slow5_hdr_t *header){
     return slow5_hdr_add_attr(attr, header);
 }
 
@@ -2163,8 +2169,8 @@ int slow5_aux_meta_add(struct slow5_aux_meta *aux_meta, const char *attr, enum s
     return 0;
 }
 
-int slow5_aux_add(slow5_hdr_t *header, const char *attr, enum slow5_aux_type type){
-    int ret = slow5_aux_meta_add(header->aux_meta, attr, type);
+int slow5_aux_add(const char *field, enum slow5_aux_type type, slow5_hdr_t *header){
+    int ret = slow5_aux_meta_add(header->aux_meta, field, type);
     return ret;
 }
 
@@ -3322,8 +3328,8 @@ int slow5_rec_set(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, const
 }
 
 
-int slow5_aux_set(struct slow5_rec *read, slow5_hdr_t *header, const char *attr, const void *data){
-    int ret = slow5_rec_set(read, header->aux_meta, attr, data);
+int slow5_aux_set(slow5_rec_t *read, const char *field, const void *data, slow5_hdr_t *header){
+    int ret = slow5_rec_set(read, header->aux_meta, field, data);
     return ret;
 }
 
@@ -3375,8 +3381,8 @@ int slow5_rec_set_array(struct slow5_rec *read, struct slow5_aux_meta *aux_meta,
     return 0;
 }
 
-int slow5_aux_set_string(struct slow5_rec *read, slow5_hdr_t *header, const char *attr, const char *data) {
-    int ret = slow5_rec_set_string(read, header->aux_meta, attr, data);
+int slow5_aux_set_string(slow5_rec_t *read, const char *field, const char *data, slow5_hdr_t *header) {
+    int ret = slow5_rec_set_string(read, header->aux_meta, field, data);
     return ret;
 }
 
@@ -3700,8 +3706,8 @@ int slow5_rec_fwrite(FILE *fp, struct slow5_rec *read, struct slow5_aux_meta *au
 }
 
 
-int slow5_write(slow5_file_t *sf, slow5_rec_t *rec){
-    int ret = slow5_rec_fwrite(sf->fp, rec, sf->header->aux_meta, sf->format, sf->compress);
+int slow5_write(slow5_rec_t *rec, slow5_file_t *s5p){
+    int ret = slow5_rec_fwrite(s5p->fp, rec, s5p->header->aux_meta, s5p->format, s5p->compress);
     return ret;
 }
 

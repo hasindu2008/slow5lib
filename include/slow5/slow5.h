@@ -509,12 +509,102 @@ uint8_t *slow5_aux_get_enum_array(const slow5_rec_t *read, const char *field, ui
  * This is just around the corner.
  * However, this is being procrastinated until someone requests. If anyone is interested please open a GitHub issue.
 ***/
-int slow5_hdr_write(slow5_file_t *sf);
-int slow5_hdr_add(const char *attr, struct slow5_hdr *header);
-int slow5_aux_add(slow5_hdr_t *header, const char *attr, enum slow5_aux_type type);
-int slow5_aux_set(struct slow5_rec *read, slow5_hdr_t *header, const char *attr, const void *data);
-int slow5_aux_set_string(struct slow5_rec *read, slow5_hdr_t *header, const char *attr, const char *data);
-int slow5_write(slow5_file_t *sf, slow5_rec_t *rec);
+
+/**
+ * Adds a new header data attribute.
+ *
+ * Returns -1 if an input parameter is NULL.
+ * Returns -2 if the attribute already exists.
+ * Returns -3 if internal error.
+ * Returns 0 other.
+ *
+ * @param   attr        attribute name
+ * @param   header      pointer to the header
+ * @return  0 on success, <0 on error as described above
+ */
+int slow5_hdr_add(const char *attr, slow5_hdr_t *header);
+
+/**
+ * Sets a header data attribute for a particular read_group.
+ *
+ * Doesn't take memory ownership of the value given.
+ *
+ * Returns -1 if the attribute name doesn't exist
+ * or the read group is out of range
+ * or an input parameter is NULL.
+ * Returns 0 other.
+ *
+ * @param   attr        attribute name
+ * @param   value       new attribute value
+ * @param   read_group  the read group
+ * @param   header      slow5 header
+ * @return  0 on success, -1 on error
+ */
+int slow5_hdr_set(const char *attr, const char *value, uint32_t read_group, slow5_hdr_t *header);
+
+/**
+ * Adds an auxilliary field to a SLOW5 header.
+ * Return
+ *
+ * 0    success
+ * -1   null input
+ * -2   other failure
+ * -3   use slow5_aux_meta_add_enum instead if type is SLOW5_ENUM or SLOW5_ENUM_ARRAY
+ * TODO this error checking is bad, reorder parameters
+ * @param   field       field name
+ * @param   type        slow5 data type
+ * @param   header      pointer to the header
+ * @return  0 on success, <0 on error
+ */
+int slow5_aux_add(const char *field, enum slow5_aux_type type, slow5_hdr_t *header);
+
+/**
+ * Writes the associated SLOW5 header to a SLOW5 file.
+ *
+ * On success, the number of bytes written is returned.
+ * On error, -1 is returned.
+ *
+ * @param   s5p              slow5 file structure
+ * @return  number of bytes written, -1 on error
+ */
+int slow5_hdr_write(slow5_file_t *s5p);
+
+/**
+ * Initialises an empty SLOW5 record.
+ * To be freed with slow5_rec_free().
+ *
+ * @return  ptr to the record
+ */
+static inline slow5_rec_t *slow5_rec_init(void) {
+    slow5_rec_t *read = (slow5_rec_t *) calloc(1, sizeof *read);
+
+    return read;
+}
+
+// sets an auxiliary field (a primitive datatype) of a SLOW5 record
+// For non-array types
+// Return
+// -1   input invalid
+// -2   attr not found
+// -3   type is an array type
+// -4   data is invalid (eg enum out of range)
+// TODO add setting a non-aux?
+int slow5_aux_set(slow5_rec_t *read, const char *field, const void *data, slow5_hdr_t *header);
+//sets an auxiliary field (string datatype) of a SLOW5 record
+int slow5_aux_set_string(slow5_rec_t *read, const char *field, const char *data, slow5_hdr_t *header);
+
+/**
+ * Writes a SLOW5 record to a SLOW5 file.
+ *
+ *
+ * On success, the number of bytes written is returned.
+ * On error, -1 is returned.
+ *
+ * @param   read             slow5_rec pointer
+ * @param   s5p              slow5 file structure
+ * @return  number of bytes written, -1 on error
+ */
+int slow5_write(slow5_rec_t *read, slow5_file_t *s5p);
 
 
 /**************************************************************************************************
@@ -545,19 +635,6 @@ these functions are used by slow5tools and pyslow5 - so any change to a function
  * @return              slow5 file structure
  */
 slow5_file_t *slow5_open_with(const char *pathname, const char *mode, enum slow5_fmt format);
-
-
-/**
- * Get an empty read structure.
- * To be freed with slow5_rec_free().
- *
- * @return  ptr to the record
- */
-static inline slow5_rec_t *slow5_rec_init(void) {
-    slow5_rec_t *read = (slow5_rec_t *) calloc(1, sizeof *read);
-
-    return read;
-}
 
 
 /**
@@ -653,23 +730,6 @@ int slow5_hdr_add_attr(const char *attr, slow5_hdr_t *header);
 // TODO check return type but should be large enough to return -1 and the largest read group
 int64_t slow5_hdr_add_rg(slow5_hdr_t *header);
 
-/**
- * Set a header data attribute for a particular read_group.
- *
- * Doesn't take memory ownership of the value given.
- *
- * Returns -1 if the attribute name doesn't exist
- * or the read group is out of range
- * or an input parameter is NULL.
- * Returns 0 other.
- *
- * @param   attr        attribute name
- * @param   value       new attribute value
- * @param   read_group  the read group
- * @param   header      slow5 header
- * @return  0 on success, -1 on error
- */
-int slow5_hdr_set(const char *attr, const char *value, uint32_t read_group, slow5_hdr_t *header);
 
 /**
  * Get the header in the specified format.
