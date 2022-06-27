@@ -588,7 +588,6 @@ static inline slow5_rec_t *slow5_rec_init(void) {
 // -2   attr not found
 // -3   type is an array type
 // -4   data is invalid (eg enum out of range)
-// TODO add setting a non-aux?
 int slow5_aux_set(slow5_rec_t *read, const char *field, const void *data, slow5_hdr_t *header);
 //sets an auxiliary field (string datatype) of a SLOW5 record
 int slow5_aux_set_string(slow5_rec_t *read, const char *field, const char *data, slow5_hdr_t *header);

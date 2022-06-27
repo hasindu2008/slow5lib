@@ -61,7 +61,7 @@ int main(){
 
     /* primary fields
     #read_id	read_group	digitisation	offset	range	sampling_rate	len_raw_signal	raw_signal
-    read_0	    0	        4096	        3	    10	    4000	        10	            0,1,2,3,4,5,6,7,8,9	0
+    read_0	    0	        4096	        3	    10	    4000	        10	            0,1,2,3,4,5,6,7,8,9
     */
     set_record_primary_fields(slow5_record, sp);
 
