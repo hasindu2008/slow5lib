@@ -129,25 +129,13 @@ cdef extern from "pyslow5.h":
     int64_t slow5_hdr_add_rg(slow5_hdr_t *header);
     slow5_rec_t *slow5_rec_init();
 
-    # from slow5_extra.h
-
-    int slow5_aux_meta_add(slow5_aux_meta_t *aux_meta, const char *attr, slow5_aux_type type);
-    int slow5_rec_set_string(slow5_rec_t *read, slow5_aux_meta_t *aux_meta, const char *attr, const char *data);
-    int slow5_rec_set(slow5_rec_t *read, slow5_aux_meta_t *aux_meta, const char *attr, const void *data);
-
-cdef extern from "slow5_write.h":
-
     # Write slow5 file
+    int slow5_hdr_write(slow5_file_t *sf);
+    int slow5_write(slow5_rec_t *rec, slow5_file_t *sf);
+    int slow5_aux_add(const char *attr, slow5_aux_type type, slow5_hdr_t *header);
+    int slow5_aux_set(slow5_rec_t *read, const char *attr, const void *data, slow5_hdr_t *header);
+    int slow5_aux_set_string(slow5_rec_t *read, const char *attr, const char *data, slow5_hdr_t *header);
 
-    #from slow5_write.h
-    slow5_file_t *slow5_open_write(char *filename, char *mode);
-    slow5_file_t *slow5_open_write_append(char *filename, char *mode);
-    int slow5_close_write(slow5_file_t *sf);
-    int slow5_header_write(slow5_file_t *sf);
-    int slow5_rec_write(slow5_file_t *sf, slow5_rec_t *rec);
-    int slow5_aux_meta_add_wrapper(slow5_hdr_t *header, const char *attr, slow5_aux_type type);
-    int slow5_rec_set_wrapper(slow5_rec_t *read, slow5_hdr_t *header, const char *attr, const void *data);
-    int slow5_rec_set_string_wrapper(slow5_rec_t *read, slow5_hdr_t *header, const char *attr, const char *data);
 
 cdef extern from "slow5threads.h":
 

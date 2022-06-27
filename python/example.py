@@ -213,6 +213,7 @@ for read in reads:
     print("ret: write_record(): {}".format(ret))
 
 F.close()
+s58.close()
 
 print("==============================================")
 
@@ -266,7 +267,7 @@ for read in reads:
     print("ret: write_record(): {}".format(ret))
 
 s58.close()
-F.close()
+F2.close()
 
 
 print("==============================================")
@@ -363,7 +364,7 @@ for read in reads:
     print("ret: write_record(): {}".format(ret))
 
 s58.close()
-F.close()
+F2.close()
 
 
 

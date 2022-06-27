@@ -227,11 +227,11 @@ cdef class Open:
             self.s5 = pyslow5.slow5_open(self.p, self.m)
             self.logger.debug("Number of read_groups: {}".format(self.s5.header.num_read_groups))
         elif self.state == 1:
-            self.s5 = slow5_open_write(self.p, self.m)
+            self.s5 = pyslow5.slow5_open(self.p, self.m)
             if self.s5 is NULL:
                 self.logger.error("File '{}' could not be opened for writing.".format(self.path))
         elif self.state == 2:
-            self.s5 = slow5_open_write_append(self.p, self.m)
+            self.s5 = pyslow5.slow5_open(self.p, self.m)
             if self.s5 is NULL:
                 self.logger.error("File '{}' could not be opened for writing - appending.".format(self.path))
         else:
@@ -260,7 +260,7 @@ cdef class Open:
         if self.state in [1, 2]:
             if not self.close_state:
                 if self.s5 is not NULL:
-                    slow5_close_write(self.s5)
+                    slow5_close(self.s5)
                     self.close_state = True
                     self.logger.debug("{} closed".format(self.path))
             else:
@@ -1321,7 +1321,7 @@ cdef class Open:
 
     def get_empty_header(self):
         '''
-        returns empty header dic for user to populate
+        returns example empty header dic for user to populate
         Any values not populated will be skipped
         '''
         header = {"asic_id": None,
@@ -1587,8 +1587,7 @@ cdef class Open:
         '''
         write slow5 header to file.
         takes header dic for attributes, then write once.
-        Currently limited to ONLY 1 read_group
-        Use slow5tools merge after writing as a temporary solution
+        Must write readgroup 0 before 1, 1 before 2, etc
         '''
         checked_header = self._header_type_validation(header)
 
@@ -1663,9 +1662,9 @@ cdef class Open:
                     for a in slow5_aux_types:
                         if slow5_aux_types[a] is None:
                             continue
-                        ret = slow5_aux_meta_add_wrapper(self.s5.header, a.encode(), slow5_aux_types[a])
+                        ret = slow5_aux_add(a.encode(), slow5_aux_types[a], self.s5.header)
                         if ret < 0:
-                            self.logger.error("write_record: slow5_aux_meta_add_wrapper {}: {} could not set to C s5.header.aux_meta struct".format(a, checked_aux[a]))
+                            self.logger.error("write_record: slow5_aux_add {}: {} could not set to C s5.header.aux_meta struct".format(a, checked_aux[a]))
                             error = True
                 else:
                     error = True
@@ -1675,9 +1674,9 @@ cdef class Open:
                 return -1
             # write the header
             self.logger.debug("write_record: writting header...")
-            ret = slow5_header_write(self.s5)
+            ret = slow5_hdr_write(self.s5)
             if ret < 0:
-                self.logger.error("write_record: slow5_header_write could not write header")
+                self.logger.error("write_record: slow5_hdr_write could not write header")
                 return -1
             # set state true so only done once
             self.header_state = True
@@ -1728,36 +1727,36 @@ cdef class Open:
                 if checked_aux[a] is None:
                     continue
                 if a == "channel_number":
-                    self.logger.debug("write_record: slow5_rec_set_string_wrapper running...")
-                    self.logger.debug("write_record: slow5_rec_set_string_wrapper type: {}".format(type(checked_aux[a])))
-                    ret = slow5_rec_set_string_wrapper(self.write, self.s5.header, self.channel_number, <const char *>self.channel_number_val)
-                    self.logger.debug("write_record: slow5_rec_set_string_wrapper running done: ret = {}".format(ret))
+                    self.logger.debug("write_record: slow5_aux_set_string running...")
+                    self.logger.debug("write_record: slow5_aux_set_string type: {}".format(type(checked_aux[a])))
+                    ret = slow5_aux_set_string(self.write, self.channel_number, <const char *>self.channel_number_val, self.s5.header)
+                    self.logger.debug("write_record: slow5_aux_set_string running done: ret = {}".format(ret))
                     if ret < 0:
-                        self.logger.error("write_record: slow5_rec_set_string_wrapper could not write aux value {}: {}".format(a, checked_aux[a]))
+                        self.logger.error("write_record: slow5_aux_set_string could not write aux value {}: {}".format(a, checked_aux[a]))
                         #### We should free here
                         return -1
                 elif a == "median_before":
-                    ret = slow5_rec_set_wrapper(self.write, self.s5.header, self.median_before, <const void *>&self.median_before_val)
+                    ret = slow5_aux_set(self.write, self.median_before, <const void *>&self.median_before_val, self.s5.header)
                 elif a == "read_number":
-                    ret = slow5_rec_set_wrapper(self.write, self.s5.header, self.read_number, <const void *>&self.read_number_val)
+                    ret = slow5_aux_set(self.write, self.read_number, <const void *>&self.read_number_val, self.s5.header)
                 elif a == "start_mux":
-                    ret = slow5_rec_set_wrapper(self.write, self.s5.header, self.start_mux, <const void *>&self.start_mux_val)
+                    ret = slow5_aux_set(self.write, self.start_mux, <const void *>&self.start_mux_val, self.s5.header)
                 elif a == "start_time":
-                    ret = slow5_rec_set_wrapper(self.write, self.s5.header, self.start_time, <const void *>&self.start_time_val)
+                    ret = slow5_aux_set(self.write, self.start_time, <const void *>&self.start_time_val, self.s5.header)
                 elif a == "end_reason":
                     # not implemented yet becuase of variability in ONT versioning
                     ret = 0
                 if ret < 0:
-                    self.logger.error("write_record: slow5_rec_set_wrapper could not write aux value {}: {}".format(a, checked_aux[a]))
+                    self.logger.error("write_record: slow5_aux_set could not write aux value {}: {}".format(a, checked_aux[a]))
                     return -1
 
             self.logger.debug("write_record: aux stuff done")
 
 
-        self.logger.debug("write_record: slow5_rec_write()")
+        self.logger.debug("write_record: slow5_write()")
         # write the record
-        ret = slow5_rec_write(self.s5, self.write)
-        self.logger.debug("write_record: slow5_rec_write() ret: {}".format(ret))
+        ret = slow5_write(self.write, self.s5)
+        self.logger.debug("write_record: slow5_write() ret: {}".format(ret))
 
         if aux is not None:
             free(self.channel_number_val)
@@ -1856,9 +1855,9 @@ cdef class Open:
                             for a in slow5_aux_types:
                                 if slow5_aux_types[a] is None:
                                     continue
-                                ret = slow5_aux_meta_add_wrapper(self.s5.header, a.encode(), slow5_aux_types[a])
+                                ret = slow5_aux_add(a.encode(), slow5_aux_types[a], self.s5.header)
                                 if ret < 0:
-                                    self.logger.error("write_record_batch: slow5_aux_meta_add_wrapper {}: {} could not set to C s5.header.aux_meta struct".format(a, checked_aux[a]))
+                                    self.logger.error("write_record_batch: slow5_aux_add {}: {} could not set to C s5.header.aux_meta struct".format(a, checked_aux[a]))
                                     error = True
                         else:
                             error = True
@@ -1868,9 +1867,9 @@ cdef class Open:
                         return -1
                     # write the header
                     self.logger.debug("write_record_batch: writting header...")
-                    ret = slow5_header_write(self.s5)
+                    ret = slow5_hdr_write(self.s5)
                     if ret < 0:
-                        self.logger.error("write_record_batch: slow5_header_write could not write header")
+                        self.logger.error("write_record_batch: slow5_hdr_write could not write header")
                         return -1
                     # set state true so only done once
                     self.header_state = True
@@ -1923,27 +1922,27 @@ cdef class Open:
                         if checked_auxs[batch[idx]][a] is None:
                             continue
                         if a == "channel_number":
-                            self.logger.debug("write_record_batch: slow5_rec_set_string_wrapper running...")
-                            self.logger.debug("write_record_batch: slow5_rec_set_string_wrapper type: {}".format(type(checked_auxs[batch[idx]][a])))
-                            ret = slow5_rec_set_string_wrapper(self.twrite[idx], self.s5.header, self.channel_number, <const char *>self.channel_number_val_array[idx])
-                            self.logger.debug("write_record_batch: slow5_rec_set_string_wrapper running done: ret = {}".format(ret))
+                            self.logger.debug("write_record_batch: slow5_aux_set_string running...")
+                            self.logger.debug("write_record_batch: slow5_aux_set_string type: {}".format(type(checked_auxs[batch[idx]][a])))
+                            ret = slow5_aux_set_string(self.twrite[idx], self.channel_number, <const char *>self.channel_number_val_array[idx], self.s5.header)
+                            self.logger.debug("write_record_batch: slow5_aux_set_string running done: ret = {}".format(ret))
                             if ret < 0:
-                                self.logger.error("write_record_batch: slow5_rec_set_string_wrapper could not write aux value {}: {}".format(a, checked_auxs[batch[idx]][a]))
+                                self.logger.error("write_record_batch: slow5_aux_set_string could not write aux value {}: {}".format(a, checked_auxs[batch[idx]][a]))
                                 #### We should free here
                                 return -1
                         elif a == "median_before":
-                            ret = slow5_rec_set_wrapper(self.twrite[idx], self.s5.header, self.median_before, <const void *>&self.median_before_val_array[idx])
+                            ret = slow5_aux_set(self.twrite[idx], self.median_before, <const void *>&self.median_before_val_array[idx], self.s5.header)
                         elif a == "read_number":
-                            ret = slow5_rec_set_wrapper(self.twrite[idx], self.s5.header, self.read_number, <const void *>&self.read_number_val_array[idx])
+                            ret = slow5_aux_set(self.twrite[idx], self.read_number, <const void *>&self.read_number_val_array[idx], self.s5.header)
                         elif a == "start_mux":
-                            ret = slow5_rec_set_wrapper(self.twrite[idx], self.s5.header, self.start_mux, <const void *>&self.start_mux_val_array[idx])
+                            ret = slow5_aux_set(self.twrite[idx], self.start_mux, <const void *>&self.start_mux_val_array[idx], self.s5.header)
                         elif a == "start_time":
-                            ret = slow5_rec_set_wrapper(self.twrite[idx], self.s5.header, self.start_time, <const void *>&self.start_time_val_array[idx])
+                            ret = slow5_aux_set(self.twrite[idx], self.start_time, <const void *>&self.start_time_val_array[idx], self.s5.header)
                         elif a == "end_reason":
                             # not implemented yet becuase of variability in ONT versioning
                             ret = 0
                         if ret < 0:
-                            self.logger.error("write_record_batch: slow5_rec_set_wrapper could not write aux value {}: {}".format(a, checked_aux[a]))
+                            self.logger.error("write_record_batch: slow5_aux_set could not write aux value {}: {}".format(a, checked_aux[a]))
                             return -1
 
                     self.logger.debug("write_record_batch: aux stuff done")
@@ -1991,7 +1990,7 @@ cdef class Open:
         if self.state in [1,2]:
             if not self.close_state:
                 if self.s5 is not NULL:
-                    slow5_close_write(self.s5)
+                    slow5_close(self.s5)
                     self.close_state = True
                     self.logger.debug("{} closed".format(self.path))
             else:
