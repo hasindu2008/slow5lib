@@ -1,6 +1,6 @@
 # slow5lib
 
-**Note: This documentation is far from being complete and perfect. So if you need a new functionality, want to clarify something, find something is not right, facing a wierd bug when using this API etc. do not hesitate to open an [issue](https://github.com/hasindu2008/slow5lib/issues). Nowadays, bioinformatics tools written in C/C++ are getting fewer and fewer, so I would be glad to help.**
+**Note: This documentation is far from being complete and perfect. So if you need a new functionality, want to clarify something, find something is not right, facing a weird bug when using this API etc. do not hesitate to open an [issue](https://github.com/hasindu2008/slow5lib/issues). Nowadays, bioinformatics tools written in C/C++ are getting fewer and fewer, so I would be glad to help.**
 
 ## NAME
 
@@ -118,7 +118,7 @@ High-level API consists of following functions:
 
 ### Writing
 
-Not yet finalised. Subject to change. Error checking is not so good.
+Not yet finalised and thus subject to change. Error checking is not so good at the moment. The documentation is sparse. Please open an [issue](https://github.com/hasindu2008/slow5lib/issues) if anyone is interested in using this API in their programme.
 
 * [slow5_hdr_add](slow5_hdr_add.md)<br/>
   &nbsp;&nbsp;&nbsp;&nbsp;adds a new header data attribute to a SLOW5 header

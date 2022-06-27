@@ -91,6 +91,3 @@ int main(){
 }
 ```
 
-## SEE ALSO
-
-[slow5_get()](slow5_open.md)

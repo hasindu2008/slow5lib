@@ -585,7 +585,7 @@ static inline slow5_rec_t *slow5_rec_init(void) {
 // For non-array types
 // Return
 // -1   input invalid
-// -2   attr not found
+// -2   field not found
 // -3   type is an array type
 // -4   data is invalid (eg enum out of range)
 int slow5_aux_set(slow5_rec_t *read, const char *field, const void *data, slow5_hdr_t *header);
