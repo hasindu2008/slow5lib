@@ -37,10 +37,10 @@ except ImportError:
 #adapted from https://github.com/lh3/minimap2/blob/master/setup.py
 
 sources=['python/pyslow5.pyx', 'src/slow5.c', 'src/slow5_press.c', 'src/slow5_misc.c', 'src/slow5_idx.c',
-            'python/slow5_write.c', 'python/slow5threads.c',
+            'python/slow5threads.c',
             'thirdparty/streamvbyte/src/streamvbyte_zigzag.c', 'thirdparty/streamvbyte/src/streamvbyte_decode.c', 'thirdparty/streamvbyte/src/streamvbyte_encode.c']
 depends=['python/pyslow5.pxd', 'python/pyslow5.h',
-            'python/slow5_write.h', 'python/slow5threads.h',
+            'python/slow5threads.h',
             'slow5/slow5.h', 'slow5/slow5_defs.h', 'slow5/slow5_error.h', 'slow5/slow5_press.h',
             'slow5/klib/khash.h', 'slow5/klib/kvec.h',
             'src/slow5_extra.h', 'src/slow5_idx.h', 'src/slow5_misc.h', 'src/klib/ksort.h',
