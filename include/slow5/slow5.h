@@ -610,8 +610,49 @@ int slow5_write(slow5_rec_t *read, slow5_file_t *s5p);
  ***  Low-level API *******************************************************************************
  **************************************************************************************************/
 
+//set the log verbosity level. the log is printed to the standard error.
+//sets a global variable, so not thread safe
+void slow5_set_log_level(enum slow5_log_level_opt log_level);
+
+//set the exit condition for slow5lib
+//sets a global variable, so not thread safe
+void slow5_set_exit_condition(enum slow5_exit_condition_opt exit_condition);
+
+
+//get the list of hdr data keys in sorted order (only the returned pointer must be freed, not the ones inside - subjet to change)
+//len is the numberof elements
+//returns null if no attributes
+const char **slow5_get_hdr_keys(const slow5_hdr_t *header,uint64_t *len);
+
+//gets the list of read ids from the SLOW5 index
+//the list of read is is a pointer and must not be freed by user
+//*len will have the number of read ids
+//NULL will be returned in case of error
+char **slow5_get_rids(const slow5_file_t *s5p, uint64_t *len);
+
+//get the pointer to auxilliary field names
+char **slow5_get_aux_names(const slow5_hdr_t *header,uint64_t *len);
+//get the pointer to auxilliary field types
+enum slow5_aux_type *slow5_get_aux_types(const slow5_hdr_t *header,uint64_t *len);
+/**
+ * get the enum labels for a specific auxiliary field and set the number of labels in *n
+ * return NULL on error and slow5_errno set to
+ * SLOW5_ERR_ARG    if header, field NULL, n can be NULL
+ * SLOW5_ERR_NOAUX  if auxiliary header is NULL
+ * SLOW5_ERR_TYPE   if the enum labels or num_labels array is NULL, or the field type is not an enum type
+ * SLOW5_ERR_NOFLD  if the auxiliary field was not found
+ * SLOW5_ERR_MEM    memory allocation error
+ */
+char **slow5_get_aux_enum_labels(const slow5_hdr_t *header, const char *field, uint8_t *n);
+
+void *slow5_get_next_mem(size_t *n, const slow5_file_t *s5p);
+
+int slow5_rec_depress_parse(char **mem, size_t *bytes, const char *read_id, slow5_rec_t **read, slow5_file_t *s5p);
+
+
+
 /*
-IMPORTANT: The low-level API is not yet finalised or documented, until someone requests.
+IMPORTANT: The following low-level API functions are not yet finalised or documented, until someone requests.
 If anyone is interested, please open a GitHub issue, rather than trying to figure out from the code.
 Function prototypes can be changed without notice or completely removed. So do NOT use these functions in your code.
 these functions are used by slow5tools and pyslow5 - so any change to a function here means slow5tools and pyslow5 must be fixed.
@@ -634,73 +675,6 @@ these functions are used by slow5tools and pyslow5 - so any change to a function
  * @return              slow5 file structure
  */
 slow5_file_t *slow5_open_with(const char *pathname, const char *mode, enum slow5_fmt format);
-
-
-/**
- * Add a read entry to the SLOW5 file while updating the SLOW5 index (not thread safe).
- *
- * Return
- *  0   the read was successfully stored
- * -1   read or s5p is NULL
- * -2   the index was not previously init and failed to init
- * -3   duplicate read id
- * -4   writing failure
- *
- * @param   read    slow5_rec ptr
- * @param   s5p     slow5 file
- * @return  error code described above
- */
-int slow5_add_rec(slow5_rec_t *read, slow5_file_t *s5p);
-
-/**
- * Remove a read entry at a read_id in a slow5 file while updating the SLOW5 index (not thread safe).
- *
- * Return
- *  0   the read was successfully stored
- * -1   an input parameter is NULL
- * -2   the index was not previously init and failed to init
- * -3   read_id was not found in the index
- *
- * @param   read_id the read identifier
- * @param   s5p     slow5 file
- * @return  error code described above
- */
-int slow5_rm_rec(const char *read_id, slow5_file_t *s5p); // TODO
-
-
-
-/**
- * Get the read entry in the specified format.
- *
- * Returns NULL if read is NULL,
- * or format is SLOW5_FORMAT_UNKNOWN,
- * or the read attribute values are invalid
- *
- * @param   read        slow5_rec pointer
- * @param   format      slow5 format to write the entry in
- * @param   written     number of bytes written to the returned buffer
- * @param   compress    compress structure
- * @return  malloced string to use free() on, NULL on error
- */
-void *slow5_rec_to_mem(slow5_rec_t *read, struct slow5_aux_meta *aux_meta, enum slow5_fmt format, struct slow5_press *compress, size_t *n);
-
-/**
- * Print a read entry in the specified format to a file pointer.
- *
- * On success, the number of bytes written is returned.
- * On error, -1 is returned.
- *
- * @param   fp      output file pointer
- * @param   read    slow5_rec pointer
- * @param   format  slow5 format to write entry in
- * @param   compress
- * @return  number of bytes written, -1 on error
- */
-int slow5_rec_fwrite(FILE *fp, slow5_rec_t *read, struct slow5_aux_meta *aux_meta, enum slow5_fmt format, struct slow5_press *compress);
-static inline int slow5_rec_print(slow5_rec_t *read, struct slow5_aux_meta *aux_meta, enum slow5_fmt format, struct slow5_press *compress) {
-    return slow5_rec_fwrite(stdout, read, aux_meta, format, compress);
-}
-
 
 /**
  * Add a new header data attribute.
@@ -763,6 +737,40 @@ static inline int slow5_hdr_print(slow5_hdr_t *header, enum slow5_fmt format, sl
     return slow5_hdr_fwrite(stdout, header, format, comp);
 }
 
+
+
+/**
+ * Get the read entry in the specified format.
+ *
+ * Returns NULL if read is NULL,
+ * or format is SLOW5_FORMAT_UNKNOWN,
+ * or the read attribute values are invalid
+ *
+ * @param   read        slow5_rec pointer
+ * @param   format      slow5 format to write the entry in
+ * @param   written     number of bytes written to the returned buffer
+ * @param   compress    compress structure
+ * @return  malloced string to use free() on, NULL on error
+ */
+void *slow5_rec_to_mem(slow5_rec_t *read, slow5_aux_meta_t *aux_meta, enum slow5_fmt format, slow5_press_t *compress, size_t *n);
+
+/**
+ * Print a read entry in the specified format to a file pointer.
+ *
+ * On success, the number of bytes written is returned.
+ * On error, -1 is returned.
+ *
+ * @param   fp      output file pointer
+ * @param   read    slow5_rec pointer
+ * @param   format  slow5 format to write entry in
+ * @param   compress
+ * @return  number of bytes written, -1 on error
+ */
+int slow5_rec_fwrite(FILE *fp, slow5_rec_t *read, slow5_aux_meta_t *aux_meta, enum slow5_fmt format, slow5_press_t *compress);
+static inline int slow5_rec_print(slow5_rec_t *read, slow5_aux_meta_t *aux_meta, enum slow5_fmt format, slow5_press_t *compress) {
+    return slow5_rec_fwrite(stdout, read, aux_meta, format, compress);
+}
+
 /**
  * Print the binary end of file to a file pointer.
  *
@@ -777,34 +785,6 @@ static inline ssize_t slow5_eof_print(void) {
     return slow5_eof_fwrite(stdout);
 }
 
-
-//get the list of hdr data keys in sorted order (only the returned pointer must be freed, not the ones inside - subjet to change)
-//len is the numberof elements
-//returns null if no attributes
-const char **slow5_get_hdr_keys(const slow5_hdr_t *header,uint64_t *len);
-
-//gets the list of read ids from the SLOW5 index
-//the list of read is is a pointer and must not be freed by user
-//*len will have the number of read ids
-//NULL will be returned in case of error
-char **slow5_get_rids(const slow5_file_t *s5p, uint64_t *len);
-
-//get the pointer to auxilliary field names
-char **slow5_get_aux_names(const slow5_hdr_t *header,uint64_t *len);
-//get the pointer to auxilliary field types
-enum slow5_aux_type *slow5_get_aux_types(const slow5_hdr_t *header,uint64_t *len);
-/**
- * get the enum labels for a specific auxiliary field and set the number of labels in *n
- * return NULL on error and slow5_errno set to
- * SLOW5_ERR_ARG    if header, field NULL, n can be NULL
- * SLOW5_ERR_NOAUX  if auxiliary header is NULL
- * SLOW5_ERR_TYPE   if the enum labels or num_labels array is NULL, or the field type is not an enum type
- * SLOW5_ERR_NOFLD  if the auxiliary field was not found
- * SLOW5_ERR_MEM    memory allocation error
- */
-char **slow5_get_aux_enum_labels(const slow5_hdr_t *header, const char *field, uint8_t *n);
-
-
 // Return
 // 0    success
 // -1   input invalid
@@ -812,13 +792,6 @@ char **slow5_get_aux_enum_labels(const slow5_hdr_t *header, const char *field, u
 int slow5_convert(slow5_file_t *from, FILE *to_fp, enum slow5_fmt to_format, slow5_press_method_t to_compress);
 
 
-//set the log verbosity level. the log is printed to the standard error.
-//sets a global variable, so not thread safe
-void slow5_set_log_level(enum slow5_log_level_opt log_level);
-
-//set the exit condition for slow5lib
-//sets a global variable, so not thread safe
-void slow5_set_exit_condition(enum slow5_exit_condition_opt exit_condition);
 
 #ifdef __cplusplus
 }
