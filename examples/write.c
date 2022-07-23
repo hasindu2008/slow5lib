@@ -72,7 +72,10 @@ int main(){
     set_record_aux_fields(slow5_record, sp);
 
     //write to file
-    slow5_write(slow5_record, sp);
+    if(slow5_write(slow5_record, sp) < 0){
+        fprintf(stderr,"Error writing record!\n");
+        exit(EXIT_FAILURE);
+    }
 
     //free memory
     slow5_rec_free(slow5_record);

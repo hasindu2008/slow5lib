@@ -12,7 +12,7 @@ slow5_write - writes a SLOW5 record to a SLOW5 file.
 The argument *s5p* points to a *slow5_file_t* opened using `slow5_open()` for writing or appending.
 
 ## RETURN VALUE
-Upon successful completion, `slow5_write()` returns a non negative integer (>=0). Otherwise (including the end of file), a negative value is returned.
+Upon successful completion, `slow5_write()` returns a non negative integer (>=0). Otherwise a negative value is returned.
 
 ## ERRORS
 
@@ -74,7 +74,10 @@ int main(){
     slow5_record -> raw_signal = raw_signal;
 
     //write to file
-    slow5_write(slow5_record, sp);
+    if (slow5_write(slow5_record, sp) < 0){
+        fprintf(stderr,"Error writing record!\n");
+        exit(EXIT_FAILURE);
+    }
 
     //free memory
     //slow5_rec_free will attempt to free read_id and raw_signal arrays.

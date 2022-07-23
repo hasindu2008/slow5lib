@@ -81,7 +81,10 @@ int main(){
         exit(EXIT_FAILURE);
     }
 
-    slow5_write(slow5_record, sp);
+    if(slow5_write(slow5_record, sp) < 0){
+        fprintf(stderr,"Error writing record to file\n");
+        exit(EXIT_FAILURE);
+    }
 
     slow5_rec_free(slow5_record);
 
