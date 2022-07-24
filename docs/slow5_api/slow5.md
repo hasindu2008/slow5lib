@@ -88,8 +88,7 @@ High-level API consists of following functions:
 * [slow5_hdr_get](slow5_hdr_get.md)<br/>
   &nbsp;&nbsp;&nbsp;&nbsp;fetches a header data attribute from a SLOW5 header
 * [slow5_aux_get\_*\<primitive_datatype\>*](slow5_aux_get.md)<br/>
-  &nbsp;&nbsp;&nbsp;&nbsp;fetches an auxiliary field (a primitive datatype) from a SLOW5 record
-  &nbsp;&nbsp;&nbsp;&nbsp;Following functions are available:
+  &nbsp;&nbsp;&nbsp;&nbsp;fetches an auxiliary field (a primitive datatype) from a SLOW5 record. Following functions are available:
     - [slow5_aux_get_int8](slow5_aux_get.md)
     - [slow5_aux_get_int16](slow5_aux_get.md)
     - [slow5_aux_get_int32](slow5_aux_get.md)
@@ -102,8 +101,7 @@ High-level API consists of following functions:
     - [slow5_aux_get_double](slow5_aux_get.md)
     - [slow5_aux_get_char](slow5_aux_get.md)
 *   [slow5_aux_get\_*\<array_datatype\>*](slow5_aux_get_array.md)<br/>
-    &nbsp;&nbsp;&nbsp;&nbsp;fetches an auxiliary field (an array datatype) of a SLOW5 record
-    &nbsp;&nbsp;&nbsp;&nbsp;Following functions are available:
+    &nbsp;&nbsp;&nbsp;&nbsp;fetches an auxiliary field (an array datatype) of a SLOW5 record. Following functions are available:
     * [slow5_aux_get_int8_array](slow5_aux_get_array.md)
     * [slow5_aux_get_int16_array](slow5_aux_get_array.md)
     * [slow5_aux_get_int32_array](slow5_aux_get_array.md)

@@ -388,17 +388,17 @@ static inline slow5_file_t *slow5_open_write(const char *filename){
         return NULL;
     }
 
-    slow5_file_t *sf = slow5_init_empty(fp, filename, SLOW5_FORMAT_UNKNOWN);
-    if(!sf){
+    slow5_file_t *s5p = slow5_init_empty(fp, filename, SLOW5_FORMAT_UNKNOWN);
+    if(!s5p){
         SLOW5_ERROR("Error initialising an empty SLOW5 file '%s'",filename);
         fclose(fp);
         return NULL;
     }
 
-    slow5_hdr_t *header=sf->header;
+    slow5_hdr_t *header=s5p->header;
     if (slow5_hdr_add_rg(header) < 0){ //todo error handling down the chain
         SLOW5_ERROR("Error adding read group 0 for %s",filename);
-        slow5_close(sf);
+        slow5_close(s5p);
         return NULL;
     }
     header->num_read_groups = 1;
@@ -406,23 +406,23 @@ static inline slow5_file_t *slow5_open_write(const char *filename){
     struct slow5_aux_meta *aux_meta = slow5_aux_meta_init_empty();
     if(!aux_meta){
         SLOW5_ERROR("Error initializing aux meta for %s",filename);
-        slow5_close(sf);
+        slow5_close(s5p);
         return NULL;
     }
     header->aux_meta = aux_meta;
 
     //this structure is only to be used in single threaded writes
-    if(sf->format == SLOW5_FORMAT_BINARY){
+    if(s5p->format == SLOW5_FORMAT_BINARY){
         slow5_press_method_t press_out = {SLOW5_COMPRESS_ZLIB, SLOW5_COMPRESS_SVB_ZD};
-        sf->compress = slow5_press_init(press_out);
-        if(!sf->compress){
+        s5p->compress = slow5_press_init(press_out);
+        if(!s5p->compress){
             SLOW5_ERROR("Could not initialise the slow5 compression method. %s","");
-            slow5_close(sf);
+            slow5_close(s5p);
             return NULL;
         }
     }
 
-    return sf;
+    return s5p;
 }
 
 /* Opens a SLOW5 file with the given pathname for appending,
@@ -562,6 +562,44 @@ static inline void slow5_free(struct slow5_file *s5p) {
     }
 }
 
+int slow5_set_press(slow5_file_t *s5p, enum slow5_press_method rec_press, enum slow5_press_method sig_press){
+
+    if(s5p==NULL){
+        SLOW5_ERROR_EXIT("Argument '%s' cannot be NULL.", SLOW5_TO_STR(s5p));
+        slow5_errno = SLOW5_ERR_ARG;
+        return -1;
+    }
+    //only works in binary mode and opened in 'w' mode
+    if(!(s5p->meta.mode && strcmp(s5p->meta.mode,"w")==0)){
+        SLOW5_ERROR_EXIT("%s","File must have been opened for writing.");
+        slow5_errno = SLOW5_ERR_ARG;
+        return -1;
+    }
+
+    if(!(s5p->format == SLOW5_FORMAT_BINARY)){
+        SLOW5_ERROR_EXIT("%s","File should be in binary format (blow5).");
+        slow5_errno = SLOW5_ERR_ARG;
+        return -1;
+    }
+
+
+    //free the existing press if any
+    slow5_press_free(s5p->compress);
+
+    //this structure is only to be used in single threaded writes
+    if(s5p->format == SLOW5_FORMAT_BINARY){
+        slow5_press_method_t press_out = {rec_press,sig_press};
+        s5p->compress = slow5_press_init(press_out);
+        if(!s5p->compress){
+            slow5_errno = SLOW5_ERR_PRESS;
+            SLOW5_ERROR_EXIT("Could not initialise the slow5 compression method. %s","");
+            return -1;
+        }
+    }
+
+    return 0;
+
+}
 
 // slow5 header
 

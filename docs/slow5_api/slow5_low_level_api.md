@@ -2,26 +2,30 @@
 
 ## Low-level API for reading and writing SLOW5 files
 
-Low-level API allows much more efficient access to BLOW5 files compared to the high-level API.  However, they are not yet finalised. 
+Low-level API allows much more efficient access to BLOW5 files compared to the high-level API.  However, they are not yet finalised.
 If anyone is interested, please open a GitHub issue. Unless, finalised and documented, these function prototypes are subject to change.
 
 ### Common
 
-* slow5_set_log_level
-* slow5_set_exit_condition
-	
+* [slow5_set_log_level](low_level_api/slow5_set_log_level.md)<br/>
+* [slow5_set_exit_condition](low_level_api/slow5_set_exit_condition.md)<br/>
+
 ### Reading and access
-* slow5_get_rids
-* slow5_get_hdr_keys
-* slow5_get_aux_names
-* slow5_get_aux_types
-* slow5_get_next_mem
-* slow5_rec_depress_parse
-* slow5_get_aux_enum_labels
-* slow5_aux_get_enum
-* slow5_aux_get_enum_array
+* slow5_get_rids(low_level_api/slow5_get_rids.md)<br/>
+* slow5_get_hdr_keys(low_level_api/slow5_get_hdr_keys.md)<br/>
+* slow5_get_aux_names(low_level_api/slow5_get_aux_names.md)<br/>
+* slow5_get_aux_types(low_level_api/slow5_get_aux_types.md)<br/>
 
+* slow5_get_next_mem(low_level_api/slow5_get_next_mem.md)<br/>
+* slow5_rec_depress_parse(low_level_api/slow5_rec_depress_parse.md)<br/>
 
+* slow5_get_aux_enum_labels(low_level_api/slow5_get_aux_enum_labels.md)<br/>
+* slow5_aux_get_enum(low_level_api/slow5_aux_get_enum.md)<br/>
+* slow5_aux_get_enum_array(low_level_api/slow5_aux_get_enum_array.md)<br/>
+
+### Writing and editing
+
+* [slow5_set_press](low_level_api/slow5_set_press.md)<br/>
 
 <!--
 ### Low-level API for reading and writing SLOW5 files
@@ -31,20 +35,20 @@ If anyone is interested, please open a GitHub issue. Unless, finalised and docum
 
 ### Writing and editing
 
-* [slow5_rec_to_mem](low_level_api/slow5_rec_to_mem.md)	
+* [slow5_rec_to_mem](low_level_api/slow5_rec_to_mem.md)
 	Encodes a SLOW5 record to linear memory.
-* [slow5_rec_fwrite](low_level_api/slow5_rec_fwrite.md)	
+* [slow5_rec_fwrite](low_level_api/slow5_rec_fwrite.md)
 	Print a SLOW5 record in the specified format to a file pointer.
-* [slow5_rec_print](low_level_api/slow5_rec_fwrite.md)	
+* [slow5_rec_print](low_level_api/slow5_rec_fwrite.md)
 	Print a SLOW5 record in the specified format to standard output.
 * [slow5_hdr_add_attr](low_level_api/slow5_hdr_add_attr.md)
 	Adds a new header data attribute.
 * [slow5_hdr_add_rg](low_level_api/slow5_hdr_add_rg.md)
 	Adds a new header read group.
 * [slow5_hdr_to_mem](slow5_hdr_to_mem.md)
-	Encodes a header in to linear memory.	
+	Encodes a header in to linear memory.
 * slow5_hdr_fwrite
-* slow5_hdr_print	
+* slow5_hdr_print
 * slow5_eof_fwrite
 * slow5_eof_print
 

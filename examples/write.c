@@ -31,6 +31,11 @@ int main(){
         exit(EXIT_FAILURE);
     }
 
+    // //This section can be optionally uncommented to set non-default compression methods for blow5 (the recommended default is zlib+svb-zd)
+    // if(slow5_set_press(sp, SLOW5_COMPRESS_NONE, SLOW5_COMPRESS_NONE) < 0){ // no record compression, no signal compression
+    //     fprintf(stderr,"Error setting compression method!\n");
+    //     exit(EXIT_FAILURE);
+    // }
 
     /*********************** Header ******************/
 
