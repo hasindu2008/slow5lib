@@ -136,9 +136,6 @@ cdef extern from "pyslow5.h":
     int slow5_aux_set(slow5_rec_t *read, const char *attr, const void *data, slow5_hdr_t *header);
     int slow5_aux_set_string(slow5_rec_t *read, const char *attr, const char *data, slow5_hdr_t *header);
 
-
-cdef extern from "slow5threads.h":
-
     int slow5_get_batch(slow5_rec_t ***read, slow5_file_t *s5p, char **rid, int num_rid, int num_threads);
     int slow5_get_next_batch(slow5_rec_t ***read, slow5_file_t *s5p, int batch_size, int num_threads);
     int slow5_write_batch(slow5_rec_t **read, slow5_file_t *s5p, int batch_size, int num_threads);
