@@ -54,9 +54,7 @@ int main(){
         if(aux_ptr->types[r]==SLOW5_ENUM || aux_ptr->types[r]==SLOW5_ENUM_ARRAY){
             uint8_t n;
             const char **enum_labels = (const char** )slow5_get_aux_enum_labels(slow5File_i->header, aux_ptr->attrs[r], &n);
-            if(!enum_labels){
-                aux_add_fail = 1;
-            }else{
+            if(enum_labels){
                 fprintf(stdout,"Auxiliary field %s has following enum labels:\n", aux_ptr->attrs[r]);
                 for(uint8_t i; i<n; i++){
                     fprintf(stdout,"%s\n", enum_labesl[i]);
