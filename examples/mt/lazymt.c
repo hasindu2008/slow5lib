@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <slow5/slow5.h>
-#include <slow5/slow5_lazymt.h>
+#include <slow5/slow5_mt.h>
 
 
 #define FILE_PATH "test.blow5" //for reading
@@ -24,13 +24,13 @@ int read_func(){
     int ret=0;
     int batch_size = 4096;
     int num_thread = 8;
-    while((ret = slow5_get_next_batch(&rec,sp,batch_size,num_thread)) > 0){
+    while((ret = slow5_get_next_batch_lazy(&rec,sp,batch_size,num_thread)) > 0){
 
         for(int i=0;i<ret;i++){
             uint64_t len_raw_signal = rec[i]->len_raw_signal;
             printf("%s\t%ld\n",rec[i]->read_id,len_raw_signal);
         }
-        slow5_free_batch(&rec,ret);
+        slow5_free_batch_lazy(&rec,ret);
 
         if(ret<batch_size){ //this indicates nothing left to read //need to handle errors
             break;
@@ -68,13 +68,13 @@ int read_func(){
     rid[2]="read_id_0";
     rid[3]="read_id_4";
 
-    ret = slow5_get_batch(&rec, sp, rid, num_rid, num_thread);
+    ret = slow5_get_batch_lazy(&rec, sp, rid, num_rid, num_thread);
     assert(ret==num_rid);
     for(int i=0;i<ret;i++){
         uint64_t len_raw_signal = rec[i]->len_raw_signal;
         printf("%s\t%ld\n",rec[i]->read_id,len_raw_signal);
     }
-    slow5_free_batch(&rec,ret);
+    slow5_free_batch_lazy(&rec,ret);
 
     slow5_idx_unload(sp);
     slow5_close(sp);
@@ -229,7 +229,7 @@ int write_func(){
     }
     //end of record setup
 
-    ret = slow5_write_batch(rec,sf,batch_size,num_thread);
+    ret = slow5_write_batch_lazy(rec,sf,batch_size,num_thread);
 
     if(ret<batch_size){
         fprintf(stderr,"Writing failed\n");
@@ -254,5 +254,5 @@ int main(){
     return 0;
 }
 
-//gcc -Wall examples/lazymt/lazymt.c -I include/ lib/libslow5.a  -lpthread -lz -O2 -g
+//gcc -Wall examples/mt/lazymt.c -I include/ lib/libslow5.a  -lpthread -lz -O2 -g
 

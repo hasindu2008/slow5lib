@@ -1,9 +1,8 @@
-/* @file slow5_lazymt.c
+/* @file slow5_mt.c
 **
 ** @@
 ******************************************************************************/
-
-#ifdef SLOW5_ENABLE_LAZYMT
+#ifdef SLOW5_ENABLE_MT
 
 #include <assert.h>
 #include <math.h>
@@ -12,7 +11,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <slow5/slow5.h>
-#include <slow5/slow5_lazymt.h>
+#include <slow5/slow5_mt.h>
 
 #define SLOW5_WORK_STEAL 1 //simple work stealing enabled or not (no work stealing mean no load balancing)
 #define SLOW5_STEAL_THRESH 1 //stealing threshold
@@ -27,36 +26,14 @@ extern enum slow5_exit_condition_opt  slow5_exit_condition;
     } \
 }
 
-/* a batch of read data (dynamic data based on the reads) */
-typedef struct {
-    int32_t n_rec;
-    int32_t capacity_rec;
-
-    char **mem_records; //unused in get()
-    size_t *mem_bytes;
-
-    slow5_rec_t **slow5_rec;
-    char **rid; //only used in get()
-
-} slow5_db_t;
-
-
-/* core data structure (mostly static data throughout the program lifetime) */
-typedef struct {
-    //slow5
-    slow5_file_t *sf;
-    int num_thread;
-    int32_t batch_size;
-} slow5_core_t;
-
 
 /* argument wrapper for the multithreaded framework used for data processing */
 typedef struct {
-    slow5_core_t* core;
-    slow5_db_t* db;
+    slow5_mt_t* core;
+    slow5_batch_t* db;
     int32_t starti;
     int32_t endi;
-    void (*func)(slow5_core_t*,slow5_db_t*,int);
+    void (*func)(slow5_mt_t*,slow5_batch_t*,int);
     int32_t thread_index;
 #ifdef SLOW5_WORK_STEAL
     void *all_pthread_args;
@@ -65,29 +42,28 @@ typedef struct {
 
 
 /* initialise the core data structure */
-static slow5_core_t* slow5_init_core(slow5_file_t *s5p, int batch_size, int num_thread) {
+slow5_mt_t *slow5_init_mt(int num_thread, slow5_file_t *s5p) {
 
-    slow5_core_t* core = (slow5_core_t*)malloc(sizeof(slow5_core_t));
+    slow5_mt_t* core = (slow5_mt_t*)malloc(sizeof(slow5_mt_t));
     SLOW5_MALLOC_CHK_LAZY_EXIT(core);
 
     core->sf = s5p;
-    core->batch_size = batch_size;
     core->num_thread = num_thread;
 
     return core;
 }
 
 /* free the core data structure */
-static void slow5_free_core(slow5_core_t* core) {
+void slow5_free_mt(slow5_mt_t* core) {
     free(core);
 }
 
 /* initialise a data batch */
-static slow5_db_t* slow5_init_db(slow5_core_t* core) {
-    slow5_db_t* db = (slow5_db_t*)(malloc(sizeof(slow5_db_t)));
+slow5_batch_t* slow5_init_batch(int batch_capacity){
+    slow5_batch_t* db = (slow5_batch_t*)(malloc(sizeof(slow5_batch_t)));
     SLOW5_MALLOC_CHK_LAZY_EXIT(db);
 
-    db->capacity_rec = core->batch_size;
+    db->capacity_rec = batch_capacity;
     db->n_rec = 0;
 
     db->mem_records = (char**)(calloc(db->capacity_rec,sizeof(char*)));
@@ -102,7 +78,7 @@ static slow5_db_t* slow5_init_db(slow5_core_t* core) {
 }
 
 /* load a data batch from disk */
-static int slow5_load_db(slow5_core_t* core, slow5_db_t* db) {
+static int slow5_load_db(slow5_mt_t* core, slow5_batch_t* db) {
 
     db->n_rec = 0;
 
@@ -130,7 +106,7 @@ static int slow5_load_db(slow5_core_t* core, slow5_db_t* db) {
 }
 
 
-static int slow5_write_db(slow5_core_t* core, slow5_db_t* db) {
+static int slow5_write_db(slow5_mt_t* core, slow5_batch_t* db) {
 
 
     int32_t i = 0;
@@ -147,7 +123,7 @@ static int slow5_write_db(slow5_core_t* core, slow5_db_t* db) {
 }
 
 
-static void slow5_parse_single(slow5_core_t* core,slow5_db_t* db, int32_t i){
+static void slow5_parse_single(slow5_mt_t* core,slow5_batch_t* db, int32_t i){
 
     assert(db->mem_bytes[i]>0);
     assert(db->mem_records[i]!=NULL);
@@ -160,11 +136,11 @@ static void slow5_parse_single(slow5_core_t* core,slow5_db_t* db, int32_t i){
 }
 
 
-static void slow5_work_per_single_read(slow5_core_t* core,slow5_db_t* db, int32_t i){
+static void slow5_work_per_single_read(slow5_mt_t* core,slow5_batch_t* db, int32_t i){
     slow5_parse_single(core,db,i);
 }
 
-static void slow5_work_per_single_read2(slow5_core_t* core,slow5_db_t* db, int32_t i){
+static void slow5_work_per_single_read2(slow5_mt_t* core,slow5_batch_t* db, int32_t i){
     assert(db->rid[i]!=NULL);
     int ret = slow5_get(db->rid[i],&db->slow5_rec[i], core->sf);
     if(ret<0){
@@ -175,7 +151,7 @@ static void slow5_work_per_single_read2(slow5_core_t* core,slow5_db_t* db, int32
 
 }
 
-static void slow5_work_per_single_read3(slow5_core_t* core,slow5_db_t* db, int32_t i){
+static void slow5_work_per_single_read3(slow5_mt_t* core,slow5_batch_t* db, int32_t i){
     assert(db->slow5_rec[i]!=NULL);
     slow5_file_t *sf = core->sf;
     //fprintf(stderr,"Here %d\n",i);
@@ -208,7 +184,7 @@ static void slow5_work_per_single_read3(slow5_core_t* core,slow5_db_t* db, int32
 
 
 /* partially free a data batch - only the read dependent allocations are freed */
-static void slow5_free_db_tmp(slow5_db_t* db) {
+static void slow5_free_db_tmp(slow5_batch_t* db) {
     int32_t i = 0;
     for (i = 0; i < db->n_rec; ++i) {
         free(db->mem_records[i]);
@@ -216,7 +192,7 @@ static void slow5_free_db_tmp(slow5_db_t* db) {
 }
 
 /* completely free a data batch */
-static void slow5_free_db(slow5_db_t* db) {
+static void slow5_free_db(slow5_batch_t* db) {
 
     free(db->mem_records);
     free(db->mem_bytes);;
@@ -249,8 +225,8 @@ static inline int32_t steal_work(slow5_pt_arg_t* all_args, int32_t num_thread) {
 static void* slow5_pthread_single(void* voidargs) {
     int32_t i;
     slow5_pt_arg_t* args = (slow5_pt_arg_t*)voidargs;
-    slow5_db_t* db = args->db;
-    slow5_core_t* core = args->core;
+    slow5_batch_t* db = args->db;
+    slow5_mt_t* core = args->core;
 
 #ifndef SLOW5_WORK_STEAL
     for (i = args->starti; i < args->endi; i++) {
@@ -275,7 +251,7 @@ static void* slow5_pthread_single(void* voidargs) {
     pthread_exit(0);
 }
 
-static void slow5_pthread_db(slow5_core_t* core, slow5_db_t* db, void (*func)(slow5_core_t*,slow5_db_t*,int)){
+static void slow5_pthread_db(slow5_mt_t* core, slow5_batch_t* db, void (*func)(slow5_mt_t*,slow5_batch_t*,int)){
     //create threads
     pthread_t tids[core->num_thread];
     slow5_pt_arg_t pt_args[core->num_thread];
@@ -327,7 +303,7 @@ static void slow5_pthread_db(slow5_core_t* core, slow5_db_t* db, void (*func)(sl
 }
 
 /* process all reads in the given batch db */
-static void slow5_work_db(slow5_core_t* core, slow5_db_t* db, void (*func)(slow5_core_t*,slow5_db_t*,int)){
+static void slow5_work_db(slow5_mt_t* core, slow5_batch_t* db, void (*func)(slow5_mt_t*,slow5_batch_t*,int)){
 
     if (core->num_thread == 1) {
         int32_t i=0;
@@ -342,69 +318,135 @@ static void slow5_work_db(slow5_core_t* core, slow5_db_t* db, void (*func)(slow5
     }
 }
 
-int slow5_get_batch(slow5_rec_t ***read, slow5_file_t *s5p, char **rid, int num_rid, int num_threads){
+int slow5_get_batch(slow5_mt_t *core, slow5_batch_t *db, char **rid, int num_rid){
 
-    slow5_core_t *core = slow5_init_core(s5p,num_rid,num_threads);
-    slow5_db_t* db = slow5_init_db(core);
+    //slow5_mt_t *core = slow5_init_core(s5p,num_rid,num_threads);
+    //slow5_batch_t* db = slow5_init_db(core);
 
     db->rid = rid;
     db->n_rec = num_rid;
     slow5_work_db(core,db,slow5_work_per_single_read2);
     SLOW5_LOG_DEBUG("loaded and parsed %d recs\n",num_rid);
 
-    *read = db->slow5_rec;
+    //*read = db->slow5_rec;
 
-    slow5_free_db_tmp(db);
-    slow5_free_db(db);
-    slow5_free_core(core);
+    // slow5_free_db_tmp(db);
+    // slow5_free_db(db);
+    // slow5_free_core(core);
 
     return num_rid;
 }
 
 
-int slow5_get_next_batch(slow5_rec_t ***read, slow5_file_t *s5p, int batch_size, int num_threads){
+int slow5_get_next_batch(slow5_mt_t *core, slow5_batch_t *db, int batch_size){
 
-    slow5_core_t *core = slow5_init_core(s5p,batch_size,num_threads);
-    slow5_db_t* db = slow5_init_db(core);
+    // slow5_mt_t *core = slow5_init_core(s5p,batch_size,num_threads);
+    // slow5_batch_t* db = slow5_init_db(core);
+    db->n_rec = batch_size;
 
     int num_read=slow5_load_db(core,db);
     SLOW5_LOG_DEBUG("Loaded %d recs\n",num_read);
     slow5_work_db(core,db,slow5_work_per_single_read);
     SLOW5_LOG_DEBUG("Parsed %d recs\n",num_read);
 
-    *read = db->slow5_rec;
+    //*read = db->slow5_rec;
 
-    slow5_free_db_tmp(db);
-    slow5_free_db(db);
-    slow5_free_core(core);
+    // slow5_free_db_tmp(db);
+    // slow5_free_db(db);
+    // slow5_free_core(core);
 
     return num_read;
 }
 
 
-int slow5_write_batch(slow5_rec_t **read, slow5_file_t *s5p, int batch_size, int num_threads){
+int slow5_write_batch(slow5_mt_t *core, slow5_batch_t *db, int batch_size){
 
-    slow5_core_t *core = slow5_init_core(s5p,batch_size,num_threads);
-    slow5_db_t* db = slow5_init_db(core);
+    // slow5_mt_t *core = slow5_init_core(s5p,batch_size,num_threads);
+    // slow5_batch_t* db = slow5_init_db(core);
 
     db->n_rec = batch_size;
-    free(db->slow5_rec); //stupid lazy for now
-    db->slow5_rec = read;
+    // free(db->slow5_rec); //stupid lazy for now
+    // db->slow5_rec = read;
     slow5_work_db(core,db,slow5_work_per_single_read3);
     SLOW5_LOG_DEBUG("Processed %d recs\n",batch_size);
 
     int num_wr=slow5_write_db(core,db);
     SLOW5_LOG_DEBUG("Written %d recs\n",num_wr);
 
-    db->slow5_rec = NULL;
-    slow5_free_db_tmp(db);
-    slow5_free_db(db);
-    slow5_free_core(core);
+    // db->slow5_rec = NULL;
+    // slow5_free_db_tmp(db);
+    // slow5_free_db(db);
+    // slow5_free_core(core);
 
     return num_wr;
 }
 
-void slow5_free_batch(slow5_rec_t ***read, int num_rec){
+void slow5_free_batch(slow5_batch_t *db){
+
+    slow5_rec_t **reads = db->slow5_rec;
+    if(reads != NULL){
+        for(int i=0;i<db->capacity_rec;i++){
+            slow5_rec_free(reads[i]);
+        }
+    }
+
+    free(reads);
+    //*read = NULL;
+
+    slow5_free_db_tmp(db);
+    slow5_free_db(db);
+}
+
+
+int slow5_get_next_batch_lazy(slow5_rec_t ***read, slow5_file_t *s5p, int batch_size, int num_threads){
+
+    slow5_mt_t *core = slow5_init_mt(num_threads, s5p);
+    slow5_batch_t* db = slow5_init_batch(batch_size);
+
+    int ret = slow5_get_next_batch(core,db,batch_size);
+
+    *read = db->slow5_rec;
+    db->slow5_rec = NULL;
+
+    slow5_free_batch(db);
+    slow5_free_mt(core);
+
+    return ret;
+
+}
+int slow5_get_batch_lazy(slow5_rec_t ***read, slow5_file_t *s5p, char **rid, int num_rid, int num_threads){
+
+    slow5_mt_t *core = slow5_init_mt(num_threads, s5p);
+    slow5_batch_t* db = slow5_init_batch(num_rid);
+
+    int ret = slow5_get_batch(core,db,rid,num_rid);
+
+    *read = db->slow5_rec;
+    db->slow5_rec = NULL;
+
+    slow5_free_batch(db);
+    slow5_free_mt(core);
+
+    return ret;
+
+}
+int slow5_write_batch_lazy(slow5_rec_t **read, slow5_file_t *s5p, int batch_size, int num_threads){
+    slow5_mt_t *core = slow5_init_mt(num_threads, s5p);
+    slow5_batch_t* db = slow5_init_batch(batch_size);
+
+
+    free(db->slow5_rec);
+    db->slow5_rec = read;
+    int ret = slow5_write_batch(core,db,batch_size);
+    db->slow5_rec = NULL;
+
+    slow5_free_batch(db);
+    slow5_free_mt(core);
+
+    return ret;
+}
+
+void slow5_free_batch_lazy(slow5_rec_t ***read, int num_rec){
 
     slow5_rec_t **reads = *read;
     for(int i=0;i<num_rec;i++){
@@ -420,26 +462,54 @@ void slow5_free_batch(slow5_rec_t ***read, int num_rec){
 #include <stdio.h>
 #include <stdlib.h>
 #include <slow5/slow5.h>
+#include <slow5/slow5_mt.h>
 
-int slow5_get_next_batch(slow5_rec_t ***read, slow5_file_t *s5p, int batch_size, int num_threads){
+int slow5_get_next_batch_lazy(slow5_rec_t ***read, slow5_file_t *s5p, int batch_size, int num_threads){
     fprintf(stderr,"slow5lib has not been compiled with lazy multithreading support\n");
     exit(EXIT_FAILURE);
-    return -1;
 }
-int slow5_get_batch(slow5_rec_t ***read, slow5_file_t *s5p, char **rid, int num_rid, int num_threads){
+int slow5_get_batch_lazy(slow5_rec_t ***read, slow5_file_t *s5p, char **rid, int num_rid, int num_threads){
     fprintf(stderr,"slow5lib has not been compiled with lazy multithreading support\n");
     exit(EXIT_FAILURE);
-    return -1;
 }
 
-int slow5_write_batch(slow5_rec_t **read, slow5_file_t *s5p, int batch_size, int num_threads){
-    fprintf(stderr,"slow5lib has not been compiled with lazy multithreading support\n");
-    exit(EXIT_FAILURE);
-    return -1;
-}
-void slow5_free_batch(slow5_rec_t ***read, int num_rec){
+int slow5_write_batch_lazy(slow5_rec_t **read, slow5_file_t *s5p, int batch_size, int num_threads){
     fprintf(stderr,"slow5lib has not been compiled with lazy multithreading support\n");
     exit(EXIT_FAILURE);
 }
+void slow5_free_batch_lazy(slow5_rec_t ***read, int num_rec){
+    fprintf(stderr,"slow5lib has not been compiled with lazy multithreading support\n");
+    exit(EXIT_FAILURE);
+}
+
+slow5_mt_t *slow5_init_mt(int num_thread, slow5_file_t *s5p){
+    fprintf(stderr,"slow5lib has not been compiled with lazy multithreading support\n");
+    exit(EXIT_FAILURE);
+}
+slow5_batch_t* slow5_init_batch(int batch_capacity){
+    fprintf(stderr,"slow5lib has not been compiled with lazy multithreading support\n");
+    exit(EXIT_FAILURE);
+}
+int slow5_get_next_batch(slow5_mt_t *mt, slow5_batch_t *read_batch, int batch_size){
+    fprintf(stderr,"slow5lib has not been compiled with lazy multithreading support\n");
+    exit(EXIT_FAILURE);
+}
+int slow5_get_batch(slow5_mt_t *mt, slow5_batch_t *read_batch, char **rid, int num_rid){
+    fprintf(stderr,"slow5lib has not been compiled with lazy multithreading support\n");
+    exit(EXIT_FAILURE);
+}
+int slow5_write_batch(slow5_mt_t *mt, slow5_batch_t *read_batch, int batch_size){
+    fprintf(stderr,"slow5lib has not been compiled with lazy multithreading support\n");
+    exit(EXIT_FAILURE);
+}
+void slow5_free_batch(slow5_batch_t *read_batch){
+    fprintf(stderr,"slow5lib has not been compiled with lazy multithreading support\n");
+    exit(EXIT_FAILURE);
+}
+void slow5_free_mt(slow5_mt_t *mt){
+    fprintf(stderr,"slow5lib has not been compiled with lazy multithreading support\n");
+    exit(EXIT_FAILURE);
+}
+
 
 #endif

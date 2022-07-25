@@ -453,7 +453,7 @@ cdef class Open:
 
 
             self.logger.debug("slow5_get_batch: num_reads: {}".format(batch_len))
-            ret = slow5_get_batch(&self.trec, self.s5, self.rid, batch_len, threads);
+            ret = slow5_get_batch_lazy(&self.trec, self.s5, self.rid, batch_len, threads);
             self.logger.debug("get_read_multi slow5_get_batch ret: {}".format(ret))
             if ret < 0:
                 self.logger.error("slow5_get_next error code: {}: {}".format(ret, self.error_codes[ret]))
@@ -538,7 +538,7 @@ cdef class Open:
                     dic.update(aux_dic)
                 yield dic
 
-            slow5_free_batch(&self.trec, ret)
+            slow5_free_batch_lazy(&self.trec, ret)
             for i in range(batch_len):
                 free(self.rid[i])
             free(self.rid)
@@ -1123,7 +1123,7 @@ cdef class Open:
         # While loops check ret of previous read for errors as fail safe
         while ret > 0:
             start_slow5_get_next = time.time()
-            ret = slow5_get_next_batch(&self.trec, self.s5, batchsize, threads)
+            ret = slow5_get_next_batch_lazy(&self.trec, self.s5, batchsize, threads)
             self.total_time_slow5_get_next = self.total_time_slow5_get_next + (time.time() - start_slow5_get_next)
             self.logger.debug("slow5_get_next_multi return: {}".format(ret))
             # check for EOF or other errors
@@ -1209,7 +1209,7 @@ cdef class Open:
                     row.update(aux_dic)
                 self.total_time_yield_reads = self.total_time_yield_reads + (time.time() - python_parse_read_start)
                 yield row
-            slow5_free_batch(&self.trec, ret)
+            slow5_free_batch_lazy(&self.trec, ret)
             if ret < batchsize:
                 self.logger.debug("slow5_get_next_multi has no more batches - batchsize:{} ret:{}".format(batchsize, ret))
                 break
@@ -1947,14 +1947,14 @@ cdef class Open:
 
                     self.logger.debug("write_record_batch: aux stuff done")
 
-            self.logger.debug("write_record_batch: slow5_write_batch()")
+            self.logger.debug("write_record_batch: slow5_write_batch_lazy()")
 
             # write the record
             if batch_len <= 0:
                 self.logger.debug("write_record_batch: batch_len 0 or less")
                 break
 
-            ret = slow5_write_batch(self.twrite, self.s5, batch_len, threads)
+            ret = slow5_write_batch_lazy(self.twrite, self.s5, batch_len, threads)
             if ret < batch_len:
                 self.logger.error("write_record_batch: write failed")
                 return -1
