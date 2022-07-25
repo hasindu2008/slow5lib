@@ -134,6 +134,10 @@ Not yet finalised and thus subject to change. Error checking is not so good at t
   &nbsp;&nbsp;&nbsp;&nbsp;sets an auxiliary field (string datatype) of a SLOW5 record
 * [slow5_write](slow5_write.md)<br/>
   &nbsp;&nbsp;&nbsp;&nbsp;writes a SLOW5 record to a SLOW5 file
+* [slow5_set_press](slow5_set_press.md)<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;sets the compression method for a BLOW5 file opened for writing
+
+
 
 ### Low-level API for reading and writing SLOW5 files
 
