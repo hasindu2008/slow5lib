@@ -9,8 +9,7 @@ If anyone is interested in using functions here, please open a GitHub issue. Unl
 
 * [slow5_set_log_level](low_level_api/slow5_set_log_level.md)<br/>
 * [slow5_set_exit_condition](low_level_api/slow5_set_exit_condition.md)<br/>
-* [slow5_open_with](low_level_api/slow5_open_with.md)<br/>
-    Open a SLOW5 file. User can specify the SLOW5 format.
+
 
 ### Reading and access
 
@@ -21,8 +20,6 @@ If anyone is interested in using functions here, please open a GitHub issue. Unl
 
 * [slow5_get_next_bytes](low_level_api/slow5_get_next_bytes.md)<br/>
 * [slow_decode](low_level_api/slow_decode.md)<br/>
-* [slow5_get_next_mem](low_level_api/slow5_get_next_mem.md)<br/>
-* [slow5_rec_depress_parse](low_level_api/slow5_rec_depress_parse.md)<br/>
 
 * [slow5_get_aux_enum_labels](low_level_api/slow5_get_aux_enum_labels.md)<br/>
 * [slow5_aux_get_enum](low_level_api/slow5_aux_get_enum.md)<br/>
@@ -30,9 +27,21 @@ If anyone is interested in using functions here, please open a GitHub issue. Unl
 
 ### Writing and editing
 
-* [slow5_encode](low_level_api/slow5_rec_to_mem.md)<br/>
+* [slow5_encode](low_level_api/encode.md)<br/>
 	Encodes a SLOW5 record to linear memory.
 * [slow5_write_bytes](low_level_api/slow5_write_bytes.md)
+
+## Functions for internal use only.
+
+Following are internal functions used in slow5tools and pyslow5. These are for internal use only. Subject to major changes.
+
+* [slow5_open_with](low_level_api/slow5_open_with.md)<br/>
+    Open a SLOW5 file. User can specify the SLOW5 format.
+
+* [slow5_get_next_mem](low_level_api/slow5_get_next_mem.md)<br/>
+* [slow5_rec_depress_parse](low_level_api/slow5_rec_depress_parse.md)<br/>
+
+
 * [slow5_rec_to_mem]
 	Encodes a SLOW5 record to linear memory.
 * [slow5_rec_fwrite]
