@@ -2596,6 +2596,10 @@ int slow5_rec_depress_parse(char **mem, size_t *bytes, const char *read_id, stru
     return 0;
 }
 
+int slow_decode(void **mem, size_t *bytes, slow5_rec_t **read, slow5_file_t *s5p){
+    return slow5_rec_depress_parse((char **)mem, bytes, NULL, read, s5p);
+}
+
 /*
  * parse read_mem with read_size bytes, intended read ID read_id, the given format and auxiliary meta data aux_meta
  * if read compression is used read_mem should be decompressed beforehand, signal decompression is handled here though
@@ -3269,6 +3273,16 @@ void *slow5_get_next_mem(size_t *n, const struct slow5_file *s5p) {
         return NULL;
 }
 
+
+int slow5_get_next_bytes(void **mem, size_t *bytes, slow5_file_t *s5p){
+    *mem = slow5_get_next_mem(bytes, s5p);
+    if (*mem == NULL) {
+        return -1;
+    } else {
+        return 0;
+    }
+}
+
 /**
  * Get the read entry under the current file pointer of a slow5 file.
  *
@@ -3743,6 +3757,16 @@ int slow5_rec_fwrite(FILE *fp, struct slow5_rec *read, struct slow5_aux_meta *au
     return ret;
 }
 
+int slow5_write_bytes(void *mem, size_t bytes, slow5_file_t *s5p){
+    size_t n = fwrite(mem, bytes, 1, s5p->fp);
+    int ret;
+    if (n != 1) {
+        ret = -1;
+    } else {
+        ret = 0; // TODO is this okay
+    }
+    return ret;
+}
 
 int slow5_write(slow5_rec_t *rec, slow5_file_t *s5p){
     int ret = slow5_rec_fwrite(s5p->fp, rec, s5p->header->aux_meta, s5p->format, s5p->compress);
@@ -4021,6 +4045,36 @@ void *slow5_rec_to_mem(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, 
     }
 
     return (void *) mem;
+}
+
+int slow5_encode(void **mem, size_t *bytes, slow5_rec_t *read, slow5_file_t *s5p){
+
+    slow5_press_t *press_ptr = NULL;
+
+    if(s5p->compress){
+
+        //todo - check error
+        //assert(sf->compress->record_press!=NULL);
+        //assert(sf->compress->signal_press!=NULL);
+
+        slow5_press_method_t press_out = {s5p->compress->record_press->method, s5p->compress->signal_press->method};
+        press_ptr = slow5_press_init(press_out);
+        if(!press_ptr){
+            SLOW5_ERROR("Could not initialize the slow5 compression method%s","");
+            return -1;
+        }
+    }
+
+    *mem = slow5_rec_to_mem(read, s5p->header->aux_meta, s5p->format, press_ptr, bytes);
+    slow5_press_free(press_ptr);
+
+    if(*mem == NULL){
+        SLOW5_ERROR("Could not encode the slow5 record%s","");
+        return -1;
+    }
+
+    return 0;
+
 }
 
 /*

@@ -1,31 +1,34 @@
-# slow5_xx
+# slow5_get_aux_enum_labels
 
 ## NAME
 
-slow5_xx - fetches a record from a SLOW5 file corresponding to a given read ID
+slow5_get_aux_enum_labels - gets the enum labels for a specific auxiliary field.
 
 ## SYNOPSYS
 
-`int slow5_xx(const char *read_id, slow5_rec_t **read, slow5_file_t *s5p)`
+`char **slow5_get_aux_enum_labels(const slow5_hdr_t *header, const char *field, uint8_t *n)`
 
 ## DESCRIPTION
 
 `slow5_xx()` fetches a record from a SLOW5 file *s5p* for a specified *read_id* into a *slow5_rec_t* and stores the address of the *slow5_rec_t* in **read*.
 
+`slow5_get_aux_enum_labels` returns a list of labels specified by the auxiliary enumeration field *field* in SLOW5 header *header*. The number of labels is set in *n*.
+
 
 ## RETURN VALUE
 
-Upon successful completion, `slow5_xx()` returns a non negative integer (>=0). Otherwise, a negative value is returned that indicates the error and `slow5_errno` is set to indicate the error.
+Return `NULL` on error and `slow5_errno` is set to following errors.
 
 ## ERRORS
 
-* `SLOW5_ERR_ARG`       
-    &nbsp;&nbsp;&nbsp;&nbsp; Invalid argument - read_id, read or s5p is NULL.
-
+* `SLOW5_ERR_ARG` - if header, field NULL, n can be NULL
+* `SLOW5_ERR_NOAUX` - if auxiliary header is NULL
+* `SLOW5_ERR_TYPE` - if the enum labels or num_labels array is NULL, or the field type is not an enum type
+* `SLOW5_ERR_NOFLD` - if the auxiliary field was not found
+* `SLOW5_ERR_MEM` - memory allocation error
 
 ## NOTES
 
-`slow5_xx()` internally uses `pread()`.
 
 ## EXAMPLES
 
@@ -36,8 +39,6 @@ Upon successful completion, `slow5_xx()` returns a non negative integer (>=0). O
 
 #define FILE_PATH "examples/example.slow5"
 
-#define TO_PICOAMPS(RAW_VAL,DIGITISATION,OFFSET,RANGE) (((RAW_VAL)+(OFFSET))*((RANGE)/(DIGITISATION)))
-
 int main(){
 
     slow5_file_t *sp = slow5_open(FILE_PATH,"r");
@@ -45,32 +46,22 @@ int main(){
        fprintf(stderr,"Error in opening file\n");
        exit(EXIT_FAILURE);
     }
-    slow5_rec_t *rec = NULL;
-    int ret=0;
-
-    ret = slow5_idx_load(sp);
-    if(ret<0){
-        fprintf(stderr,"Error in loading index\n");
-        exit(EXIT_FAILURE);
-    }
-
-    ret = slow5_get("r3", &rec, sp);
-    if(ret < 0){
-        fprintf(stderr,"Error when fetching the read\n");
-    }
-    else{
-        printf("%s\t",rec->read_id);
-        uint64_t len_raw_signal = rec->len_raw_signal;
-        for(uint64_t i=0;i<len_raw_signal;i++){
-            double pA = TO_PICOAMPS(rec->raw_signal[i],rec->digitisation,rec->offset,rec->range);
-            printf("%f ",pA);
+    
+    slow5_aux_meta_t* aux_ptr = sp->header->aux_meta;
+    uint32_t num_aux_attrs = aux_ptr->num;
+    int aux_add_fail = 0;
+    for(uint32_t r=0; r<num_aux_attrs; r++){
+        if(aux_ptr->types[r]==SLOW5_ENUM || aux_ptr->types[r]==SLOW5_ENUM_ARRAY){
+            uint8_t n;
+            const char **enum_labels = (const char** )slow5_get_aux_enum_labels(slow5File_i->header, aux_ptr->attrs[r], &n);
+            if(enum_labels){
+                fprintf(stdout,"Auxiliary field %s has following enum labels:\n", aux_ptr->attrs[r]);
+                for(uint8_t i; i<n; i++){
+                    fprintf(stdout,"%s\n", enum_labesl[i]);
+                }
+            }
         }
-        printf("\n");
     }
-
-    slow5_rec_free(rec);
-
-    slow5_idx_unload(sp);
 
     slow5_close(sp);
 
@@ -78,4 +69,4 @@ int main(){
 ```
 
 ## SEE ALSO
-[slow5_yy()](slow5_yy.md), [slow5_yy()](slow5_yy.md)
+[slow5_aux_meta_add_enum()](slow5_aux_meta_add_enum.md)

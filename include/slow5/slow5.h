@@ -607,6 +607,10 @@ int slow5_aux_set_string(slow5_rec_t *read, const char *field, const char *data,
  */
 int slow5_write(slow5_rec_t *read, slow5_file_t *s5p);
 
+//set compression for writing
+//should be immediately done after opening a blow5 for writing (mode 'w')
+int slow5_set_press(slow5_file_t *s5p, enum slow5_press_method rec_pres, enum slow5_press_method sig_press);
+
 
 /**************************************************************************************************
  ***  Low-level API *******************************************************************************
@@ -647,13 +651,13 @@ enum slow5_aux_type *slow5_get_aux_types(const slow5_hdr_t *header,uint64_t *len
  */
 char **slow5_get_aux_enum_labels(const slow5_hdr_t *header, const char *field, uint8_t *n);
 
-void *slow5_get_next_mem(size_t *n, const slow5_file_t *s5p);
+int slow5_get_next_bytes(void **mem, size_t *bytes, slow5_file_t *s5p);
 
-int slow5_rec_depress_parse(char **mem, size_t *bytes, const char *read_id, slow5_rec_t **read, slow5_file_t *s5p);
+int slow_decode(void **mem, size_t *bytes, slow5_rec_t **read, slow5_file_t *s5p);
 
-//set compression for writing
-//should be immediately done after opening a blow5 for writing (mode 'w')
-int slow5_set_press(slow5_file_t *s5p, enum slow5_press_method rec_pres, enum slow5_press_method sig_press);
+int slow5_encode(void **mem, size_t *bytes, slow5_rec_t *read, slow5_file_t *s5p);
+
+int slow5_write_bytes(void *mem, size_t bytes, slow5_file_t *s5p);
 
 /*
 IMPORTANT: The following low-level API functions are not yet finalised or documented, until someone requests.

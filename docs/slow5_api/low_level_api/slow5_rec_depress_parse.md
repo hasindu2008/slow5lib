@@ -16,7 +16,6 @@ Sets mem to decompressed mem and bytes to new bytes.
 ## RETURN VALUE
 Upon successful completion, `slow5_rec_depress_parse()` returns 0. Otherwise, returns a `SLOW5_ERR_*` and set `slow5_errno` on failure
 
-
 ## NOTES
 
 Does not free `mem` buffer.
@@ -40,13 +39,6 @@ int main(){
        exit(EXIT_FAILURE);
     }
     slow5_rec_t *rec = NULL;
-    int ret=0;
-
-    ret = slow5_idx_load(sp);
-    if(ret<0){
-        fprintf(stderr,"Error in loading index\n");
-        exit(EXIT_FAILURE);
-    }
 
     size_t bytes;
     char *mem;
@@ -70,8 +62,6 @@ int main(){
     printf("\n");
 
     slow5_rec_free(rec);
-
-    slow5_idx_unload(sp);
 
     slow5_close(sp);
 

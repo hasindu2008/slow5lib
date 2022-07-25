@@ -44,15 +44,8 @@ int main(){
        fprintf(stderr,"Error in opening file\n");
        exit(EXIT_FAILURE);
     }
+    
     slow5_rec_t *rec = NULL;
-    int ret=0;
-
-    ret = slow5_idx_load(sp);
-    if(ret<0){
-        fprintf(stderr,"Error in loading index\n");
-        exit(EXIT_FAILURE);
-    }
-
     size_t bytes;
     char *mem;
 
@@ -75,8 +68,6 @@ int main(){
     printf("\n");
 
     slow5_rec_free(rec);
-
-    slow5_idx_unload(sp);
 
     slow5_close(sp);
 
