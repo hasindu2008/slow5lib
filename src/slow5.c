@@ -2874,7 +2874,7 @@ int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struc
                         size = read->len_raw_signal;
                     }
                     if (read->raw_signal == NULL) {
-                        read->raw_signal = (int16_t *) malloc(size);
+                        read->raw_signal = (int16_t *) malloc((size+63)>>5<<5); //(size+63)/32*32
                         SLOW5_MALLOC_CHK(read->raw_signal);
                         if (read->raw_signal == NULL) {
                             read->len_raw_signal = 0;
@@ -2882,7 +2882,7 @@ int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struc
                             break;
                         }
                     } else if (prev_len_raw_signal < read->len_raw_signal) {
-                        int16_t *raw_signal_tmp = (int16_t *) realloc(read->raw_signal, size);
+                        int16_t *raw_signal_tmp = (int16_t *) realloc(read->raw_signal, (size+63)>>5<<5); //(size+63/32*32
                         SLOW5_MALLOC_CHK(raw_signal_tmp);
                         if (raw_signal_tmp == NULL) {
                             read->len_raw_signal = prev_len_raw_signal;
