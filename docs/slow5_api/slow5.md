@@ -1,6 +1,6 @@
 # slow5lib
 
-**Note: This documentation is far from being complete and perfect. So if you need a new functionality, want to clarify something, find something is not right, facing a wierd bug when using this API etc. do not hesitate to open an [issue](https://github.com/hasindu2008/slow5lib/issues). Nowadays, bioinformatics tools written in C/C++ are getting fewer and fewer, so I would be glad to help.**
+**Note: This documentation is far from being complete and perfect. So if you need a new functionality, want to clarify something, find something is not right, facing a weird bug when using this API etc. do not hesitate to open an [issue](https://github.com/hasindu2008/slow5lib/issues). Nowadays, bioinformatics tools written in C/C++ are getting fewer and fewer, so I would be glad to help.**
 
 ## NAME
 
@@ -61,31 +61,34 @@ typedef struct {
 ```
 
 
-### High-level API for reading SLOW5 files
+### High-level API
 
-High-level API for reading SLOW5 files consists of following functions:
+High-level API consists of following functions:
+
+#### Common
 
 * [slow5_open](slow5_open.md)<br/>
   &nbsp;&nbsp;&nbsp;&nbsp;opens a SLOW5 file
 * [slow5_close](slow5_close.md)<br/>
   &nbsp;&nbsp;&nbsp;&nbsp;closes a  SLOW5 file
-* [slow5_get](slow5_get.md)<br/>
-  &nbsp;&nbsp;&nbsp;&nbsp;fetches a record corresponding to a given read ID
-* [slow5_get_next](slow5_get_next.md)<br/>
-  &nbsp;&nbsp;&nbsp;&nbsp;fetches the record at the current file pointer of a slow5 file
-* [slow5_idx_create](slow5_idx_create.md)<br/>
-  &nbsp;&nbsp;&nbsp;&nbsp;creates an index file for a SLOW5 file
 * [slow5_idx_load](slow5_idx_load.md)<br/>
   &nbsp;&nbsp;&nbsp;&nbsp;loads the index file for a SLOW5 file
 * [slow5_idx_unload](slow5_idx_unload.md)<br/>
   &nbsp;&nbsp;&nbsp;&nbsp;unloads a SLOW5 index from the memory
+* [slow5_idx_create](slow5_idx_create.md)<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;creates an index file for a SLOW5 file
 * [slow5_rec_free](slow5_rec_free.md)<br/>
   &nbsp;&nbsp;&nbsp;&nbsp;frees up a SLOW5 record from memory
+
+### Reading
+* [slow5_get](slow5_get.md)<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;fetches a record corresponding to a given read ID
+* [slow5_get_next](slow5_get_next.md)<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;fetches the record at the current file pointer of a SLOW5 file
 * [slow5_hdr_get](slow5_hdr_get.md)<br/>
   &nbsp;&nbsp;&nbsp;&nbsp;fetches a header data attribute from a SLOW5 header
 * [slow5_aux_get\_*\<primitive_datatype\>*](slow5_aux_get.md)<br/>
-  &nbsp;&nbsp;&nbsp;&nbsp;fetches an auxiliary field (a primitive datatype) from a SLOW5 record
-  &nbsp;&nbsp;&nbsp;&nbsp;Following functions are available:
+  &nbsp;&nbsp;&nbsp;&nbsp;fetches an auxiliary field (a primitive datatype) from a SLOW5 record. Following functions are available:
     - [slow5_aux_get_int8](slow5_aux_get.md)
     - [slow5_aux_get_int16](slow5_aux_get.md)
     - [slow5_aux_get_int32](slow5_aux_get.md)
@@ -97,10 +100,8 @@ High-level API for reading SLOW5 files consists of following functions:
     - [slow5_aux_get_float](slow5_aux_get.md)
     - [slow5_aux_get_double](slow5_aux_get.md)
     - [slow5_aux_get_char](slow5_aux_get.md)
-
 *   [slow5_aux_get\_*\<array_datatype\>*](slow5_aux_get_array.md)<br/>
-    &nbsp;&nbsp;&nbsp;&nbsp;fetches an auxiliary field (an array datatype) of a SLOW5 record
-    &nbsp;&nbsp;&nbsp;&nbsp;Following functions are available:
+    &nbsp;&nbsp;&nbsp;&nbsp;fetches an auxiliary field (an array datatype) of a SLOW5 record. Following functions are available:
     * [slow5_aux_get_int8_array](slow5_aux_get_array.md)
     * [slow5_aux_get_int16_array](slow5_aux_get_array.md)
     * [slow5_aux_get_int32_array](slow5_aux_get_array.md)
@@ -113,16 +114,39 @@ High-level API for reading SLOW5 files consists of following functions:
     * [slow5_aux_get_double_array](slow5_aux_get_array.md)
     * [slow5_aux_get_string](slow5_aux_get_array.md)
 
-<!--
-### Low-level API for reading and writing SLOW5 files
-* [slow5_open_with](low_level_api/slow5_open_with.md)
-    Open a SLOW5 file. User can specify the SLOW5 format.
--->
+### Writing
 
-### High-level API for writing SLOW5 files
+* [slow5_hdr_add](slow5_hdr_add.md)<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;adds a new header data attribute to a SLOW5 header
+* [slow5_hdr_set](slow5_hdr_set.md)<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;sets a header data attribute for a particular read_group
+* [slow5_aux_add](slow5_aux_add.md)<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;adds an auxiliary field to a SLOW5 header
+* [slow5_hdr_write](slow5_hdr_write.md)<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;writes the associated SLOW5 header to a SLOW5 file
+* [slow5_rec_init](slow5_rec_init.md)<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;initialises an empty SLOW5 record
+* [slow5_aux_set](slow5_aux_set.md)<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;sets an auxiliary field (a primitive datatype) of a SLOW5 record
+* [slow5_aux_set_string](slow5_aux_set_string.md)<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;sets an auxiliary field (string datatype) of a SLOW5 record
+* [slow5_write](slow5_write.md)<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;writes a SLOW5 record to a SLOW5 file
+* [slow5_set_press](slow5_set_press.md)<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;sets the compression method for a BLOW5 file opened for writing
 
-This is just around the corner. If anyone is interested please open a GitHub issue rather than trying to undocumented functions. Such an [issue](https://github.com/hasindu2008/slow5lib/issues) will expedite this, which would otherwise be procrastinated.
+
 
 ### Low-level API for reading and writing SLOW5 files
 
 Low-level API allows much more efficient access to BLOW5 files compared to the high-level API.  However, they are not yet finalised or documented. If anyone is interested, please open a GitHub issue, rather than trying to figure out from the code. Such an issue will expedite this, which would otherwise be procrastinated.  Unless, finalised and documented, these function prototypes are subject to change.
+
+<!--
+### Low-level API for reading and writing SLOW5 files
+* [slow5_open_with](low_level_api/slow5_open_with.md)
+    Open a SLOW5 file. User can specify the SLOW5 format.
+
+adding read groups
+setting different compression
+
+-->

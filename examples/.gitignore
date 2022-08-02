@@ -13,3 +13,5 @@ example_write_aux.slow5
 example_write_aux_multi.slow5
 example_write_aux_multi.slow5
 example_write_append.slow5
+write
+append

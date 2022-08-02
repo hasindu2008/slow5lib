@@ -17,7 +17,8 @@ class TestBase(unittest.TestCase):
     def setUp(self):
         self.s5 = slow5.Open('examples/example.slow5','r', DEBUG=debug)
         self.read = self.s5.get_read("r1")
-
+    def tearDown(self):
+        self.s5.close()
     def test_class_methods(self):
         result = type(self.s5)
         self.assertEqual(str(result), "<class 'pyslow5.Open'>")
@@ -51,7 +52,8 @@ class TestRandomAccess(unittest.TestCase):
         self.s5 = slow5.Open('examples/example.slow5','r', DEBUG=debug)
         self.read = self.s5.get_read("r1")
         self.read = self.s5.get_read("r4", pA=True)
-
+    def tearDown(self):
+        self.s5.close()
     def test_read_id(self):
         self.assertEqual(self.read['read_id'], "r4")
     def test_read_group(self):
@@ -76,7 +78,8 @@ class TestAUX(unittest.TestCase):
     def setUp(self):
         self.s5 = slow5.Open('examples/example2.slow5','r', DEBUG=debug)
         self.read = self.s5.get_read("r1", aux=["read_number", "start_mux", "noExistTest"])
-
+    def tearDown(self):
+        self.s5.close()
     def test_read_id(self):
         self.assertEqual(self.read['read_id'], "r1")
     def test_read_number(self):
@@ -90,7 +93,8 @@ class TestSequentialRead(unittest.TestCase):
     def setUp(self):
         self.s5 = slow5.Open('examples/example2.slow5','r', DEBUG=debug)
         self.reads = self.s5.seq_reads()
-
+    def tearDown(self):
+        self.s5.close()
     def test_seq_reads(self):
         results = ['r0', 'r1', 'r2', 'r3', 'r4', 'r5', '0a238451-b9ed-446d-a152-badd074006c4', '0d624d4b-671f-40b8-9798-84f2ccc4d7fc']
         for i, read in enumerate(self.reads):
@@ -101,7 +105,8 @@ class TestSequentialRead(unittest.TestCase):
 class TestYieldRead(unittest.TestCase):
     def setUp(self):
         self.s5 = slow5.Open('examples/example.slow5','r', DEBUG=debug)
-
+    def tearDown(self):
+        self.s5.close()
     def test_base_reads(self):
         read_list = ["r1", "r3", "r5", "r2", "r1"]
         results = ["r1", "r3", "r5", "r2", "r1"]
@@ -134,7 +139,8 @@ class TestYieldRead(unittest.TestCase):
 class TestHeaders(unittest.TestCase):
     def setUp(self):
         self.s5 = slow5.Open('examples/example.slow5','r', DEBUG=debug)
-
+    def tearDown(self):
+        self.s5.close()
     def test_get_header_names(self):
         results = ['asic_id', 'asic_id_eeprom', 'asic_temp', 'auto_update', 'auto_update_source',
                    'bream_core_version', 'bream_is_standard', 'bream_map_version', 'bream_ont_version',
@@ -186,6 +192,8 @@ class TestHeaders(unittest.TestCase):
 class TestAuxAll(unittest.TestCase):
     def setUp(self):
         self.s5 = slow5.Open('examples/example2.slow5','r', DEBUG=debug)
+    def tearDown(self):
+        self.s5.close()
     def test_get_aux_names(self):
         result = ['channel_number', 'median_before', 'read_number', 'start_mux', 'start_time']
         aux_names = self.s5.get_aux_names()
@@ -223,6 +231,7 @@ class TestWrite(unittest.TestCase):
         self.s5 = slow5.Open('examples/example2.slow5','r', DEBUG=debug)
         self.F = slow5.Open('examples/example_write.slow5','w', DEBUG=debug)
     def tearDown(self):
+        self.s5.close()
         self.F.close()
     def test_get_empty_header(self):
         results = {"asic_id": None,
@@ -314,6 +323,8 @@ class TestWrite(unittest.TestCase):
 class testMultiThreading(unittest.TestCase):
     def setUp(self):
         self.s5 = slow5.Open('examples/example2.slow5','r', DEBUG=debug)
+    def tearDown(self):
+        self.s5.close()
     def test_seq_reads_multi(self):
         results = [['r0', 1106.3899999999999, 78470500],
                    ['r1', 1585.4299999999998, 36886851],
@@ -335,6 +346,8 @@ class testMultiThreading(unittest.TestCase):
 class testMultiThreadingRandom(unittest.TestCase):
     def setUp(self):
         self.s5 = slow5.Open('examples/example2.slow5','r', DEBUG=debug)
+    def tearDown(self):
+        self.s5.close()
     def test_get_reads_multi(self):
         results = [['r0', 1106.3899999999999, 78470500],
                    ['r1', 1585.4299999999998, 36886851],
@@ -358,6 +371,9 @@ class TestWriteData(unittest.TestCase):
     def setUp(self):
         self.s5 = slow5.Open('examples/example2.slow5','r', DEBUG=debug)
         self.F = slow5.Open('examples/example_write.slow5','r', DEBUG=debug)
+    def tearDown(self):
+        self.s5.close()
+        self.F.close()
     def test_write_matches_read(self):
         reads = self.s5.seq_reads()
         for read in reads:
@@ -378,6 +394,7 @@ class TestWriteAux(unittest.TestCase):
         self.s5 = slow5.Open('examples/example2.slow5','r', DEBUG=debug)
         self.F = slow5.Open('examples/example_write_aux.slow5','w', DEBUG=debug)
     def tearDown(self):
+        self.s5.close()
         self.F.close()
     def test_get_empty_aux(self):
         results = {"channel_number": None,

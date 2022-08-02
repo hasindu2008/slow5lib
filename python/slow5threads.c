@@ -11,7 +11,7 @@
 #include <string.h>
 #include <slow5/slow5.h>
 #include "../src/slow5_extra.h"
-#include "slow5_write.h"
+
 
 #define SLOW5_WORK_STEAL 1 //simple work stealing enabled or not (no work stealing mean no load balancing)
 #define SLOW5_STEAL_THRESH 1 //stealing threshold
@@ -478,7 +478,7 @@ int read_func(){
 
 int write_func(){
 
-    slow5_file_t *sf = slow5_open_write(FILE_PATH_WRITE,"w");
+    slow5_file_t *sf = slow5_open(FILE_PATH_WRITE,"w");
     if(sf==NULL){
         fprintf(stderr,"Error in opening file\n");
         exit(EXIT_FAILURE);
@@ -510,34 +510,34 @@ int write_func(){
     }
 
     //add auxilliary field: channel number
-    if (slow5_aux_meta_add(sf->header->aux_meta, "channel_number", SLOW5_STRING)!=0){
+    if (slow5_aux_add("channel_number", SLOW5_STRING, sf->header)!=0){
         fprintf(stderr,"Error adding channel_number auxilliary field\n");
         exit(EXIT_FAILURE);
     }
 
     //add axuilliary field: median_before
-    if (slow5_aux_meta_add(sf->header->aux_meta, "median_before", SLOW5_DOUBLE)!=0){
+    if (slow5_aux_add("median_before", SLOW5_DOUBLE, sf->header)!=0){
         fprintf(stderr,"Error adding median_before auxilliary field\n");
         exit(EXIT_FAILURE);
     }
 
     //add axuilliary field: read_number
-    if(slow5_aux_meta_add_wrapper(sf->header, "read_number", SLOW5_INT32_T)!=0){
+    if(slow5_aux_add("read_number", SLOW5_INT32_T, sf->header)!=0){
         fprintf(stderr,"Error adding read_number auxilliary field\n");
         exit(EXIT_FAILURE);
     }
     //add axuilliary field: start_mux
-    if(slow5_aux_meta_add_wrapper(sf->header, "start_mux", SLOW5_UINT8_T)!=0){
+    if(slow5_aux_add("start_mux", SLOW5_UINT8_T, sf->header)!=0){
         fprintf(stderr,"Error adding start_mux auxilliary field\n");
         exit(EXIT_FAILURE);
     }
     //add auxilliary field: start_time
-    if(slow5_aux_meta_add_wrapper(sf->header, "start_time", SLOW5_UINT64_T)!=0){
+    if(slow5_aux_add("start_time", SLOW5_UINT64_T, sf->header)!=0){
         fprintf(stderr,"Error adding start_time auxilliary field\n");
         exit(EXIT_FAILURE);
     }
 
-    if(slow5_header_write(sf) < 0){
+    if(slow5_hdr_write(sf) < 0){
         fprintf(stderr,"Error writing header!\n");
         exit(EXIT_FAILURE);
     }
@@ -591,25 +591,25 @@ int write_func(){
         uint8_t start_mux = (1+i)%4;
         uint64_t start_time = 100+i;
 
-        if(slow5_rec_set_string_wrapper(slow5_record, sf->header, "channel_number", channel_number)!=0){
+        if(slow5_aux_set_string(slow5_record, "channel_number", channel_number, sf->header)!=0){
             fprintf(stderr,"Error setting channel_number auxilliary field\n");
             exit(EXIT_FAILURE);
         }
-        if(slow5_rec_set_wrapper(slow5_record, sf->header, "median_before", &median_before)!=0){
+        if(slow5_aux_set(slow5_record, "median_before", &median_before, sf->header)!=0){
             fprintf(stderr,"Error setting median_before auxilliary field\n");
             exit(EXIT_FAILURE);
         }
-        if(slow5_rec_set_wrapper(slow5_record, sf->header, "read_number", &read_number)!=0){
+        if(slow5_aux_set(slow5_record, "read_number", &read_number, sf->header)!=0){
             fprintf(stderr,"Error setting read_number auxilliary field\n");
             exit(EXIT_FAILURE);
         }
 
-        if(slow5_rec_set_wrapper(slow5_record, sf->header, "start_mux", &start_mux)!=0){
+        if(slow5_aux_set(slow5_record, "start_mux", &start_mux, sf->header)!=0){
             fprintf(stderr,"Error setting start_mux auxilliary field\n");
             exit(EXIT_FAILURE);
         }
 
-        if(slow5_rec_set_wrapper(slow5_record, sf->header, "start_time", &start_time)!=0){
+        if(slow5_aux_set(slow5_record, "start_time", &start_time, sf->header)!=0){
             fprintf(stderr,"Error setting start_time auxilliary field\n");
             exit(EXIT_FAILURE);
         }
@@ -623,7 +623,7 @@ int write_func(){
         exit(EXIT_FAILURE);
     }
 
-    slow5_close_write(sf);
+    slow5_close(sf);
 
     for(int i=0;i<batch_size;i++){
         slow5_rec_free(rec[i]);
@@ -641,6 +641,6 @@ int main(){
     return 0;
 }
 
-//gcc -Wall python/slow5threads.c python/slow5_write.c -I include/ lib/libslow5.a  -lpthread -lz -DPYSLOW5_DEBUG_THREAD=1 -O2 -g
+//gcc -Wall python/slow5threads.c -I include/ lib/libslow5.a  -lpthread -lz -DPYSLOW5_DEBUG_THREAD=1 -O2 -g
 
 #endif

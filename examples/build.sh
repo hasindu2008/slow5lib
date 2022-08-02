@@ -9,3 +9,5 @@ gcc -Wall -O2 -I include/ examples/auxiliary_field.c lib/libslow5.a  -o examples
 gcc -Wall -O2 -I include/ examples/header_attribute.c lib/libslow5.a  -o examples/header_attribute -lm -lz
 gcc -Wall -O2 -I include/ examples/random_read_pthreads.c lib/libslow5.a  -o examples/random_read_pthreads -lm -lz -lpthread
 gcc -Wall -O2 -I include/ examples/random_read_openmp.c lib/libslow5.a  -o examples/random_read_openmp -lm -lz -fopenmp  || echo "openmp compilation failed."
+gcc -Wall -O2 -I include/ examples/write.c lib/libslow5.a  -o examples/write -lm -lz
+gcc -Wall -O2 -I include/ examples/append.c lib/libslow5.a  -o examples/append -lm -lz

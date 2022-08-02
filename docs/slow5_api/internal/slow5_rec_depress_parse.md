@@ -1,30 +1,24 @@
 # slow5lib
 
 ## NAME
-slow5_get_next_mem - Gets next slow5 record from current file pointer as it is stored in s5p with length stored at pointer n.
+slow5_rec_depress_parse - Decompresses a record and then parses to a read.
 
 ## SYNOPSYS
-`void *slow5_get_next_mem(size_t *n, const struct slow5_file *s5p)`
+`int slow5_rec_depress_parse(char **mem, size_t *bytes, const char *read_id, struct slow5_rec **read, struct slow5_file *s5p)`
 
 ## DESCRIPTION
-This function returns the next slow5 record as it is in a void buffer.
+This function decompresses a record fetched using `slow5_get_next_mem()`.
+Decompresses record if s5p has a compression method and then parses to read.
+Sets mem to decompressed mem and bytes to new bytes.
 
-Returned buffer should be freed using `free()`
+`read` should be freed using `slow5_rec_free()`
 
 ## RETURN VALUE
-Upon successful completion, `slow5_get_next_mem()` returns a *void* pointer. Otherwise, NULL is returned, e.g., if *s5p* is NULL.
-
+Upon successful completion, `slow5_rec_depress_parse()` returns 0. Otherwise, returns a `SLOW5_ERR_*` and set `slow5_errno` on failure
 
 ## NOTES
-On error following errors are set
- * slow5_errno errors:
- * SLOW5_ERR_ARG
- * SLOW5_ERR_IO
- * SLOW5_ERR_EOF    end of file reached (and blow5 eof marker found)
- * slow5_is_eof errors:
- * SLOW5_ERR_TRUNC
- * SLOW5_ERR_MEM
- * SLOW5_ERR_UNK
+
+Does not free `mem` buffer.
 
 ## EXAMPLES
 
@@ -45,13 +39,6 @@ int main(){
        exit(EXIT_FAILURE);
     }
     slow5_rec_t *rec = NULL;
-    int ret=0;
-
-    ret = slow5_idx_load(sp);
-    if(ret<0){
-        fprintf(stderr,"Error in loading index\n");
-        exit(EXIT_FAILURE);
-    }
 
     size_t bytes;
     char *mem;
@@ -75,8 +62,6 @@ int main(){
     printf("\n");
 
     slow5_rec_free(rec);
-
-    slow5_idx_unload(sp);
 
     slow5_close(sp);
 

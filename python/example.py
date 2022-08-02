@@ -213,12 +213,13 @@ for read in reads:
     print("ret: write_record(): {}".format(ret))
 
 F.close()
+s58.close()
 
 print("==============================================")
 
 print("append reads no aux")
 
-F = slow5.Open('examples/example_write_append.blow5','w', DEBUG=debug)
+F = slow5.Open('examples/example_write_append.blow5','w', rec_press="none", sig_press="none", DEBUG=debug)
 header = F.get_empty_header()
 
 counter = 0
@@ -266,13 +267,13 @@ for read in reads:
     print("ret: write_record(): {}".format(ret))
 
 s58.close()
-F.close()
+F2.close()
 
 
 print("==============================================")
 print("write reads with aux")
 
-F = slow5.Open('examples/example_write_aux.slow5','w', DEBUG=debug)
+F = slow5.Open('examples/example_write_aux.blow5','w', DEBUG=debug)
 header = F.get_empty_header()
 header2 = F.get_empty_header()
 
@@ -309,7 +310,7 @@ F.close()
 print("==============================================")
 print("append reads with aux")
 
-F = slow5.Open('examples/example_write_append_aux.blow5','w', DEBUG=debug)
+F = slow5.Open('examples/example_write_append_aux.blow5','w', rec_press="none", sig_press="none", DEBUG=debug)
 header = F.get_empty_header()
 header2 = F.get_empty_header()
 
@@ -363,7 +364,7 @@ for read in reads:
     print("ret: write_record(): {}".format(ret))
 
 s58.close()
-F.close()
+F2.close()
 
 
 

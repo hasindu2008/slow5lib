@@ -9,7 +9,7 @@ int slow5_hdr_init_empty_valid(void) {
     return EXIT_SUCCESS;
 }
 
-int slow5_hdr_add(void) {
+int slow5_header_add(void) {
     struct slow5_hdr *header = slow5_hdr_init_empty();
     header->version = SLOW5_VERSION_STRUCT;
     ASSERT(slow5_hdr_add_rg(header) == 0);
@@ -24,7 +24,7 @@ int slow5_hdr_add(void) {
     return EXIT_SUCCESS;
 }
 
-int slow5_hdr_add_set(void) {
+int slow5_header_add_set(void) {
     struct slow5_hdr *header = slow5_hdr_init_empty();
 
     ASSERT(slow5_hdr_add_rg(header) == 0);
@@ -109,8 +109,8 @@ int main(void) {
     struct command tests[] = {
         CMD(slow5_hdr_init_empty_valid)
 
-        CMD(slow5_hdr_add)
-        CMD(slow5_hdr_add_set)
+        CMD(slow5_header_add)
+        CMD(slow5_header_add_set)
 
         CMD(slow5_rec_init_empty_valid)
         CMD(slow5_rec_set_valid)
