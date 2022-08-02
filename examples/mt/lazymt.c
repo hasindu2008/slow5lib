@@ -22,10 +22,12 @@ int read_func(){
     }
     slow5_rec_t **rec = NULL;
     int ret=0;
-    int batch_size = 4096;
+    int batch_size = 2048;
     int num_thread = 8;
-    while((ret = slow5_get_next_batch_lazy(&rec,sp,batch_size,num_thread)) > 0){
+    
+    while(1){
 
+        ret = slow5_get_next_batch_lazy(&rec,sp,batch_size,num_thread);
         for(int i=0;i<ret;i++){
             uint64_t len_raw_signal = rec[i]->len_raw_signal;
             printf("%s\t%ld\n",rec[i]->read_id,len_raw_signal);
@@ -164,7 +166,6 @@ int write_func(){
 
     /******************* SLOW5 records ************************/
     for(int i=0;i<batch_size;i++){
-
 
         slow5_rec_t *slow5_record = rec[i] = slow5_rec_init();
 
