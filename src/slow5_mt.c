@@ -19,6 +19,9 @@
 extern enum slow5_log_level_opt  slow5_log_level;
 extern enum slow5_exit_condition_opt  slow5_exit_condition;
 
+void *slow5_get_next_mem(size_t *n, const slow5_file_t *s5p);
+int slow5_rec_depress_parse(char **mem, size_t *bytes, const char *read_id, slow5_rec_t **read, slow5_file_t *s5p);
+
 #define SLOW5_MALLOC_CHK_LAZY_EXIT(ret) { \
     SLOW5_MALLOC_CHK(ret) \
     if (ret == NULL) { \
