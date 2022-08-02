@@ -47,12 +47,15 @@ cdef class Open:
     cdef str path
     cdef char* m
     cdef str mode
+    cdef str rec_press
+    cdef str sig_press
     cdef int state
     cdef int V
     cdef object logger
     cdef list aux_names
     cdef list aux_types
     cdef dict error_codes
+    cdef dict slow5_press_method
     cdef pyslow5.int8_t e0
     cdef pyslow5.int16_t e1
     cdef pyslow5.int32_t e2
@@ -99,7 +102,7 @@ cdef class Open:
     cdef pyslow5.float total_multi_write_signal_time
     cdef pyslow5.float total_multi_write_time
 
-    def __cinit__(self, pathname, mode, DEBUG=0):
+    def __cinit__(self, pathname, mode, rec_press="zlib", sig_press="svb_zd", DEBUG=0):
         # Set to default NULL type
         self.s5 = NULL
         self.rec = NULL
@@ -110,6 +113,8 @@ cdef class Open:
         self.p = ""
         self.mode = ""
         self.m = ""
+        self.rec_press = ""
+        self.sig_press = ""
         # state for read/write. -1=null, 0=read, 1=write, 2=append
         self.state = -1
         self.trec = NULL
@@ -204,6 +209,18 @@ cdef class Open:
                             -15: ["SLOW5_ERR_VERSION", "version incompatible"],
                             -16: ["SLOW5_ERR_HDRPARSE", "header parsing error"],
                             -17: ["SLOW5_ERR_TYPE", "error relating to slow5 type"]}
+        # slow5_press_method from slow5_press.h
+        # enum slow5_press_method {
+        #     SLOW5_COMPRESS_NONE,
+        #     SLOW5_COMPRESS_ZLIB,
+        #     SLOW5_COMPRESS_SVB_ZD, /* streamvbyte zigzag delta */
+        #     SLOW5_COMPRESS_ZSTD,
+        # };
+        self.slow5_press_method = {"none": 0,
+                                   "zlib": 1,
+                                   "svb_zd": 2,
+                                   "zstd": 3}
+
         p = str.encode(pathname)
         self.path = pathname
         self.p = strdup(p)
@@ -218,6 +235,8 @@ cdef class Open:
             self.state = 0
         elif mode == "w":
             self.state = 1
+            self.rec_press = rec_press
+            self.sig_press = sig_press
         elif mode == "a":
             self.state = 2
         else:
@@ -230,6 +249,18 @@ cdef class Open:
             self.s5 = pyslow5.slow5_open(self.p, self.m)
             if self.s5 is NULL:
                 self.logger.error("File '{}' could not be opened for writing.".format(self.path))
+            if "blow5" in self.path.split(".")[-1]:
+                if self.rec_press in self.slow5_press_method.keys() and self.sig_press in self.slow5_press_method.keys():
+                    ret = pyslow5.slow5_set_press(self.s5, self.slow5_press_method[self.rec_press], self.slow5_press_method[self.sig_press])
+                    if ret != 0:
+                        self.logger.error("slow5_set_press return not 0: {}".format(ret))
+                        raise RuntimeError("Unable to set compression")
+                else:
+                    self.logger.error("Compression type rec_press: {}, sig_press: {} could not be found.".format(self.rec_press, self.sig_press))
+                    self.logger.error("Please use only the following: {}".format(",".join(press for press in self.slow5_press_method.keys())))
+                    raise KeyError
+            else:
+                self.logger.debug("Not writing blow5, skipping compression steps")
         elif self.state == 2:
             self.s5 = pyslow5.slow5_open(self.p, self.m)
             if self.s5 is NULL:
@@ -241,7 +272,7 @@ cdef class Open:
             raise MemoryError()
 
 
-    def __init__(self, pathname, mode, DEBUG=0):
+    def __init__(self, pathname, mode, rec_press="zlib", sig_press="svb_zd", DEBUG=0):
         self.aux_names = []
         self.aux_types = []
 

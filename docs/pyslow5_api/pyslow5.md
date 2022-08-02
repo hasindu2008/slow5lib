@@ -22,7 +22,7 @@ On Fedora/CentOS : sudo yum libzstd-devel
 On OS X : brew install zstd
 ```
 
-SLOW5 files compressed with *zstd* offer smaller file size and better performance compared to the default *zlib*. However, *zlib* runtime library is available by default on almost all distributions unlike *zstd* and thus files compressed with *zlib* will be more 'portable'.
+BLOW5 files compressed with *zstd* offer smaller file size and better performance compared to the default *zlib*. However, *zlib* runtime library is available by default on almost all distributions unlike *zstd* and thus files compressed with *zlib* will be more 'portable'.
 
 ```bash
 python3 -m venv path/to/slow5libvenv
@@ -106,9 +106,9 @@ python3 -m pip uninstall pyslow5
 
 ## Usage
 
-### Reading a file
+### Reading/writing a file
 
-#### `Open(FILE, mode, DEBUG=0)`:
+#### `Open(FILE, mode, rec_press="zlib", sig_press="svb_zd", DEBUG=0)`:
 
 The pyslow5 library has one main Class, `pyslow5.Open` which opens a slow5/blow5 (slow5 for easy reference) file for reading/writing.
 
@@ -119,6 +119,19 @@ The pyslow5 library has one main Class, `pyslow5.Open` which opens a slow5/blow5
 + `a`= append
 
 This is designed to mimic Python's native Open() to help users remember the syntax
+
+To set the record and signal compression methods, use the following `rec_press` and `sig_press` optional args, however these are only used with `mode='w'`. Any append will use whatever is already set in the file.
+
+Compression Options:
+
+`rec_press`:
+- "none"
+- "zlib" [default]
+- "zstd" [requires `export PYSLOW5_ZSTD=1` when building]
+
+`sig_press`:
+- "none"
+- "svb_zd" [default]
 
 Example:
 
@@ -447,6 +460,3 @@ s5 = slow5.Open(file,'w')
 # Write's EOF and closes file
 s5.close()
 ```
-
-
-See documentation for full examples

@@ -609,7 +609,7 @@ int slow5_write(slow5_rec_t *read, slow5_file_t *s5p);
 
 //set compression for writing
 //should be immediately done after opening a blow5 for writing (mode 'w')
-int slow5_set_press(slow5_file_t *s5p, enum slow5_press_method rec_pres, enum slow5_press_method sig_press);
+int slow5_set_press(slow5_file_t *s5p, enum slow5_press_method rec_press, enum slow5_press_method sig_press);
 
 
 /**************************************************************************************************
