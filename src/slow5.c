@@ -515,7 +515,7 @@ int slow5_close(struct slow5_file *s5p) {
 
         if(s5p->meta.mode && (strcmp(s5p->meta.mode, "w") == 0 || strcmp(s5p->meta.mode, "a") == 0)){
             if(s5p->format == SLOW5_FORMAT_BINARY){
-                SLOW5_INFO("Writing EOF marker to file '%s'", s5p->meta.pathname);
+                SLOW5_LOG_DEBUG("Writing EOF marker to file '%s'", s5p->meta.pathname);
                 if(slow5_eof_fwrite(s5p->fp) < 0){
                     SLOW5_ERROR_EXIT("%s","Error writing EOF!\n");
                     slow5_errno = SLOW5_ERR_IO;
