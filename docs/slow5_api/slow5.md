@@ -116,8 +116,6 @@ High-level API consists of following functions:
 
 ### Writing
 
-Not yet finalised and thus subject to change. Error checking is not so good at the moment. The documentation is sparse. Please open an [issue](https://github.com/hasindu2008/slow5lib/issues) if anyone is interested in using this API in their programme.
-
 * [slow5_hdr_add](slow5_hdr_add.md)<br/>
   &nbsp;&nbsp;&nbsp;&nbsp;adds a new header data attribute to a SLOW5 header
 * [slow5_hdr_set](slow5_hdr_set.md)<br/>
