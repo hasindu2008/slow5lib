@@ -10,16 +10,16 @@ slow5_get_rids - gets the pointer to the list of read IDs associated with a SLOW
 
 ## DESCRIPTION
 
-`slow5_get_rids()` gets the pointer to the list of read IDs associated with a SLOW5 file pointed by *s5p*.  The SLOW5 index should have been already loaded before by calling `slow5_idx_load()`. 
+`slow5_get_rids()` gets the pointer to the list of read IDs associated with a SLOW5 file pointed by *s5p*.  The SLOW5 index should have been already loaded before by calling `slow5_idx_load()`.
 The number of reads will be set on the address specified by *len*.
 
 ## RETURN VALUE
 
-Upon successful completion, `slow5_get_rids()` a *char*** pointer. Otherwise, a negative value is returned that indicates the error and `slow5_errno` is set to indicate the error.
+Upon successful completion, `slow5_get_rids()` returns a *char*** pointer. Otherwise, a negative value is returned that indicates the error and `slow5_errno` is set to indicate the error.
 
 ## ERRORS
 
-* `SLOW5_ERR_NOIDX`       
+* `SLOW5_ERR_NOIDX`
     &nbsp;&nbsp;&nbsp;&nbsp; SLOW5 index has not been loaded.
 * `SLOW5_ERR_OTH`:
 	&nbsp;&nbsp;&nbsp;&nbsp; Other error.
@@ -27,7 +27,7 @@ Upon successful completion, `slow5_get_rids()` a *char*** pointer. Otherwise, a 
 
 ## NOTES
 
-`slow5_get_rids()` returns the list of read IDs stored in the index. Thus, returned pointer must NOT be freed by user.
+`slow5_get_rids()` returns the list of read IDs stored in the index. Thus, returned pointer is from an internal data structure and must NOT be freed by user.
 
 ## EXAMPLES
 
@@ -45,8 +45,8 @@ int main(){
        fprintf(stderr,"Error in opening file\n");
        exit(EXIT_FAILURE);
     }
-    int ret=0;
 
+    int ret=0;
     ret = slow5_idx_load(sp);
     if(ret<0){
         fprintf(stderr,"Error in loading index\n");
@@ -55,11 +55,15 @@ int main(){
 
     uint64_t num_reads = 0;
     char **read_ids = slow5_get_rids(sp, &num_reads);
-	
-    for(int i=0; i<num_reads; i++) {
+    if(read_ids==NULL){
+        fprintf(stderr,"Error in getting list of read IDs\n");
+        exit(EXIT_FAILURE);
+    }
+
+    for(uint64_t i=0; i<num_reads; i++) {
         printf("%s\n",read_ids[i]);
     }
-	
+
     slow5_idx_unload(sp);
 
     slow5_close(sp);

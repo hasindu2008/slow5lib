@@ -1,7 +1,7 @@
 # slow5lib internal functions
 
-Following are internal functions used in slow5tools and pyslow5 implementations. Documented for slow5lib developers. 
-These are for internal use only. Subject to major changes antime without notice. 
+Following are internal functions used in slow5tools and pyslow5 implementations. Documented for slow5lib developers.
+These are for internal use only. Subject to major changes antime without notice.
 
 DO NOT USE.
 
@@ -9,6 +9,8 @@ DO NOT USE.
     Open a SLOW5 file. User can specify the SLOW5 format.
 * [slow5_get_next_mem](low_level_api/slow5_get_next_mem.md)<br/>
 * [slow5_rec_depress_parse](low_level_api/slow5_rec_depress_parse.md)<br/>
+* [slow5_get_aux_types](low_level_api/slow5_get_aux_types.md)<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;gets the pointer to the list of auxiliary field types
 * [slow5_get_aux_enum_labels](low_level_api/slow5_get_aux_enum_labels.md)<br/>
 * [slow5_aux_get_enum](low_level_api/slow5_aux_get_enum.md)<br/>
 * [slow5_aux_get_enum_array](low_level_api/slow5_aux_get_enum_array.md)<br/>

@@ -14,10 +14,11 @@ If anyone is interested in using functions here, please open a GitHub issue. Unl
 ### Reading and access
 
 * [slow5_get_rids](low_level_api/slow5_get_rids.md)<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;gets the pointer to the list of read IDs associated with a SLOW5 file
 * [slow5_get_hdr_keys](low_level_api/slow5_get_hdr_keys.md)<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;gets the list of data header attribute keys
 * [slow5_get_aux_names](low_level_api/slow5_get_aux_names.md)<br/>
-* [slow5_get_aux_types](low_level_api/slow5_get_aux_types.md)<br/>
-
+  &nbsp;&nbsp;&nbsp;&nbsp;gets the pointer to the list of auxiliary field names
 * [slow5_get_next_bytes](low_level_api/slow5_get_next_bytes.md)<br/>
 * [slow_decode](low_level_api/slow_decode.md)<br/>
 
