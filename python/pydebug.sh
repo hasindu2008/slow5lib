@@ -2,7 +2,7 @@
 
 
 make clean
-rm -rf *.so python/pyslow5.cpp build/lib.* build/temp.*
+rm -rf *.so python/pyslow5.cpp python/pyslow5.c build/lib.* build/temp.*
 GCC_ASAN_PRELOAD=$(gcc -print-file-name=libasan.so)
 CFLAGS="-fsanitize=address -fno-omit-frame-pointer" python3 setup.py build
 cp build/lib.*/*.so  ./
