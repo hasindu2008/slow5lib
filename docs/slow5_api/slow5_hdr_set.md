@@ -2,7 +2,7 @@
 
 ## NAME
 
-slow5_hdr_set -  Sets a header data attribute for a particular read_group
+slow5_hdr_set -  sets a header data attribute for a particular read_group
 
 ## SYNOPSYS
 
@@ -11,7 +11,7 @@ slow5_hdr_set -  Sets a header data attribute for a particular read_group
 ## DESCRIPTION
 `slow5_hdr_set()` sets the attribute value *value* for specified attribute name *attr* of a specified read group *read_group* in a SLOW5 file header pointed by *header*.
 
-The argument *header* points to a SLOW5 header of type *slow5_hdr_t* and typically this is the *s5p->header* member inside the *slow5_file_t *s5p* returned by  `slow5_open()`.
+The argument *header* points to a SLOW5 header of type *slow5_hdr_t* and typically this is the *s5p->header* member inside the *slow5_file_t \*s5p* returned by  `slow5_open()`.
 
 ## RETURN VALUE
 Upon successful completion, `slow5_hdr_set()` returns a non negative integer (>=0). Otherwise, a negative value is returned that indicates the error.

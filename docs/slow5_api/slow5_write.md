@@ -16,7 +16,7 @@ Upon successful completion, `slow5_write()` returns a non negative integer (>=0)
 
 ## ERRORS
 
-<todo>
+todo
 
 ## NOTES
 

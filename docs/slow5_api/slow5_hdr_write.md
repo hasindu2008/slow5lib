@@ -2,22 +2,23 @@
 
 ## NAME
 
-slow5_hdr_write -  writes the associated SLOW5 header to a SLOW5 fil
+slow5_hdr_write -  writes the associated SLOW5 header to a SLOW5 file
 
 ## SYNOPSYS
 
 `int slow5_hdr_write(slow5_file_t *s5p)`
 
 ## DESCRIPTION
-`slow5_hdr_write()` write the associated SLOW5 header to the SLOW5 file pointed by *s5p*. The associated SLOW5 header is the *s5p->header* member inside the *slow5_file_t *s5p* returned by  `slow5_open()`.
+`slow5_hdr_write()` writes the associated SLOW5 header to the SLOW5 file pointed by *s5p*. The associated SLOW5 header is the *s5p->header* member inside the *slow5_file_t \*s5p* returned by  `slow5_open()`.
 
 
 ## RETURN VALUE
+
 Upon successful completion, `slow5_hdr_write()` returns the number of bytes written. Otherwise, a negative value is returned.
 
 ## ERRORS
 
-
+todo
 
 ## NOTES
 

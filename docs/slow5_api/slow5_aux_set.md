@@ -1,4 +1,4 @@
-# slow5\_aux\_set>
+# slow5\_aux\_set
 
 ## NAME
 
