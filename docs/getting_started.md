@@ -67,6 +67,8 @@ For the documentation of the C API visit [here](https://hasindu2008.github.io/sl
 
 ### Examples
 
+A public template repository is available at [https://github.com/hasindu2008/slow5-template] which you can directly use to setup your own repository that uses *slow5lib* to build a tool. Check the instructions and comments there.
+
 Examples are provided under [examples](https://github.com/hasindu2008/slow5lib/tree/master/examples).
 - *sequential_read.c* demonstrates how to read a slow5/blow5 file, sequentially from start to end.
 - *random_read.c* demonstrates how to fetch a given read ID from a slow5/blow5 file.
