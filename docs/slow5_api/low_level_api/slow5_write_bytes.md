@@ -1,7 +1,7 @@
-# slow5_write
+# slow5_write_bytes
 
 ## NAME
-slow5_write_bytes - writes a serialised SLOW5 record to a SLOW5 file.
+slow5_write_bytes - writes an encoded SLOW5 record to a SLOW5 file
 
 ## SYNOPSYS
 `int slow5_write_bytes(void *mem, size_t bytes, slow5_file_t *s5p)`
@@ -16,7 +16,7 @@ Upon successful completion, `slow5_write_bytes()` returns a non negative integer
 
 ## ERRORS
 
-
+TODO
 
 ## EXAMPLES
 
@@ -104,4 +104,6 @@ int main(){
 
 }```
 
+## SEE ALSO
 
+[slow5_encode()](slow5_encode.md)

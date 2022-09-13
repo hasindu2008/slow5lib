@@ -139,7 +139,10 @@ High-level API consists of following functions:
 
 ### Low-level API for reading and writing SLOW5 files
 
-Low-level API allows much more efficient access to BLOW5 files compared to the high-level API.  However, they are not yet finalised or documented. If anyone is interested, please open a GitHub issue, rather than trying to figure out from the code. Such an issue will expedite this, which would otherwise be procrastinated.  Unless, finalised and documented, these function prototypes are subject to change.
+Low-level API allows much more efficient access to BLOW5 files compared to the high-level API.  Low-level API is documented [here](slow5_low_level_api.md).
+
+
+
 
 <!--
 ### Low-level API for reading and writing SLOW5 files

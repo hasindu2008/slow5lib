@@ -1,7 +1,7 @@
 # slow5lib internal functions
 
 Following are internal functions used in slow5tools and pyslow5 implementations. Documented for slow5lib developers.
-These are for internal use only. Subject to major changes antime without notice.
+These are for internal use only. Subject to major changes any time without notice.
 
 DO NOT USE.
 

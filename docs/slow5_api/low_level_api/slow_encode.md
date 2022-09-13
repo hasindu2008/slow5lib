@@ -1,20 +1,24 @@
-# slow5lib
+# slow5_encode
 
 ## NAME
-slow5_encode - encodes slow5 record.
+slow5_encode - encodes a SLOW5 record
 
 ## SYNOPSYS
 `int slow5_encode(void **mem, size_t *bytes, slow5_rec_t *read, slow5_file_t *s5p)`
 
 ## DESCRIPTION
 
+`slow5_encode()` encodes SLOW5 record pointed by *read* to a buffer pointed by **mem*. The buffer will be allocated internally and the **bytes* will contain the size of the encoded record. The record will be compressed if the slow5 file pointed by *s5p* states so.
+
+The allocated buffer pointed by **mem* must be freed by the user.
+
 
 ## RETURN VALUE
-Upon successful completion, `slow5_encode()` returns 0. Otherwise, returns a `SLOW5_ERR_*` and set `slow5_errno` on failure
+Upon successful completion, `slow5_encode()` returns a non negative integer (>=0). Otherwise, a negative value is returned.
 
-## NOTES
+## ERRORS
 
-
+TODO
 
 ## EXAMPLES
 
@@ -101,3 +105,6 @@ int main(){
     return 0;
 
 }```
+
+## SEE ALSO
+[slow5_write_bytes()](slow5_write_bytes.md).

@@ -1,30 +1,33 @@
-# slow5lib
+# slow5_get_next_bytes
 
 ## NAME
-slow5_get_next_bytes - Gets next slow5 record from current file pointer as it is stored in s5p with length stored at pointer n.
+slow5_get_next_bytes - fetches the raw record (without decompressing or parsing) at the current file pointer of a slow5 file
 
 ## SYNOPSYS
 `int slow5_get_next_bytes(void **mem, size_t *bytes, slow5_file_t *s5p);`
 
 ## DESCRIPTION
-This function returns the next slow5 record as it is in a void buffer.
 
-Returned buffer should be freed using `free()`
+`slow5_get_next_bytes()` fetches a raw record (as it is on the disk without decompressing or parsing) from a SLOW5 file *s5p* at the current file pointer into a *void** buffer and stores the address of this buffer in **mem*.
+
+he size of the fetched record (in bytes) will be stored at **bytes*. The **mem* buffer should be always freed by the user program using `free()`. The argument *s5p* points to a *slow5_file_t* opened using `slow5_open()`.
+
 
 ## RETURN VALUE
-Upon successful completion, `slow5_get_next_bytes()` returns a *void* pointer. Otherwise, NULL is returned, e.g., if *s5p* is NULL.
+Upon successful completion, `slow5_get_next_bytes()` returns a non negative integer (>=0). Otherwise (including the end of file), a negative value is returned that indicates the error and `slow5_errno` is set to indicate the error.
 
+## ERRORS
 
-## NOTES
-On error following errors are set
- * slow5_errno errors:
- * SLOW5_ERR_ARG
- * SLOW5_ERR_IO
- * SLOW5_ERR_EOF    end of file reached (and blow5 eof marker found)
- * slow5_is_eof errors:
- * SLOW5_ERR_TRUNC
- * SLOW5_ERR_MEM
- * SLOW5_ERR_UNK
+* `SLOW5_ERR_EOF`
+   &nbsp;&nbsp;&nbsp;&nbsp; End of file (EOF) (if blow5, EOF marker was properly found at the end).
+* `SLOW5_ERR_IO`
+   &nbsp;&nbsp;&nbsp;&nbsp; I/O error (except EOF) when reading the slow5 file, for instance, `getline()` or `fread()` failed.
+* `SLOW5_ERR_MEM`
+   &nbsp;&nbsp;&nbsp;&nbsp; Memory allocation error.
+* `SLOW5_ERR_TRUNC`
+  &nbsp;&nbsp;&nbsp;&nbsp; Truncated blow5 file - EOF reached without seeing the blow5 EOF marker.
+*  `SLOW5_ERR_UNK`
+  &nbsp;&nbsp;&nbsp;&nbsp; Slow5 format is unknown.
 
 ## EXAMPLES
 
@@ -75,3 +78,7 @@ int main(){
 
 }
 ```
+
+## SEE ALSO
+
+[slow5_decode()](slow5_decode.md)

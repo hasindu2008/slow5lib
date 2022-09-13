@@ -2,7 +2,7 @@
 
 ## NAME
 
-slow5_set_exit_condition - sets if slow5lib should exit the programme on error.
+slow5_set_exit_condition - sets if slow5lib should exit the programme on error
 
 ## SYNOPSYS
 
@@ -10,11 +10,11 @@ slow5_set_exit_condition - sets if slow5lib should exit the programme on error.
 
 ## DESCRIPTION
 
-`slow5_set_exit_condition()` sets the slow5lib to exit the programme on a circumtance as specified by *exit_condition*. *exit_condition* can be one of the following:
+`slow5_set_exit_condition()` sets the slow5lib to exit the programme on a circumstance as specified by *exit_condition*. *exit_condition* can be one of the following:
 
 - `SLOW5_EXIT_OFF`: Do not exit the programme even if an error occur. The user should have done error handling for each function call which is typical library behaviour in C (default).
 - `SLOW5_EXIT_ON_ERR`: Exit the programme if an error occurs (useful for debugging)
-- `SLOW5_EXIT_ON_WARN`: Exit the programme if a warning occurs. This is a bit silly, but incase someone wants.
+- `SLOW5_EXIT_ON_WARN`: Exit the programme if a warning occurs. This is a bit silly, but in case someone wants.
 
 ## RETURN VALUE
 
@@ -26,7 +26,7 @@ None.
 
 ## NOTES
 
-Internally sets global variable. Intened to be set as the beginning of the programme.
+Internally sets global variable. Intended to be set as the beginning of the programme.
 
 
 ## EXAMPLES
@@ -39,7 +39,7 @@ Internally sets global variable. Intened to be set as the beginning of the progr
 int main(){
 
 	slow5_set_exit_condition(SLOW5_EXIT_ON_ERR);
-   
+
 	//... do the rest
 
 }
