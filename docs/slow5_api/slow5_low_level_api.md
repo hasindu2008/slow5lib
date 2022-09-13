@@ -30,7 +30,7 @@ Low-level API allows much more efficient access to BLOW5 files compared to the h
 
 ### Writing and editing
 
-* [slow5_encode](low_level_api/encode.md)<br/>
+* [slow5_encode](low_level_api/slow5_encode.md)<br/>
   &nbsp;&nbsp;&nbsp;&nbsp;encodes a SLOW5 record
 * [slow5_write_bytes](low_level_api/slow5_write_bytes.md)<br/>
   &nbsp;&nbsp;&nbsp;&nbsp;writes an encoded SLOW5 record to a SLOW5 file
