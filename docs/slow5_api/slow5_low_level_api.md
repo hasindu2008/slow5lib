@@ -24,7 +24,7 @@ Low-level API allows much more efficient access to BLOW5 files compared to the h
   &nbsp;&nbsp;&nbsp;&nbsp;gets the pointer to the list of auxiliary field names
 * [slow5_get_next_bytes](low_level_api/slow5_get_next_bytes.md)<br/>
   &nbsp;&nbsp;&nbsp;&nbsp;fetches the raw record (without decompressing or parsing) at the current file pointer of a SLOW5 file
-* [slow_decode](low_level_api/slow_decode.md)<br/>
+* [slow5_decode](low_level_api/slow5_decode.md)<br/>
   &nbsp;&nbsp;&nbsp;&nbsp;decodes a slow5 record
 
 
@@ -32,9 +32,8 @@ Low-level API allows much more efficient access to BLOW5 files compared to the h
 
 * [slow5_encode](low_level_api/encode.md)<br/>
   &nbsp;&nbsp;&nbsp;&nbsp;encodes a SLOW5 record
-* [slow5_write_bytes](low_level_api/slow5_write_bytes.md)
+* [slow5_write_bytes](low_level_api/slow5_write_bytes.md)<br/>
   &nbsp;&nbsp;&nbsp;&nbsp;writes an encoded SLOW5 record to a SLOW5 file
 
 
-**If you want any other functionality than what is described above, please open a GitHub issue so such functionality exposed, rather than trying to use internal functions by browsing the code. Such undocumented functions are subject to change.
-**
+**If you want any other functionality than what is described above, please open a GitHub issue so such functionality exposed, rather than trying to use internal functions by browsing the code. Such undocumented functions are subject to change.**

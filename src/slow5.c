@@ -2596,7 +2596,7 @@ int slow5_rec_depress_parse(char **mem, size_t *bytes, const char *read_id, stru
     return 0;
 }
 
-int slow_decode(void **mem, size_t *bytes, slow5_rec_t **read, slow5_file_t *s5p){
+int slow5_decode(void **mem, size_t *bytes, slow5_rec_t **read, slow5_file_t *s5p){
     return slow5_rec_depress_parse((char **)mem, bytes, NULL, read, s5p);
 }
 

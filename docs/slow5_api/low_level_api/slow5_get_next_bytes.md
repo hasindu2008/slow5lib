@@ -53,7 +53,7 @@ int main(){
     size_t bytes = 0;
 
     while((ret = slow5_get_next_bytes(&mem,&bytes,sp)) >= 0){
-        if(slow_decode(&mem, &bytes, &rec, sp) < 0){
+        if(slow5_decode(&mem, &bytes, &rec, sp) < 0){
             fprintf(stderr,"Error in decoding record\n");
             exit(EXIT_FAILURE);
         }

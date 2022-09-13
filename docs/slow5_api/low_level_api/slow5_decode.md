@@ -1,10 +1,10 @@
-# slow_decode
+# slow5_decode
 
 ## NAME
-slow_decode -  decodes a slow5 record
+slow5_decode -  decodes a slow5 record
 
 ## SYNOPSYS
-`int slow_decode(void **mem, size_t *bytes, slow5_rec_t **read, slow5_file_t *s5p);`
+`int slow5_decode(void **mem, size_t *bytes, slow5_rec_t **read, slow5_file_t *s5p);`
 
 ## DESCRIPTION
 This function decode a raw record pointed by **mem*  of size *bytes* (previously fetched using `slow5_get_next_bytes()`) into a *slow5_rec_t* and stores the address of the *slow5_rec_t* in **read*. The argument *s5p* points to a *slow5_file_t* opened using `slow5_open()`.
@@ -16,7 +16,7 @@ If the allocated *slow5_rec_t* is not large enough to hold the record, `slow5_ge
 
 ## RETURN VALUE
 
-Upon successful completion, `slow_decode()` returns a non negative integer (>=0). Otherwise, a negative value is returned that indicates the error and `slow5_errno` is set to indicate the error.
+Upon successful completion, `slow5_decode()` returns a non negative integer (>=0). Otherwise, a negative value is returned that indicates the error and `slow5_errno` is set to indicate the error.
 
 ## ERRORS
 
@@ -57,7 +57,7 @@ int main(){
     size_t bytes = 0;
 
     while((ret = slow5_get_next_bytes(&mem,&bytes,sp)) >= 0){
-        if(slow_decode(&mem, &bytes, &rec, sp) < 0){
+        if(slow5_decode(&mem, &bytes, &rec, sp) < 0){
             fprintf(stderr,"Error in decoding record\n");
             exit(EXIT_FAILURE);
         }
