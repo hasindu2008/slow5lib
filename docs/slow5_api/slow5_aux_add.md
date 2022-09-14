@@ -11,16 +11,41 @@ slow5_aux_add -  adds an auxiliary field to a SLOW5 header
 ## DESCRIPTION
 `slow5_aux_add()` adds an auxiliary field named *field* of the datatype *type* to a SLOW5 file header pointed by *header*.
 
-The argument *header* points to a SLOW5 header of type *slow5_hdr_t* and typically this is the *s5p->header* member inside the *slow5_file_t *s5p* returned by  `slow5_open()`.
+The argument *header* points to a SLOW5 header of type *slow5_hdr_t* and typically this is the *s5p->header* member inside the *slow5_file_t \*s5p* returned by  `slow5_open()`.
 
-<todo: Document enum types>
+*type* can be a primitive datatype or an array data type.
+Available primitive data types are:
+- SLOW5_INT8_T
+- SLOW5_INT16_T
+- SLOW5_INT32_T
+- SLOW5_INT64_T
+- SLOW5_UINT8_T
+- SLOW5_UINT16_T
+- SLOW5_UINT32_T
+- SLOW5_UINT64_T
+- SLOW5_FLOAT
+- SLOW5_DOUBLE
+- SLOW5_CHAR
+
+Available array data types are:
+- SLOW5_INT8_T_ARRAY
+- SLOW5_INT16_T_ARRAY
+- SLOW5_INT32_T_ARRAY
+- SLOW5_INT64_T_ARRAY
+- SLOW5_UINT8_T_ARRAY
+- SLOW5_UINT16_T_ARRAY
+- SLOW5_UINT32_T_ARRAY
+- SLOW5_UINT64_T_ARRAY
+- SLOW5_FLOAT_ARRAY
+- SLOW5_DOUBLE_ARRAY
+- SLOW5_STRING
 
 ## RETURN VALUE
 Upon successful completion, `slow5_aux_add()` returns a non negative integer (>=0). Otherwise, a negative value is returned.
 
 ## ERRORS
 
-A negative value is returned when an error occurs and can be due to following occasions (not an exhaustive list:
+A negative value is returned when an error occurs and can be due to following occasions (not an exhaustive list):
 
 - input parameter is NULL
 - unsuitable datatype
@@ -28,7 +53,7 @@ A negative value is returned when an error occurs and can be due to following oc
 
 ## NOTES
 
-
+In the future `slow5_errno` will be set to indicate the error.
 
 ## EXAMPLES
 

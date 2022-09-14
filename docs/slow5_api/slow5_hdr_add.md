@@ -11,7 +11,7 @@ slow5_hdr_add -  adds a new header data attribute to a SLOW5 header
 ## DESCRIPTION
 `slow5_hdr_add()` add a new attribute name *attr* to a SLOW5 file header pointed by *header*.
 
-The argument *header* points to a SLOW5 header of type *slow5_hdr_t* and typically this is the *s5p->header* member inside the *slow5_file_t *s5p* returned by  `slow5_open()`.
+The argument *header* points to a SLOW5 header of type *slow5_hdr_t* and typically this is the *s5p->header* member inside the *slow5_file_t \*s5p* returned by  `slow5_open()`.
 
 ## RETURN VALUE
 Upon successful completion, `slow5_hdr_add()` returns a non negative integer (>=0). Otherwise, a negative value is returned that indicates the error.

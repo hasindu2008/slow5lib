@@ -67,6 +67,8 @@ For the documentation of the C API visit [here](https://hasindu2008.github.io/sl
 
 ### Examples
 
+A public template repository is available at [https://github.com/hasindu2008/slow5-template] which you can directly use to setup your own repository that uses *slow5lib* to build a tool. Check the instructions and comments there.
+
 Examples are provided under [examples](https://github.com/hasindu2008/slow5lib/tree/master/examples).
 - *sequential_read.c* demonstrates how to read a slow5/blow5 file, sequentially from start to end.
 - *random_read.c* demonstrates how to fetch a given read ID from a slow5/blow5 file.
@@ -74,9 +76,11 @@ Examples are provided under [examples](https://github.com/hasindu2008/slow5lib/t
 - *auxiliary_field.c* demonstrates how to fetch a auxiliary field from a slow5/blow5 file.
 - *random_read_pthreads.c* demonstrates how to fetch given read IDs in parallel from a slow5/blow5 file using *pthreads*.
 - *random_read_openmp.c* demonstrates how to fetch given read IDs in parallel from a slow5/blow5 file using openMP.
+- *write.c* demonstrate how to write a new slow5/blow5 file.
+- *append.c* demonstrates how to append to an existing slow5/blow5 file.
 
 Following examples will be added upon request. If you are interested, open a GitHub issue rather than spending your time trying to figure out - will try to provide within a day or two.
-- using multiple threads for parsing and decompression when performing sequential reading.
+- using multiple threads for parsing and decompression when performing sequential reading; and, writing or appending.
 - accessing header attributes when multiple read groups are present.
 - an efficient input, processing, output pipeline for processing raw signals using slow5lib
 - any other use case.

@@ -116,8 +116,6 @@ High-level API consists of following functions:
 
 ### Writing
 
-Not yet finalised and thus subject to change. Error checking is not so good at the moment. The documentation is sparse. Please open an [issue](https://github.com/hasindu2008/slow5lib/issues) if anyone is interested in using this API in their programme.
-
 * [slow5_hdr_add](slow5_hdr_add.md)<br/>
   &nbsp;&nbsp;&nbsp;&nbsp;adds a new header data attribute to a SLOW5 header
 * [slow5_hdr_set](slow5_hdr_set.md)<br/>
@@ -141,7 +139,10 @@ Not yet finalised and thus subject to change. Error checking is not so good at t
 
 ### Low-level API for reading and writing SLOW5 files
 
-Low-level API allows much more efficient access to BLOW5 files compared to the high-level API.  However, they are not yet finalised or documented. If anyone is interested, please open a GitHub issue, rather than trying to figure out from the code. Such an issue will expedite this, which would otherwise be procrastinated.  Unless, finalised and documented, these function prototypes are subject to change.
+Low-level API allows much more efficient access to BLOW5 files compared to the high-level API.  Low-level API is documented [here](slow5_low_level_api.md).
+
+
+
 
 <!--
 ### Low-level API for reading and writing SLOW5 files

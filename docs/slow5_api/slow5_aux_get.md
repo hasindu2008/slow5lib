@@ -32,7 +32,7 @@ The argument *err* is an address of an integer which will be set inside the func
 
 ## RETURN VALUE
 
-Upon successful completion, `slow5_aux_get_<primitive_datatype>()` returns the requested field value. Otherwise, the SLOW5 missing value representation for the particular datatype is returned (`SLOW5_INT8_T_NULL`, `SLOW5_INT16_T_NULL`, `SLOW5_INT32_T_NULL`, `SLOW5_INT64_T_NULL`, `SLOW5_UINT8_T_NULL`, `SLOW5_UINT16_T_NULL`, `SLOW5_UINT32_T_NULL`, `SLOW5_UINT64_T_NULL`, `SLOW5_FLOAT_NULL`, `SLOW5_DOUBLE_NULL` or `SLOW5_CHAR_NULL`) and `slow5_errno` is set to indicate the error.
+Upon successful completion, `slow5_aux_get_<primitive_datatype>()` returns the requested field value. Otherwise, the SLOW5 missing value representation for the particular datatype is returned (`SLOW5_INT8_T_NULL`, `SLOW5_INT16_T_NULL`, `SLOW5_INT32_T_NULL`, `SLOW5_INT64_T_NULL`, `SLOW5_UINT8_T_NULL`, `SLOW5_UINT16_T_NULL`, `SLOW5_UINT32_T_NULL`, `SLOW5_UINT64_T_NULL`, `SLOW5_FLOAT_NULL`, `SLOW5_DOUBLE_NULL` or `SLOW5_CHAR_NULL`) and `slow5_errno` is set to indicate the error. See notes below.
 
 
 ## ERRORS
@@ -43,16 +43,17 @@ In case of an error, `slow5_errno` or the non zero error code is set in *err* (u
 `SLOW5_ERR_NOFLD`
     &nbsp;&nbsp;&nbsp;&nbsp; The requested field was not found.
 `SLOW5_ERR_NOAUX`
-    &nbsp;&nbsp;&nbsp;&nbsp; Auxiliary hash map for the record was not found.
-`SLOW5_ERR_ARG`   
+    &nbsp;&nbsp;&nbsp;&nbsp; Auxiliary hash map for the record was not found (see notes below).
+`SLOW5_ERR_ARG`
     &nbsp;&nbsp;&nbsp;&nbsp; Invalid argument - read or field is NULL.
-`SLOW5_ERR_TYPE`  
+`SLOW5_ERR_TYPE`
     &nbsp;&nbsp;&nbsp;&nbsp; Type conversion was not possible - an array data type field cannot be converted to a primitive type.
 
 
 ## NOTES
 
-More error codes may be introduced in future.
+More error codes may be introduced in future. If the field value has been marked missing for an individual SLOW5 record ("." in SLOW5 ASCII and as `SLOW5_<TYPE>_NULL` in BLOW5), the SLOW5 missing value representation for the particular datatype is returned and no error code is set (considered successful as the SLOW5 missing value representation is actually present in the file). This is typically the case when the field name is present in the SLOW5 header, but the field value for the particular record is missing. If the requested field is completely not present (not in the SLOW5 header as well), this is considered an error and `SLOW5_ERR_NOAUX` code is set.
+
 
 ## EXAMPLES
 ```
@@ -86,14 +87,22 @@ int main(){
         fprintf(stderr,"Error in getting auxiliary attribute from the file. Error code %d\n",ret);
         exit(EXIT_FAILURE);
     }
-    fprintf(stderr,"median_before = %f\n", median_before);
+    if(!isnan(median_before)){  //SLOW5_DOUBLE_NULL is the generic NaN value returned by nan("""") and thus median_before != SLOW5_DOUBLE_NULL is not correct
+        printf("median_before = %f\n", median_before);
+    } else {
+        printf("median_before is missing for the record\n");
+    }
 
     uint64_t start_time = slow5_aux_get_uint64(rec, "start_time", &ret);
     if(ret!=0){
-        fprintf(stderr,"Error in getting auxiliary attribute from the file. Error code %d\n",ret);
+        printf("Error in getting auxiliary attribute from the file. Error code %d\n",ret);
         exit(EXIT_FAILURE);
     }
-    fprintf(stderr,"start_time = %u\n", start_time);
+    if(start_time != SLOW5_UINT64_T_NULL){
+        printf("start_time = %lu\n", start_time);
+    } else{
+        printf("start_time is missing for the record\n");
+    }
 
     slow5_rec_free(rec);
     slow5_close(sp);

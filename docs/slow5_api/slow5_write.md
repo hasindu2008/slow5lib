@@ -16,7 +16,11 @@ Upon successful completion, `slow5_write()` returns a non negative integer (>=0)
 
 ## ERRORS
 
+todo
 
+## NOTES
+
+In the future a error number will be set to indicate the error.
 
 ## EXAMPLES
 

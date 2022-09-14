@@ -32,7 +32,7 @@ None.
 
 ## NOTES
 
-Internally sets global variable. Intened to be set as the beginning of the programme.
+Internally sets global variable. Intended to be set as the beginning of the programme.
 
 ## EXAMPLES
 
@@ -44,7 +44,7 @@ Internally sets global variable. Intened to be set as the beginning of the progr
 int main(){
 
 	slow5_set_log_level(SLOW5_LOG_DBUG);
-   
+
 	//... do the rest
 
 }

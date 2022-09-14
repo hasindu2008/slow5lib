@@ -25,7 +25,7 @@ TODO
 
 ## NOTES
 
-Only the returned *char*** pointer must be freed and not the the actual keys which are internal.
+Only the returned *char*** pointer must be freed and not the the actual key labels (char *) which are from an internal data structure.
 
 ## EXAMPLES
 
@@ -43,17 +43,20 @@ int main(){
        fprintf(stderr,"Error in opening file\n");
        exit(EXIT_FAILURE);
     }
-    int ret=0;
 
     uint64_t num_keys = 0;
-    cost char **keys = slow5_get_hdr_keys(sp->header, &num_reads);
-	
+    const char **keys = slow5_get_hdr_keys(sp->header, &num_keys);
+    if(keys==NULL){
+        fprintf(stderr,"Error in getting header keys\n");
+        exit(EXIT_FAILURE);
+    }
+
     for(int i=0; i<num_keys; i++) {
         printf("%s\n",keys[i]);
     }
-	
+
 	free(keys);
-	
+
     slow5_close(sp);
 
 }

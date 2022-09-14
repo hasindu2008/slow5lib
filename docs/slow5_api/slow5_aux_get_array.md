@@ -44,10 +44,10 @@ In case of an error, `slow5_errno` or the non zero error code is set in *err* (u
     &nbsp;&nbsp;&nbsp;&nbsp; The requested field was not found.
 `SLOW5_ERR_NOAUX`
     &nbsp;&nbsp;&nbsp;&nbsp; Auxiliary hash map for the record was not found.
-`SLOW5_ERR_ARG`   
+`SLOW5_ERR_ARG`
     &nbsp;&nbsp;&nbsp;&nbsp; Invalid argument - read or field is NULL
-`SLOW5_ERR_TYPE`  
-    &nbsp;&nbsp;&nbsp;&nbsp; Type conversion was not possible - an primitives data type field cannot be converted to an array type.
+`SLOW5_ERR_TYPE`
+    &nbsp;&nbsp;&nbsp;&nbsp; Type conversion was not possible - a primitives data type field cannot be converted to an array type.
 
 ## NOTES
 
@@ -55,7 +55,7 @@ The returned pointer is from an internal data structure and the user must NOT fr
 
 `slow5_aux_get_string()` is used to fetch an array of chars.
 
-More error may be introduced in future.
+More error may be introduced in future. If the field value array has been marked missing for an individual SLOW5 record (represented by “.” in SLOW5 ASCII and in BLOW by storing 0 as the length of the array), NULL is returned with *len* argument being set to 0 and NO error code is set (considered successful as the SLOW5 missing value representation is actually present in the file). This is typically the case when the field name is present in the SLOW5 header, but the field value for the particular record is missing. If the requested field is completely not present (not in the SLOW5 header as well), this is considered an error and `SLOW5_ERR_NOAUX` code is set.
 
 
 ## EXAMPLES
@@ -85,13 +85,17 @@ int main(){
     //              get auxiliary values with array datatype
     //------------------------------------------------------------------------
 
-    uint64_t *len;
-    char* channel_number = slow5_aux_get_string(rec, "channel_number", len, &ret);
+    uint64_t len;
+    char* channel_number = slow5_aux_get_string(rec, "channel_number", &len, &ret);
     if(ret!=0){
         fprintf(stderr,"Error in getting auxiliary attribute from the file. Error code %d\n",ret);
         exit(EXIT_FAILURE);
     }
-    fprintf(stderr,"channel_number = %s\n", channel_number);
+    if (channel_number != NULL){
+        printf("channel_number = %s\n", channel_number);
+    } else{
+        printf("channel_number is missing for the record\n");
+    }
 
     slow5_rec_free(rec);
     slow5_close(sp);
