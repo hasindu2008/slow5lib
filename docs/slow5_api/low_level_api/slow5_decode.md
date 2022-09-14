@@ -4,7 +4,7 @@
 slow5_decode -  decodes a slow5 record
 
 ## SYNOPSYS
-`int slow5_decode(void **mem, size_t *bytes, slow5_rec_t **read, slow5_file_t *s5p);`
+`int slow5_decode(char **mem, size_t *bytes, slow5_rec_t **read, slow5_file_t *s5p);`
 
 ## DESCRIPTION
 This function decode a raw record pointed by **mem*  of size *bytes* (previously fetched using `slow5_get_next_bytes()`) into a *slow5_rec_t* and stores the address of the *slow5_rec_t* in **read*. The argument *s5p* points to a *slow5_file_t* opened using `slow5_open()`.
@@ -53,7 +53,7 @@ int main(){
     }
     slow5_rec_t *rec = NULL;
     int ret=0;
-    void *mem = NULL;
+    char *mem = NULL;
     size_t bytes = 0;
 
     while((ret = slow5_get_next_bytes(&mem,&bytes,sp)) >= 0){

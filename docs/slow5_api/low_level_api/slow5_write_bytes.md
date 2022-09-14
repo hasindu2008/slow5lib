@@ -4,7 +4,7 @@
 slow5_write_bytes - writes an encoded SLOW5 record to a SLOW5 file
 
 ## SYNOPSYS
-`int slow5_write_bytes(void *mem, size_t bytes, slow5_file_t *s5p)`
+`int slow5_write_bytes(char *mem, size_t bytes, slow5_file_t *s5p)`
 
 ## DESCRIPTION
 `slow5_write_bytes()` writes a serialised SLOW5 record pointed by *mem* to a SLOW5 file pointed by *s5p*.
@@ -75,7 +75,7 @@ int main(){
     slow5_record -> raw_signal = raw_signal;
 
     //encode to a buffer
-    void *mem = NULL;
+    char *mem = NULL;
     size_t bytes = 0;
     if (slow5_encode(&mem, &bytes, slow5_record, sp) != 0){
         fprintf(stderr,"Error encoding record\n");

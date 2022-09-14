@@ -4,7 +4,7 @@
 slow5_encode - encodes a SLOW5 record
 
 ## SYNOPSYS
-`int slow5_encode(void **mem, size_t *bytes, slow5_rec_t *read, slow5_file_t *s5p)`
+`int slow5_encode(char **mem, size_t *bytes, slow5_rec_t *read, slow5_file_t *s5p)`
 
 ## DESCRIPTION
 
@@ -77,7 +77,7 @@ int main(){
     slow5_record -> raw_signal = raw_signal;
 
     //encode to a buffer
-    void *mem = NULL;
+    char *mem = NULL;
     size_t bytes = 0;
     if (slow5_encode(&mem, &bytes, slow5_record, sp) < 0){
         fprintf(stderr,"Error encoding record\n");

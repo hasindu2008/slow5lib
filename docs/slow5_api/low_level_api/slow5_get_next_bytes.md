@@ -4,11 +4,11 @@
 slow5_get_next_bytes - fetches the raw record (without decompressing or parsing) at the current file pointer of a slow5 file
 
 ## SYNOPSYS
-`int slow5_get_next_bytes(void **mem, size_t *bytes, slow5_file_t *s5p);`
+`int slow5_get_next_bytes(char **mem, size_t *bytes, slow5_file_t *s5p);`
 
 ## DESCRIPTION
 
-`slow5_get_next_bytes()` fetches a raw record (as it is on the disk without decompressing or parsing) from a SLOW5 file *s5p* at the current file pointer into a *void** buffer and stores the address of this buffer in **mem*.
+`slow5_get_next_bytes()` fetches a raw record (as it is on the disk without decompressing or parsing) from a SLOW5 file *s5p* at the current file pointer into a *char** buffer and stores the address of this buffer in **mem*.
 
 he size of the fetched record (in bytes) will be stored at **bytes*. The **mem* buffer should be always freed by the user program using `free()`. The argument *s5p* points to a *slow5_file_t* opened using `slow5_open()`.
 
@@ -49,7 +49,7 @@ int main(){
     }
     slow5_rec_t *rec = NULL;
     int ret=0;
-    void *mem = NULL;
+    char *mem = NULL;
     size_t bytes = 0;
 
     while((ret = slow5_get_next_bytes(&mem,&bytes,sp)) >= 0){
