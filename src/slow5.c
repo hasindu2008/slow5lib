@@ -263,8 +263,8 @@ struct slow5_file *slow5_init_empty(FILE *fp, const char *pathname, enum slow5_f
     }
     s5p->meta.pathname = pathname;
     if ((s5p->meta.start_rec_offset = ftello(fp)) == -1) {
-        if(fp == stdout){
-            SLOW5_VERBOSE("%s.", "Initialised an empty SLOW5 on stdout. Seeking won't be abailable.");
+        if(s5p->meta.fd == 1){
+            SLOW5_VERBOSE("%s.", "Initialised an empty SLOW5 on stdout. Seeking won't be available.");
         } else {
             SLOW5_ERROR("Obtaining file offset with ftello() failed: %s.", strerror(errno));
             slow5_errno = SLOW5_ERR_IO;
