@@ -79,7 +79,7 @@ int main(){
     //encode to a buffer
     void *mem = NULL;
     size_t bytes = 0;
-    if (slow5_encode(&mem, &bytes, slow5_record, sp) != 0){
+    if (slow5_encode(&mem, &bytes, slow5_record, sp) < 0){
         fprintf(stderr,"Error encoding record\n");
         exit(EXIT_FAILURE);
     }
@@ -97,6 +97,7 @@ int main(){
     slow5_record -> raw_signal = NULL;
     slow5_rec_free(slow5_record);
 
+    //free the buffer allocated by slow5_encode
     free(mem);
 
     //close the file

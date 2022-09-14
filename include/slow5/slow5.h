@@ -653,7 +653,7 @@ char **slow5_get_aux_enum_labels(const slow5_hdr_t *header, const char *field, u
 
 int slow5_get_next_bytes(void **mem, size_t *bytes, slow5_file_t *s5p);
 
-int slow_decode(void **mem, size_t *bytes, slow5_rec_t **read, slow5_file_t *s5p);
+int slow5_decode(void **mem, size_t *bytes, slow5_rec_t **read, slow5_file_t *s5p);
 
 int slow5_encode(void **mem, size_t *bytes, slow5_rec_t *read, slow5_file_t *s5p);
 
