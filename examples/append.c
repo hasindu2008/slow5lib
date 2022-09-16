@@ -16,6 +16,7 @@ read_1	    0	        4096	        4	    12	    4000	        12	            0,1,2
 
 int main(){
 
+    //open the SLOW5 file for appending
     slow5_file_t *sp = slow5_open(FILE_PATH, "a");
     if(sp==NULL){
         fprintf(stderr,"Error opening file!\n");
@@ -81,13 +82,16 @@ int main(){
         exit(EXIT_FAILURE);
     }
 
+    //append the record to the file
     if(slow5_write(slow5_record, sp) < 0){
         fprintf(stderr,"Error writing record to file\n");
         exit(EXIT_FAILURE);
     }
 
+    //free the slow5 record
     slow5_rec_free(slow5_record);
 
+    //close the SLOW5 file
     slow5_close(sp);
 
     return 0;
