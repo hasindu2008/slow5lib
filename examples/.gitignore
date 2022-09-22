@@ -16,3 +16,7 @@ example_write_append.slow5
 example_write_aux.blow5
 write
 append
+adv/auxiliary_field_enum
+adv/sequential_read_pthreads
+adv/sequential_read_openmp
+adv/get_all_read_ids

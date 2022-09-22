@@ -26,7 +26,10 @@ Low-level API allows much more efficient access to BLOW5 files compared to the h
   &nbsp;&nbsp;&nbsp;&nbsp;fetches the raw record (without decompressing or parsing) at the current file pointer of a SLOW5 file
 * [slow5_decode](low_level_api/slow5_decode.md)<br/>
   &nbsp;&nbsp;&nbsp;&nbsp;decodes a slow5 record
-
+* [slow5_aux_get_enum](low_level_api/slow5_aux_get_enum.md)<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;fetches an auxiliary field of type enum from a SLOW5 record
+* [slow5_get_aux_enum_labels](low_level_api/slow5_get_aux_enum_labels.md)<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;gets the list of labels for an enum data type
 
 ### Writing and editing
 

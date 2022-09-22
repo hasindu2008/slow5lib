@@ -40,13 +40,13 @@ Upon successful completion, `slow5_aux_get_<primitive_datatype>()` returns the r
 In case of an error, `slow5_errno` or the non zero error code is set in *err* (unless *err* is NULL) are as follows.
 
 
-`SLOW5_ERR_NOFLD`
+* `SLOW5_ERR_NOFLD`
     &nbsp;&nbsp;&nbsp;&nbsp; The requested field was not found.
-`SLOW5_ERR_NOAUX`
+* `SLOW5_ERR_NOAUX`
     &nbsp;&nbsp;&nbsp;&nbsp; Auxiliary hash map for the record was not found (see notes below).
-`SLOW5_ERR_ARG`
+* `SLOW5_ERR_ARG`
     &nbsp;&nbsp;&nbsp;&nbsp; Invalid argument - read or field is NULL.
-`SLOW5_ERR_TYPE`
+* `SLOW5_ERR_TYPE`
     &nbsp;&nbsp;&nbsp;&nbsp; Type conversion was not possible - an array data type field cannot be converted to a primitive type.
 
 
@@ -81,7 +81,7 @@ int main(){
     //------------------------------------------------------------------------
     //              get auxiliary values with primitive datatype
     //------------------------------------------------------------------------
-    ret=0;
+
     double median_before = slow5_aux_get_double(rec,"median_before",&ret);
     if(ret!=0){
         fprintf(stderr,"Error in getting auxiliary attribute from the file. Error code %d\n",ret);

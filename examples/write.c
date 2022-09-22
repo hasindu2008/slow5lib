@@ -25,6 +25,7 @@ void set_record_aux_fields(slow5_rec_t *slow5_record, slow5_file_t *sp);
 
 int main(){
 
+    //open the SLOW5 file for writing
     slow5_file_t *sp = slow5_open(FILE_PATH, "w");
     if(sp==NULL){
         fprintf(stderr,"Error opening file!\n");
@@ -82,10 +83,10 @@ int main(){
         exit(EXIT_FAILURE);
     }
 
-    //free memory
+    //free the slow5 record
     slow5_rec_free(slow5_record);
 
-    //close the file
+    //close the SLOW5 file
     slow5_close(sp);
 
     return 0;
@@ -94,7 +95,7 @@ int main(){
 
 void set_header_attributes(slow5_file_t *sp){
 
-    slow5_hdr_t *header=sp->header;
+    slow5_hdr_t *header=sp->header; //pointer to the SLOW5 header
 
     //add a header group attribute called run_id
     if (slow5_hdr_add("run_id", header) < 0){
