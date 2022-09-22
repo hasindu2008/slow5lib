@@ -81,7 +81,7 @@ int main(){
     //------------------------------------------------------------------------
     //              get auxiliary values with primitive datatype
     //------------------------------------------------------------------------
-    ret=0;
+
     double median_before = slow5_aux_get_double(rec,"median_before",&ret);
     if(ret!=0){
         fprintf(stderr,"Error in getting auxiliary attribute from the file. Error code %d\n",ret);
