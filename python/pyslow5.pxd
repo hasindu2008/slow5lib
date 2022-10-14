@@ -93,8 +93,7 @@ cdef extern from "pyslow5.h":
     char **slow5_get_rids(const slow5_file_t *s5p, uint64_t *len);
 
 
-
-
+    # get aux fields
     int8_t slow5_aux_get_int8(const slow5_rec_t *read, const char *attr, int *err);
     int16_t slow5_aux_get_int16(const slow5_rec_t *read, const char *attr, int *err);
     int32_t slow5_aux_get_int32(const slow5_rec_t *read, const char *attr, int *err);
@@ -107,6 +106,8 @@ cdef extern from "pyslow5.h":
     double slow5_aux_get_double(const slow5_rec_t *read, const char *attr, int *err);
     char slow5_aux_get_char(const slow5_rec_t *read, const char *attr, int *err);
     uint8_t slow5_aux_get_enum(const slow5_rec_t *read, const char *field, int *err);
+    
+    # get aux arrays
     int8_t *slow5_aux_get_int8_array(const slow5_rec_t *read, const char *attr, uint64_t *len, int *err);
     int16_t *slow5_aux_get_int16_array(const slow5_rec_t *read, const char *attr, uint64_t *len, int *err);
     int32_t *slow5_aux_get_int32_array(const slow5_rec_t *read, const char *attr, uint64_t *len, int *err);
@@ -119,6 +120,9 @@ cdef extern from "pyslow5.h":
     double *slow5_aux_get_double_array(const slow5_rec_t *read, const char *attr, uint64_t *len, int *err);
     char *slow5_aux_get_string(const slow5_rec_t *read, const char *attr, uint64_t *len, int *err);
     uint8_t *slow5_aux_get_enum_array(const slow5_rec_t *read, const char *field, uint64_t *len, int *err);
+
+    # get aux enum labels
+    char **slow5_get_aux_enum_labels(const slow5_hdr_t *header, const char *field, uint8_t *n);
 
 
     # Write slow5 file

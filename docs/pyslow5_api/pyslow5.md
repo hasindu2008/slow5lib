@@ -311,6 +311,31 @@ Returns an ordered list of auxiliary attribute types (same order as get_aux_name
 
 This can mostly be ignored, but will be used in error tracing in the future, as auxiliary field requests have multiple types, each with their own calls, and not all are used. It could be the case a call for an auxiliary filed fails, and knowing which type the field is requesting is very helpful in understanding which function in C is being called, that could be causing the error.
 
+#### `get_aux_enum_labels(label)`:
+
+Returns an ordered list representing the values in the enum struct in the type header.
+
+The value in the read can then be used to access the labels as an index to the list.
+
+Example:
+
+```python
+s5 = slow5.Open(file,'w')
+end_reason_labels = s5.get_aux_enum_labels('end_reason')
+print(end_reason_labels)
+
+> ['unknown', 'partial', 'mux_change', 'unblock_mux_change', 'signal_positive', 'signal_negative']
+
+readID = "r1"
+read = s5.get_read(readID, aux='all')
+er_index = read['end_reason]
+er = end_reason_labels[er_index]
+
+print("{}: {}".format(er_index, er))
+
+> 4: signal_positive
+```
+
 ### Writing a file
 
 To write a file, `mode` in `Open()` must be set to `'w'` and when appending, `'a'`

@@ -38,7 +38,9 @@ cdef class Open:
     cdef bint close_state
     cdef pyslow5.uint64_t head_len
     cdef pyslow5.uint64_t aux_len
+    cdef pyslow5.uint8_t enum_len
     cdef pyslow5.slow5_aux_type *s5_aux_type
+    cdef char **s5_aux_enum
     cdef int aux_get_err
     cdef pyslow5.uint64_t aux_get_len
     cdef np.npy_intp shape_get[1]
@@ -126,10 +128,12 @@ cdef class Open:
         self.header_add_attr_state = False
         self.close_state = False
         self.s5_aux_type = NULL
+        self.s5_aux_enum = NULL
         self.aux_get_err = 1
         self.aux_get_len = 0
         self.head_len = 0
         self.aux_len = 0
+        self.enum_len = 0
         self.shape_seq[0] = 0
         self.shape_get[0] = 0
         self.e0 = -1
@@ -1345,6 +1349,23 @@ cdef class Open:
 
         aux_types = [self.s5_aux_type[i] for i in range(self.aux_len)]
         return aux_types
+    
+
+    def get_aux_enum_labels(self, label):
+        '''
+        get the labels for an enum aux field
+        '''
+        a = str.encode(label)
+        labels = []
+        self.s5_aux_enum = slow5_get_aux_enum_labels(self.s5.header, a, &self.enum_len)
+
+        if self.s5_aux_enum == NULL:
+            self.logger.warning("get_aux_enum_labels enum_labels is NULL")
+            return labels
+        
+        labels = [self.s5_aux_enum[i].decode() for i in range(self.enum_len)]
+        return labels
+
 
     # ==========================================================================
     #      Write SLOW5 file
@@ -1822,7 +1843,7 @@ cdef class Open:
                      "start_mux": type(1),
                      "start_time": type(100),
                      "end_reason": None}
-        # check an empty dic wasn't given
+        # check if empty dic was given
         if aux is not None:
             if len(aux) == 0:
                 aux = None
