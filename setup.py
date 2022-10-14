@@ -88,7 +88,7 @@ def readme():
 
 setup(
     name = 'pyslow5',
-    version='0.6.0-dirty',
+    version='0.7.0-dirty',
     url = 'https://github.com/hasindu2008/slow5lib',
     description='slow5lib python bindings',
     long_description=readme(),

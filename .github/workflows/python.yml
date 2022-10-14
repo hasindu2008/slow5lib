@@ -9,7 +9,7 @@ on:
 jobs:
   ubuntu_14:
     name: pyslow5 Ubuntu_14
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     container: ubuntu:14.04
     steps:
     - uses: actions/checkout@v2
@@ -23,7 +23,7 @@ jobs:
       run: python3 -m unittest -v python/test.py
   ubuntu_16:
     name: pyslow5 Ubuntu 16
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     container: ubuntu:16.04
     steps:
     - uses: actions/checkout@v2
@@ -37,11 +37,12 @@ jobs:
       run: python3 -m unittest -v python/test.py
   pyslow5_ubuntu_18:
     name: pyslow5 Ubuntu 18
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
+    container: ubuntu:18.04
     steps:
     - uses: actions/checkout@v2
     - name: install packages
-      run: sudo apt-get update && sudo apt-get install -y zlib1g-dev python3-pip && pip3 install setuptools cython numpy
+      run: apt-get update && apt-get install -y zlib1g-dev python3-pip && pip3 install setuptools cython numpy
     - name: build
       run: make pyslow5
     - name: test
