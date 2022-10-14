@@ -40,7 +40,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: install packages
-      run:  apt-get update && sudo apt-get install -y zlib1g-dev valgrind gcc g++ autoconf automake make
+      run:  apt-get update && apt-get install -y zlib1g-dev valgrind gcc g++ autoconf automake make
     - name: build
       run:  make -j8
     - name: test
@@ -56,7 +56,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: install packages
-      run:  apt-get update && sudo apt-get install -y zlib1g-dev libzstd-dev valgrind gcc g++ autoconf automake make
+      run:  apt-get update && apt-get install -y zlib1g-dev libzstd-dev valgrind gcc g++ autoconf automake make
     - name: build
       run:  make -j8 zstd=1
     - name: test
