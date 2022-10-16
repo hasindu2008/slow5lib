@@ -1,3 +1,5 @@
+// an example programme that uses the optional multi-threaded API in slow5lib to write and fetch batches of records in parallel
+// this is under construction and is yet beta
 
 #include <assert.h>
 #include <math.h>
@@ -8,10 +10,8 @@
 #include <slow5/slow5.h>
 #include <slow5/slow5_mt.h>
 
-
 #define FILE_PATH "test.blow5" //for reading
 #define FILE_PATH_WRITE "test.blow5"
-//#define FILE_PATH "/home/jamfer/Data/SK/multi_fast5/s5/FAK40634_d1cc054609fe2c5fcdeac358864f9dc81c8bb793_95.blow5"
 
 int read_func(){
 
@@ -44,8 +44,6 @@ int read_func(){
     slow5_free_batch(read_batch);
     slow5_free_mt(mt);
     slow5_close(sp);
-
-
 
     //now random read fun
     sp = slow5_open(FILE_PATH,"r");
@@ -169,8 +167,6 @@ int write_func(){
         exit(EXIT_FAILURE);
     }
 
-
-
     int ret=0;
     int batch_size = 4000;
     int num_thread = 8;
@@ -181,7 +177,6 @@ int write_func(){
 
     /******************* SLOW5 records ************************/
     for(int i=0;i<batch_size;i++){
-
 
         slow5_rec_t *slow5_record = rec[i] = slow5_rec_init();
 
@@ -253,11 +248,6 @@ int write_func(){
         exit(EXIT_FAILURE);
     }
 
-
-    // for(int i=0;i<batch_size;i++){
-    //     slow5_rec_free(rec[i]);
-    // }
-
     slow5_free_batch(read_batch);
     slow5_free_mt(mt);
     slow5_close(sf);
@@ -270,9 +260,7 @@ int main(){
     write_func();
     read_func();
 
-
     return 0;
 }
 
-//gcc -Wall examples/lazymt/mt.c -I include/ lib/libslow5.a  -lpthread -lz -O2 -g
 

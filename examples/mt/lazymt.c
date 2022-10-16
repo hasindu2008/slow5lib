@@ -1,4 +1,8 @@
 
+// an example programme is for a lazy programmer. see mt.c instead.
+// uses the optional multi-threaded API under  the lazy mode to fetch batches of records in parallel
+// this is under construction and is yet beta
+
 #include <assert.h>
 #include <math.h>
 #include <pthread.h>
@@ -8,10 +12,8 @@
 #include <slow5/slow5.h>
 #include <slow5/slow5_mt.h>
 
-
 #define FILE_PATH "test.blow5" //for reading
 #define FILE_PATH_WRITE "test.blow5"
-//#define FILE_PATH "/home/jamfer/Data/SK/multi_fast5/s5/FAK40634_d1cc054609fe2c5fcdeac358864f9dc81c8bb793_95.blow5"
 
 int read_func(){
 
@@ -24,7 +26,7 @@ int read_func(){
     int ret=0;
     int batch_size = 2048;
     int num_thread = 8;
-    
+
     while(1){
 
         ret = slow5_get_next_batch_lazy(&rec,sp,batch_size,num_thread);
@@ -255,5 +257,4 @@ int main(){
     return 0;
 }
 
-//gcc -Wall examples/mt/lazymt.c -I include/ lib/libslow5.a  -lpthread -lz -O2 -g
 

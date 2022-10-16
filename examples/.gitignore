@@ -17,6 +17,10 @@ example_write_aux.blow5
 write
 append
 adv/auxiliary_field_enum
+adv/auxiliary_field_enum_write
 adv/sequential_read_pthreads
 adv/sequential_read_openmp
 adv/get_all_read_ids
+mt/mt
+mt/lazymt
+

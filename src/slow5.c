@@ -2326,6 +2326,11 @@ int slow5_aux_meta_add_enum(struct slow5_aux_meta *aux_meta, const char *attr, e
     return 0;
 }
 
+int  slow5_aux_add_enum(const char *field, const char **enum_labels, uint8_t num_labels, slow5_hdr_t *header){
+    int ret = slow5_aux_meta_add_enum(header->aux_meta, field, SLOW5_ENUM, enum_labels, num_labels);
+    return ret;
+}
+
 void slow5_aux_meta_free(struct slow5_aux_meta *aux_meta) {
     if (aux_meta) {
         if (aux_meta->attrs) {

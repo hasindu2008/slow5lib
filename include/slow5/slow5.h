@@ -659,6 +659,8 @@ int slow5_encode(char **mem, size_t *bytes, slow5_rec_t *read, slow5_file_t *s5p
 
 int slow5_write_bytes(char *mem, size_t bytes, slow5_file_t *s5p);
 
+int slow5_aux_add_enum(const char *field, const char **enum_labels, uint8_t num_labels, slow5_hdr_t *header);
+
 /*
 IMPORTANT: The following low-level API functions are not yet finalised or documented, until someone requests.
 If anyone is interested, please open a GitHub issue, rather than trying to figure out from the code.

@@ -33,6 +33,8 @@ Low-level API allows much more efficient access to BLOW5 files compared to the h
 
 ### Writing and editing
 
+* [slow5_aux_add_enum](low_level_api/slow5_aux_add_enum.md)<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;adds an auxiliary field of type enum to a SLOW5 header
 * [slow5_encode](low_level_api/slow5_encode.md)<br/>
   &nbsp;&nbsp;&nbsp;&nbsp;encodes a SLOW5 record
 * [slow5_write_bytes](low_level_api/slow5_write_bytes.md)<br/>
