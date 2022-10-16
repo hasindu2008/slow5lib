@@ -1,4 +1,4 @@
-# slow5_aux_add
+# slow5_aux_add_enum
 
 ## NAME
 
