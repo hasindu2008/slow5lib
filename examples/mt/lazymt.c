@@ -12,10 +12,22 @@
 #include <slow5/slow5.h>
 #include <slow5/slow5_mt.h>
 
-#define FILE_PATH "test.blow5" //for reading
-#define FILE_PATH_WRITE "test.blow5"
+#define FILE_PATH "test.blow5" //for writing and reading
 
-int read_func(){
+void sequential_read_func();    //function to read records sequentially
+void random_read_func();        //function to read records randomly (lot of read IDs)
+void write_func();              //function to write records
+
+int main(){
+
+    write_func();
+    sequential_read_func();
+    random_read_func();
+
+    return 0;
+}
+
+void sequential_read_func(){
 
     slow5_file_t *sp = slow5_open(FILE_PATH,"r");
     if(sp==NULL){
@@ -43,29 +55,27 @@ int read_func(){
 
     slow5_close(sp);
 
+    return;
+}
 
-    //now random read fun
-    sp = slow5_open(FILE_PATH,"r");
+
+void random_read_func(){
+
+    slow5_file_t *sp = slow5_open(FILE_PATH,"r");
     if(sp==NULL){
        fprintf(stderr,"Error in opening file\n");
        exit(EXIT_FAILURE);
     }
-    rec = NULL;
+    slow5_rec_t **rec = NULL;
 
-    ret = slow5_idx_create(sp);
-    if(ret<0){
-        fprintf(stderr,"Error in creating index\n");
-        exit(EXIT_FAILURE);
-    }
-
-    ret = slow5_idx_load(sp);
+    int ret = slow5_idx_load(sp);
     if(ret<0){
         fprintf(stderr,"Error in loading index\n");
         exit(EXIT_FAILURE);
     }
 
     int num_rid = 4;
-    num_thread = 2;
+    int num_thread = 2;
     char *rid[num_rid];
     rid[0]="read_id_50";
     rid[1]="read_id_3999",
@@ -83,13 +93,13 @@ int read_func(){
     slow5_idx_unload(sp);
     slow5_close(sp);
 
-    return 0;
+    return;
 }
 
 
-int write_func(){
+void write_func(){
 
-    slow5_file_t *sf = slow5_open(FILE_PATH_WRITE,"w");
+    slow5_file_t *sf = slow5_open(FILE_PATH,"w");
     if(sf==NULL){
         fprintf(stderr,"Error in opening file\n");
         exit(EXIT_FAILURE);
@@ -245,16 +255,8 @@ int write_func(){
         slow5_rec_free(rec[i]);
     }
 
-    return 0;
+    return;
 }
 
-int main(){
-
-    write_func();
-    read_func();
-
-
-    return 0;
-}
 
 

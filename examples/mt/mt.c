@@ -10,10 +10,22 @@
 #include <slow5/slow5.h>
 #include <slow5/slow5_mt.h>
 
-#define FILE_PATH "test.blow5" //for reading
-#define FILE_PATH_WRITE "test.blow5"
+#define FILE_PATH "test.blow5" //for writing and then reading
 
-int read_func(){
+void sequential_read_func();    //function to read records sequentially
+void random_read_func();        //function to read records randomly (lot of read IDs)
+void write_func();              //function to write records
+
+int main(){
+
+    write_func();
+    sequential_read_func();
+    random_read_func();
+
+    return 0;
+}
+
+void sequential_read_func(){
 
     slow5_file_t *sp = slow5_open(FILE_PATH,"r");
     if(sp==NULL){
@@ -45,37 +57,37 @@ int read_func(){
     slow5_free_mt(mt);
     slow5_close(sp);
 
-    //now random read fun
-    sp = slow5_open(FILE_PATH,"r");
+    return;
+}
+
+
+void random_read_func(){
+
+    slow5_file_t *sp = slow5_open(FILE_PATH,"r");
     if(sp==NULL){
        fprintf(stderr,"Error in opening file\n");
        exit(EXIT_FAILURE);
     }
-    rec = NULL;
+    slow5_rec_t **rec = NULL;
 
-    ret = slow5_idx_create(sp);
-    if(ret<0){
-        fprintf(stderr,"Error in creating index\n");
-        exit(EXIT_FAILURE);
-    }
-
-    ret = slow5_idx_load(sp);
+    int ret = slow5_idx_load(sp);
     if(ret<0){
         fprintf(stderr,"Error in loading index\n");
         exit(EXIT_FAILURE);
     }
 
     int num_rid = 4;
-    num_thread = 2;
+    int num_thread = 2;
+    int batch_size = 4096;
     char *rid[num_rid];
     rid[0]="read_id_50";
     rid[1]="read_id_3999",
     rid[2]="read_id_0";
     rid[3]="read_id_4";
 
-    mt = slow5_init_mt(num_thread,sp);
+    slow5_mt_t *mt = slow5_init_mt(num_thread,sp);
 
-    read_batch = slow5_init_batch(batch_size);
+    slow5_batch_t *read_batch = slow5_init_batch(batch_size);
 
     ret = slow5_get_batch(mt, read_batch, rid, num_rid);
     assert(ret==num_rid);
@@ -91,13 +103,13 @@ int read_func(){
     slow5_idx_unload(sp);
     slow5_close(sp);
 
-    return 0;
+    return;
 }
 
 
-int write_func(){
+void write_func(){
 
-    slow5_file_t *sf = slow5_open(FILE_PATH_WRITE,"w");
+    slow5_file_t *sf = slow5_open(FILE_PATH,"w");
     if(sf==NULL){
         fprintf(stderr,"Error in opening file\n");
         exit(EXIT_FAILURE);
@@ -252,15 +264,5 @@ int write_func(){
     slow5_free_mt(mt);
     slow5_close(sf);
 
-    return 0;
+    return;
 }
-
-int main(){
-
-    write_func();
-    read_func();
-
-    return 0;
-}
-
-
