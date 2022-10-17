@@ -328,7 +328,7 @@ print(end_reason_labels)
 
 readID = "r1"
 read = s5.get_read(readID, aux='all')
-er_index = read['end_reason]
+er_index = read['end_reason']
 er = end_reason_labels[er_index]
 
 print("{}: {}".format(er_index, er))
@@ -363,6 +363,7 @@ header = s5.get_empty_header()
 ```python
 s5 = slow5.Open(file, w)
 header, end_reason_labels = s5.get_empty_header(aux=True)
+```
 
 #### `write_header(header, read_group=0, end_reason_labels=None)`:
 
