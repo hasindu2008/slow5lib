@@ -1360,7 +1360,7 @@ cdef class Open:
 
         aux_types = [self.s5_aux_type[i] for i in range(self.aux_len)]
         return aux_types
-    
+
 
     def get_aux_enum_labels(self, label):
         '''
@@ -1373,7 +1373,7 @@ cdef class Open:
         if self.s5_aux_enum == NULL:
             self.logger.warning("get_aux_enum_labels enum_labels is NULL")
             return labels
-        
+
         labels = [self.s5_aux_enum[i].decode() for i in range(self.enum_len)]
         return labels
 
@@ -1452,7 +1452,7 @@ cdef class Open:
                "start_mux": None,
                "start_time": None,
                "end_reason": None}
-        
+
         if aux:
             return record, aux_rec
         return record
@@ -1581,7 +1581,7 @@ cdef class Open:
                         new_aux[a] = aux[a]
                     else:
                          self.logger.error("_record_type_validation {}: {} user aux field unknown?".format(a, aux[a]))
-                        
+
 
         return user_record, new_aux
 
@@ -1693,7 +1693,7 @@ cdef class Open:
             if ret < 0:
                 self.logger.error("write_header: slow5_hdr_set {}: {} could not set to C s5.header struct".format(h, checked_header[h]))
                 errors = True
-        
+
         # check end_reason_labels type
         if end_reason_labels is not None:
             erl = []
@@ -2046,7 +2046,7 @@ cdef class Open:
                                 self.logger.error("write_record_batch: slow5_aux_set_string could not write aux value {}: {}".format(a, checked_auxs[batch[idx]][a]))
                                 #### We should free here
                                 return -1
-                        
+
                         elif a == "median_before":
                             ret = slow5_aux_set(self.twrite[idx], self.median_before, <const void *>&self.median_before_val_array[idx], self.s5.header)
                         elif a == "read_number":
