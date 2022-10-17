@@ -86,17 +86,21 @@ cdef class Open:
     cdef char *read_number
     cdef char *start_mux
     cdef char *start_time
-    cdef char *end_reason # need to add end_reason_val
+    cdef char *end_reason
+    cdef char **end_reason_labels
+    cdef pyslow5.uint8_t end_reason_labels_len
     cdef char *channel_number_val
     cdef double median_before_val
     cdef pyslow5.int32_t read_number_val
     cdef pyslow5.uint8_t start_mux_val
     cdef pyslow5.uint64_t start_time_val
+    cdef pyslow5.uint8_t end_reason_val
     cdef char **channel_number_val_array
     cdef double *median_before_val_array
     cdef pyslow5.int32_t *read_number_val_array
     cdef pyslow5.uint8_t *start_mux_val_array
     cdef pyslow5.uint64_t *start_time_val_array
+    cdef pyslow5.uint8_t *end_reason_val_array
 
     cdef pyslow5.float total_time_slow5_get_next
     cdef pyslow5.float total_time_yield_reads
@@ -165,19 +169,22 @@ cdef class Open:
         self.start_mux = strdup("start_mux")
         self.start_time = strdup("start_time")
         self.end_reason = strdup("end_reason")
+        self.end_reason_labels = NULL
+        self.end_reason_labels_len = 0
         channel_number_val = NULL
         median_before_val = -1.0
         read_number_val = -1
         start_mux_val = -1
         start_time_val = -1
+        end_reason_val = -1
         channel_number_val_array = NULL
         median_before_val_array = NULL
         read_number_val_array = NULL
         start_mux_val_array = NULL
         start_time_val_array = NULL
+        end_reason_val_array = NULL
 
 
-        # cdef something end_reason # some enum
         self.total_time_slow5_get_next = 0.0
         self.total_time_yield_reads = 0.0
         self.total_single_write_time = 0.0
@@ -314,6 +321,10 @@ cdef class Open:
         free(self.start_mux)
         free(self.start_time)
         free(self.end_reason)
+        if self.end_reason_labels is not NULL:
+            for i in range(self.end_reason_labels_len):
+                free(self.end_reason_labels[i])
+            free(self.end_reason_labels)
 
         self.logger.debug("pathname: {}".format(self.path))
         self.logger.debug("total_time_slow5_get_next: {} seconds".format(self.total_time_slow5_get_next))
@@ -1371,7 +1382,7 @@ cdef class Open:
     #      Write SLOW5 file
     # ==========================================================================
 
-    def get_empty_header(self):
+    def get_empty_header(self, aux=False):
         '''
         returns example empty header dic for user to populate
         Any values not populated will be skipped
@@ -1415,6 +1426,10 @@ cdef class Open:
                   "hublett_board_id": None,
                   "satellite_firmware_version": None}
 
+        end_reason_labels = ['unknown', 'partial', 'mux_change', 'unblock_mux_change', 'signal_positive', 'signal_negative']
+
+        if aux:
+            return header, end_reason_labels
         return header
 
     def get_empty_record(self, aux=False):
@@ -1435,8 +1450,9 @@ cdef class Open:
                "median_before": None,
                "read_number": None,
                "start_mux": None,
-               "start_time": None}
-
+               "start_time": None,
+               "end_reason": None}
+        
         if aux:
             return record, aux_rec
         return record
@@ -1473,14 +1489,14 @@ cdef class Open:
                      "read_number": type(10),
                      "start_mux": type(1),
                      "start_time": type(100),
-                     "end_reason": None}
+                     "end_reason": type(["a", "b", "c"])}
 
         C_aux_types = {"channel_number": SLOW5_STRING,
                      "median_before":SLOW5_DOUBLE,
                      "read_number": SLOW5_INT32_T,
                      "start_mux": SLOW5_UINT8_T,
                      "start_time": SLOW5_UINT64_T,
-                     "end_reason": None}
+                     "end_reason": SLOW5_ENUM}
 
         for a in user_aux_types:
             if user_aux_types[a] is None:
@@ -1516,7 +1532,7 @@ cdef class Open:
                         "read_number": type(10),
                         "start_mux": type(1),
                         "start_time": type(100),
-                        "end_reason": None}
+                        "end_reason": type(1)}
 
         new_aux = {}
 
@@ -1561,8 +1577,11 @@ cdef class Open:
                         self.start_time_val = <uint64_t>aux[a]
                         new_aux[a] = aux[a]
                     elif a == "end_reason":
-                        continue
-            self.logger.debug("_record_type_validation: doing aux stuff...")
+                        self.end_reason_val = <uint8_t>aux[a]
+                        new_aux[a] = aux[a]
+                    else:
+                         self.logger.error("_record_type_validation {}: {} user aux field unknown?".format(a, aux[a]))
+                        
 
         return user_record, new_aux
 
@@ -1587,7 +1606,7 @@ cdef class Open:
                         "read_number": type(10),
                         "start_mux": type(1),
                         "start_time": type(100),
-                        "end_reason": None}
+                        "end_reason": type(1)}
 
         new_aux = {}
 
@@ -1627,7 +1646,9 @@ cdef class Open:
                     elif a == "start_time":
                         new_aux[a] = aux[a]
                     elif a == "end_reason":
-                        continue
+                        new_aux[a] = aux[a]
+                    else:
+                        self.logger.error("_record_type_validation {}: {} user aux field unknown".format(a, aux[a]))
 
             self.logger.debug("_record_type_validation: aux stuff done")
 
@@ -1635,7 +1656,7 @@ cdef class Open:
         return user_record, new_aux
 
 
-    def write_header(self, header, read_group=0):
+    def write_header(self, header, read_group=0, end_reason_labels=None):
         '''
         write slow5 header to file.
         takes header dic for attributes, then write once.
@@ -1672,6 +1693,27 @@ cdef class Open:
             if ret < 0:
                 self.logger.error("write_header: slow5_hdr_set {}: {} could not set to C s5.header struct".format(h, checked_header[h]))
                 errors = True
+        
+        # check end_reason_labels type
+        if end_reason_labels is not None:
+            erl = []
+            for i in end_reason_labels:
+                t = type(i)
+                if t is not type("string"):
+                    self.logger.error("write_header: end_reason_labels: {} not type: string, trying to convert".format(i))
+                    try:
+                        s = str(i)
+                        erl.append(s)
+                        self.logger.warning("write_header end_reason_labels: {} conversion successful".format(s))
+                    except:
+                        self.logger.error("write_header end_reason_labels: {} could not convert value to string".format(i))
+                        errors = True
+                else:
+                    erl.append(i)
+            self.end_reason_labels = <char **> malloc(sizeof(char*)*len(erl))
+            for i in range(len(erl)):
+                self.end_reason_labels[i] = strdup(erl[i].encode())
+            self.end_reason_labels_len = <uint8_t>len(erl)
 
         if not errors:
             return 0
@@ -1693,7 +1735,7 @@ cdef class Open:
                      "read_number": type(10),
                      "start_mux": type(1),
                      "start_time": type(100),
-                     "end_reason": None}
+                     "end_reason": type(["a", "b", "c"])}
 
         self.logger.debug("write_record: _record_type_validation running")
         checked_record, checked_aux = self._record_type_validation(record, aux)
@@ -1712,12 +1754,20 @@ cdef class Open:
                 if checked_aux is not None:
                     slow5_aux_types = self._aux_header_type_validation(aux_types)
                     for a in slow5_aux_types:
-                        if slow5_aux_types[a] is None:
+                        if a not in checked_aux:
                             continue
-                        ret = slow5_aux_add(a.encode(), slow5_aux_types[a], self.s5.header)
-                        if ret < 0:
-                            self.logger.error("write_record: slow5_aux_add {}: {} could not set to C s5.header.aux_meta struct".format(a, checked_aux[a]))
-                            error = True
+                        elif checked_aux[a] is None:
+                            continue
+                        elif slow5_aux_types[a] == SLOW5_ENUM:
+                            ret = slow5_aux_add_enum(a.encode(), <const char **>self.end_reason_labels, self.end_reason_labels_len, self.s5.header)
+                            if ret < 0:
+                                self.logger.error("write_record: slow5_aux_add_enum {}: {} could not set to C s5.header.aux_meta struct".format(a, checked_aux[a]))
+                                error = True
+                        else:
+                            ret = slow5_aux_add(a.encode(), slow5_aux_types[a], self.s5.header)
+                            if ret < 0:
+                                self.logger.error("write_record: slow5_aux_add {}: {} could not set to C s5.header.aux_meta struct".format(a, checked_aux[a]))
+                                error = True
                 else:
                     error = True
 
@@ -1787,6 +1837,7 @@ cdef class Open:
                         self.logger.error("write_record: slow5_aux_set_string could not write aux value {}: {}".format(a, checked_aux[a]))
                         #### We should free here
                         return -1
+
                 elif a == "median_before":
                     ret = slow5_aux_set(self.write, self.median_before, <const void *>&self.median_before_val, self.s5.header)
                 elif a == "read_number":
@@ -1796,8 +1847,9 @@ cdef class Open:
                 elif a == "start_time":
                     ret = slow5_aux_set(self.write, self.start_time, <const void *>&self.start_time_val, self.s5.header)
                 elif a == "end_reason":
-                    # not implemented yet becuase of variability in ONT versioning
-                    ret = 0
+                    ret = slow5_aux_set(self.write, self.end_reason, <const void *>&self.end_reason_val, self.s5.header)
+                else:
+                    ret = -1
                 if ret < 0:
                     self.logger.error("write_record: slow5_aux_set could not write aux value {}: {}".format(a, checked_aux[a]))
                     return -1
@@ -1817,6 +1869,7 @@ cdef class Open:
             self.read_number_val = -1
             self.start_mux_val = -1
             self.start_time_val = -1
+            self.end_reason_val = -1
 
 
         # free memory
@@ -1842,7 +1895,7 @@ cdef class Open:
                      "read_number": type(10),
                      "start_mux": type(1),
                      "start_time": type(100),
-                     "end_reason": None}
+                     "end_reason": type(["a", "b", "c"])}
         # check if empty dic was given
         if aux is not None:
             if len(aux) == 0:
@@ -1868,6 +1921,7 @@ cdef class Open:
             self.read_number_val_array = <int32_t *> malloc(sizeof(int32_t)*batch_len)
             self.start_mux_val_array = <uint8_t *> malloc(sizeof(uint8_t)*batch_len)
             self.start_time_val_array = <uint64_t *> malloc(sizeof(uint64_t)*batch_len)
+            self.end_reason_val_array = <uint8_t *> malloc(sizeof(uint8_t)*batch_len)
             for i, idx in enumerate(batch):
                 if aux is not None:
                     checked_record, checked_aux = self._multi_record_type_validation(records[idx], aux[idx])
@@ -1883,6 +1937,8 @@ cdef class Open:
                             self.start_mux_val_array[i] = <uint8_t>checked_aux[a]
                         elif a == "start_time":
                             self.start_time_val_array[i] = <uint64_t>checked_aux[a]
+                        elif a == "end_reason":
+                            self.end_reason_val_array[i] = <uint8_t>checked_aux[a]
                     checked_auxs[idx] = checked_aux
                 else:
                     checked_record, checked_aux = self._record_type_validation(records[idx], aux)
@@ -1905,12 +1961,20 @@ cdef class Open:
                         if checked_aux is not None:
                             slow5_aux_types = self._aux_header_type_validation(aux_types)
                             for a in slow5_aux_types:
-                                if slow5_aux_types[a] is None:
+                                if a not in checked_aux:
                                     continue
-                                ret = slow5_aux_add(a.encode(), slow5_aux_types[a], self.s5.header)
-                                if ret < 0:
-                                    self.logger.error("write_record_batch: slow5_aux_add {}: {} could not set to C s5.header.aux_meta struct".format(a, checked_aux[a]))
-                                    error = True
+                                elif checked_aux[a] is None:
+                                    continue
+                                elif slow5_aux_types[a] == SLOW5_ENUM:
+                                    ret = slow5_aux_add_enum(a.encode(), <const char **>self.end_reason_labels, self.end_reason_labels_len, self.s5.header)
+                                    if ret < 0:
+                                        self.logger.error("write_record: slow5_aux_add_enum {}: {} could not set to C s5.header.aux_meta struct".format(a, checked_aux[a]))
+                                        error = True
+                                else:
+                                    ret = slow5_aux_add(a.encode(), slow5_aux_types[a], self.s5.header)
+                                    if ret < 0:
+                                        self.logger.error("write_record_batch: slow5_aux_add {}: {} could not set to C s5.header.aux_meta struct".format(a, checked_aux[a]))
+                                        error = True
                         else:
                             error = True
 
@@ -1982,6 +2046,7 @@ cdef class Open:
                                 self.logger.error("write_record_batch: slow5_aux_set_string could not write aux value {}: {}".format(a, checked_auxs[batch[idx]][a]))
                                 #### We should free here
                                 return -1
+                        
                         elif a == "median_before":
                             ret = slow5_aux_set(self.twrite[idx], self.median_before, <const void *>&self.median_before_val_array[idx], self.s5.header)
                         elif a == "read_number":
@@ -1991,8 +2056,9 @@ cdef class Open:
                         elif a == "start_time":
                             ret = slow5_aux_set(self.twrite[idx], self.start_time, <const void *>&self.start_time_val_array[idx], self.s5.header)
                         elif a == "end_reason":
-                            # not implemented yet becuase of variability in ONT versioning
-                            ret = 0
+                            ret = slow5_aux_set(self.twrite[idx], self.end_reason, <const void *>&self.end_reason_val_array[idx], self.s5.header)
+                        else:
+                            ret = -1
                         if ret < 0:
                             self.logger.error("write_record_batch: slow5_aux_set could not write aux value {}: {}".format(a, checked_aux[a]))
                             return -1
@@ -2027,6 +2093,7 @@ cdef class Open:
                 free(self.read_number_val_array)
                 free(self.start_mux_val_array)
                 free(self.start_time_val_array)
+                free(self.end_reason_val_array)
 
         end_multi_write = time.time() - start_multi_write
         self.total_multi_write_time = self.total_multi_write_time + end_multi_write

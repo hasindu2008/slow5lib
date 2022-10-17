@@ -138,6 +138,7 @@ cdef extern from "pyslow5.h":
     int slow5_hdr_write(slow5_file_t *sf);
     int slow5_write(slow5_rec_t *rec, slow5_file_t *sf);
     int slow5_aux_add(const char *attr, slow5_aux_type type, slow5_hdr_t *header);
+    int slow5_aux_add_enum(const char *field, const char **enum_labels, uint8_t num_labels, slow5_hdr_t *header)
     int slow5_aux_set(slow5_rec_t *read, const char *attr, const void *data, slow5_hdr_t *header);
     int slow5_aux_set_string(slow5_rec_t *read, const char *attr, const char *data, slow5_hdr_t *header);
 
