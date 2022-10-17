@@ -2,9 +2,9 @@ name: Python CI
 
 on:
   push:
-    branches: [ master, dev, cleanup ]
+    branches: [ '*' ]
   pull_request:
-    branches: [ master, dev, cleanup ]
+    branches: [ '*' ]
 
 jobs:
   ubuntu_14:

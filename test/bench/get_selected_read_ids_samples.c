@@ -1,13 +1,13 @@
 //get all the samples and sum them to stdout
-//make zstd=1
-//gcc -Wall -O2 -I include/ -o get_selected_read_ids_samples test/bench/get_selected_read_ids_samples.c lib/libslow5.a python/slow5threads.c -lm -lz -lzstd -lpthread  -fopenmp
+//make zstd=1 slow5_mt=1
+//gcc -Wall -O2 -I include/ -o get_selected_read_ids_samples test/bench/get_selected_read_ids_samples.c lib/libslow5.a -lm -lz -lzstd -lpthread  -fopenmp
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <slow5/slow5.h>
 #include <omp.h>
 #include <sys/time.h>
-#include "../../python/slow5threads.h"
+#include <slow5/slow5_mt.h>
 
 static inline double realtime(void) {
     struct timeval tp;
@@ -85,7 +85,7 @@ int main(int argc, char *argv[]) {
         int num_rid = i;
 
         t0 = realtime();
-        ret = slow5_get_batch(&rec, sp, rid, num_rid, num_thread);
+        ret = slow5_get_batch_lazy(&rec, sp, rid, num_rid, num_thread);
         tot_time += realtime() - t0;
 
         if(ret!=num_rid){
@@ -110,7 +110,7 @@ int main(int argc, char *argv[]) {
         fprintf(stderr,"batch printed with %d reads\n",ret);
 
         t0 = realtime();
-        slow5_free_batch(&rec,ret);
+        slow5_free_batch_lazy(&rec,ret);
         tot_time += realtime() - t0;
 
         for(int i=0; i<num_rid; i++){

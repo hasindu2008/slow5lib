@@ -460,6 +460,106 @@ print("number of reads: {}".format(num_reads))
 s58.close()
 
 print("==============================================")
+print("get enum fields")
+
+s59 = slow5.Open('examples/adv/example3.blow5','r', DEBUG=debug)
+
+e = s59.get_aux_enum_labels('end_reason')
+
+print(e)
+
+s59.close()
+
+print("==============================================")
+print("check can read enum aux field")
+
+s510 = slow5.Open('examples/adv/example3.blow5','r', DEBUG=debug)
+reads = s510.seq_reads(aux='all')
+
+e = s510.get_aux_enum_labels('end_reason')
+
+for read in reads:
+    print(read['read_id'], read['end_reason'], e[read['end_reason']])
+
+s510.close()
+
+print("==============================================")
+print("write reads with aux and end_reason enum")
+
+F = slow5.Open('examples/example_write_aux_enum.blow5','w', DEBUG=debug)
+header, end_reason_labels = F.get_empty_header(aux=True)
+
+counter = 0
+for i in header:
+    header[i] = "test_{}".format(counter)
+    counter += 1
+
+ret = F.write_header(header, end_reason_labels=end_reason_labels)
+print("ret: write_header(): {}".format(ret))
+
+s58 = slow5.Open('examples/adv/example3.blow5','r', DEBUG=debug)
+reads = s58.seq_reads(aux='all')
+
+for read in reads:
+    record, aux = F.get_empty_record(aux=True)
+    for i in read:
+        if i in record:
+            record[i] = read[i]
+        if i in aux:
+            aux[i] = read[i]
+    ret = F.write_record(record, aux)
+    print("ret: write_record(): {}".format(ret))
+
+s58.close()
+F.close()
+
+print("==============================================")
+print("write reads with aux multi")
+
+F = slow5.Open('examples/example_write_aux_enum_multi.blow5','w', DEBUG=debug)
+header, end_reason_labels = F.get_empty_header(aux=True)
+header2 = F.get_empty_header()
+
+counter = 0
+for i in header:
+    header[i] = "test_{}".format(counter)
+    counter += 1
+
+for i in header2:
+    header2[i] = "test_{}".format(counter)
+    counter += 1
+
+ret = F.write_header(header, end_reason_labels=end_reason_labels)
+print("ret: write_header(): {}".format(ret))
+ret = F.write_header(header2, read_group=1)
+print("ret: write_header(): {}".format(ret))
+
+s58 = slow5.Open('examples/adv/example3.blow5','r', DEBUG=debug)
+reads = s58.seq_reads(aux='all')
+
+records = {}
+auxs = {}
+for read in reads:
+    record, aux = F.get_empty_record(aux=True)
+    # record = F.get_empty_record()
+    for i in read:
+        if i == "read_id":
+            readID = read[i]
+        if i in record:
+            record[i] = read[i]
+        if i in aux:
+            aux[i] = read[i]
+    records[readID] = record
+    auxs[readID] = aux
+print(records)
+print(auxs)
+ret = F.write_record_batch(records, threads=2, batchsize=3, aux=auxs)
+print("ret: write_record(): {}".format(ret))
+
+s58.close()
+F.close()
+
+print("==============================================")
 # print("seq_reads with big file:")
 # start_time = time.time()
 # s53 = slow5.Open('/home/jamfer/Data/SK/multi_fast5/s5/FAK40634_d1cc054609fe2c5fcdeac358864f9dc81c8bb793_95.blow5','r', DEBUG=debug)

@@ -1,6 +1,6 @@
 //get all the samples and sum them to stdout
 //make zstd=1
-//gcc -Wall -O2 -I include/ -o get_all_samples test/bench/get_all_samples.c lib/libslow5.a python/slow5threads.c -lm -lz -lzstd -lpthread  -fopenmp
+//gcc -Wall -O2 -I include/ -o get_all_samples test/bench/get_all_samples.c lib/libslow5.a -lm -lz -lzstd -lpthread  -fopenmp
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,7 +8,7 @@
 #include <omp.h>
 #include <sys/time.h>
 #include <pthread.h>
-#include "../../python/slow5threads.h"
+//#include "../../python/slow5threads.h"
 #include "../../src/slow5_extra.h"
 
 int threads = 10;

@@ -19,6 +19,11 @@ else
 CFLAGS		+= -DSLOW5_USE_ZSTD
 CPPFLAGS 	+= -I $(zstd_local)
 endif
+ifeq ($(slow5_mt),1)
+CFLAGS		+= -DSLOW5_ENABLE_MT
+LDFLAGS		+= -lpthread
+endif
+
 BUILD_DIR	= lib
 
 STATICLIB	= $(BUILD_DIR)/libslow5.a
@@ -28,6 +33,7 @@ OBJ = $(BUILD_DIR)/slow5.o \
 		$(BUILD_DIR)/slow5_idx.o \
 		$(BUILD_DIR)/slow5_misc.o \
 		$(BUILD_DIR)/slow5_press.o \
+		$(BUILD_DIR)/slow5_mt.o \
 
 PREFIX = /usr/local
 VERSION = `git describe --tags`
@@ -59,6 +65,9 @@ $(BUILD_DIR)/slow5_misc.o: src/slow5_misc.c src/slow5_misc.h include/slow5/slow5
 	$(CC) $(CFLAGS) $(CPPFLAGS) $< -c -fpic -o $@
 
 $(BUILD_DIR)/slow5_press.o: src/slow5_press.c include/slow5/slow5_press.h src/slow5_misc.h include/slow5/slow5_error.h
+	$(CC) $(CFLAGS) $(CPPFLAGS) $< -c -fpic -o $@
+
+$(BUILD_DIR)/slow5_mt.o: src/slow5_mt.c include/slow5/slow5_mt.h $(SLOW5_H)
 	$(CC) $(CFLAGS) $(CPPFLAGS) $< -c -fpic -o $@
 
 clean:

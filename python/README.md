@@ -79,7 +79,7 @@ git clone git@github.com:hasindu2008/slow5lib.git
 cd slow5lib
 make
 
-# CHOOSE A OR B:  
+# CHOOSE A OR B:
 # (B is the cleanest method)
 # |=======================================================================|
 # |A. Install with pip if wheel is present, otherwise it uses setuptools  |
@@ -311,17 +311,45 @@ Returns an ordered list of auxiliary attribute types (same order as get_aux_name
 
 This can mostly be ignored, but will be used in error tracing in the future, as auxiliary field requests have multiple types, each with their own calls, and not all are used. It could be the case a call for an auxiliary filed fails, and knowing which type the field is requesting is very helpful in understanding which function in C is being called, that could be causing the error.
 
+#### `get_aux_enum_labels(label)`:
+
+Returns an ordered list representing the values in the enum struct in the type header.
+
+The value in the read can then be used to access the labels as an index to the list.
+
+Example:
+
+```python
+s5 = slow5.Open(file,'w')
+end_reason_labels = s5.get_aux_enum_labels('end_reason')
+print(end_reason_labels)
+
+> ['unknown', 'partial', 'mux_change', 'unblock_mux_change', 'signal_positive', 'signal_negative']
+
+readID = "r1"
+read = s5.get_read(readID, aux='all')
+er_index = read['end_reason']
+er = end_reason_labels[er_index]
+
+print("{}: {}".format(er_index, er))
+
+> 4: signal_positive
+```
+
 ### Writing a file
 
 To write a file, `mode` in `Open()` must be set to `'w'` and when appending, `'a'`
 
-#### `get_empty_header()`:
+#### `get_empty_header(aux=False)`:
 
 Returns a dictionary containing all known header attributes with their values set to `None`.
 
 User can modify each value, and add or remove attributes to be used has header items.
 All values end up stored as strings, and anything left as `None` will be skipped.
 To write header, see `write_header()`
+
+If `aux=True`, an ordered list of strings for the enum `end_reason` will be returned.
+This can be modified depending on the end reason.
 
 Example:
 
@@ -330,12 +358,20 @@ s5 = slow5.Open(file,'w')
 header = s5.get_empty_header()
 ```
 
-#### `write_header(header, read_group=0)`:
+`end_reason` enum example
+
+```python
+s5 = slow5.Open(file, w)
+header, end_reason_labels = s5.get_empty_header(aux=True)
+```
+
+#### `write_header(header, read_group=0, end_reason_labels=None)`:
 
 Write header to file
 
 + `header` = populated dictionary from `get_empty_header()`
 + read_group = read group integer for when multiple runs are written to the same slow5 file
++ end_reason_labels = ordered list used for end_reason enum
 + returns 0 on success, <0 on error with error code
 
 You must write `read_group=0` (default) first before writing any other read_groups, and it is advised to write read_groups in sequential order.
@@ -362,6 +398,23 @@ ret = s5.write_header(header)
 print("ret: write_header(): {}".format(ret))
 # Write second read group, etc
 ret = s5.write_header(header2, read_group=1)
+print("ret: write_header(): {}".format(ret))
+```
+
+`end_reason` example:
+
+```python
+# Get some empty headers
+header, end_reason_labels = s5.get_empty_header(aux=True)
+
+# Populate headers with some test data
+counter = 0
+for i in header:
+    header[i] = "test_{}".format(counter)
+    counter += 1
+
+# Write first read group
+ret = s5.write_header(header, end_reason_labels=end_reason_labels)
 print("ret: write_header(): {}".format(ret))
 ```
 
