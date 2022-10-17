@@ -79,7 +79,7 @@ git clone git@github.com:hasindu2008/slow5lib.git
 cd slow5lib
 make
 
-# CHOOSE A OR B:  
+# CHOOSE A OR B:
 # (B is the cleanest method)
 # |=======================================================================|
 # |A. Install with pip if wheel is present, otherwise it uses setuptools  |

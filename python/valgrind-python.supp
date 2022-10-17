@@ -544,6 +544,7 @@
    Suppress leaking the _PyEval_EvalFrameDefault
    Memcheck:Leak
    fun:malloc
+   fun:_PyObject_GC_NewVar
    ...
    fun:_PyEval_EvalFrameDefault
 }

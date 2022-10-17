@@ -16,10 +16,11 @@ make clean
 rm -f dist/* valgrind.log
 test -d ./venv && rm -r ./venv
 
-make pyslow5 || die "make pyslow5 failed"
+
 ${PYTHON} -m venv ./venv || die "Failed to create virtual environment"
 source ./venv/bin/activate || die "Failed to activate virtual environment"
 pip install --upgrade pip wheel numpy || die "Failed to update pip"
+make pyslow5 || die "make pyslow5 failed"
 pip install dist/*.tar.gz
 python3 python/example.py || die "Failed to run example.py"
 python3 -m unittest -v python/test.py || die "Failed to run test.py"
