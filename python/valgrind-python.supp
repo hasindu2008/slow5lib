@@ -503,9 +503,7 @@
    Suppress leaking the dlopen
    Memcheck:Leak
    fun:malloc
-   fun:_dl_map_object_deps
-   fun:dl_open_worker
-   fun:_dl_catch_error
+   ...
    fun:_dl_open
 }
 
@@ -525,4 +523,27 @@
    fun:_PyFrame_New_NoTrack
 }
 
+{
+   Suppress leaking the _dl_find_object_update
+   Memcheck:Leak
+   fun:malloc
+   fun:_dl_find_object_update
+   fun:dl_open_worker_begin
+}
 
+{
+   Suppress leaking the _PyEval_EvalFrameDefault
+   Memcheck:Leak
+   fun:malloc
+   ...
+   fun:_PyEval_EvalFrameDefault
+   fun:_PyFunction_Vectorcall
+}
+
+{
+   Suppress leaking the _PyEval_EvalFrameDefault
+   Memcheck:Leak
+   fun:malloc
+   ...
+   fun:_PyEval_EvalFrameDefault
+}
