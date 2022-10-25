@@ -87,8 +87,8 @@ Examples are provided under [examples](https://github.com/hasindu2008/slow5lib/t
 - *write.c* demonstrate how to write a new slow5/blow5 file.
 - *append.c* demonstrates how to append to an existing slow5/blow5 file.
 
+Some advanced examples are provided [here](https://github.com/hasindu2008/slow5lib/tree/master/examples/adv).
 Following examples will be added upon request. If you are interested, open a GitHub issue rather than spending your time trying to figure out - will try to provide within a day or two.
-- using multiple threads for parsing and decompression when performing sequential reading; and, writing or appending.
 - accessing header attributes when multiple read groups are present.
 - an efficient input, processing, output pipeline for processing raw signals using slow5lib
 - any other use case.
@@ -110,7 +110,6 @@ slow5lib is a reference implementation for SLOW5 format. Depending on the intere
 - Does not support big-endian systems: Big-endian systems are rare nowadays and I do not have access to one to test. If necessary, it is a matter of writing a layer that swaps the bytes before/after writing to disk. Note: Not to be confused with big.LITTLE architecture which is something else on which slow5lib already works.
 - When running with >64 threads, malloc() calls could reduce the thread efficiency. If that is the case, frequent mallocs could be replaced with kalloc in [klib](https://github.com/attractivechaos/klib).
 - Aggressive compiler optimisations (e.g.,  -O3) and architecture-specific compiler optimisations (e.g., -march=native) are not used in the makefile. These flags will improve performance at the cost of limited portability. These could be provided in a separate make target.
-- multi-threaded decompression and parsing could be implemented inside the C library, but for efficiency and portability it is preferred to be done at user-level. For python bindings in-built multi-threading is already implemented.
 
 
 ### Notes
