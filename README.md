@@ -16,7 +16,7 @@ slow5tools: https://github.com/hasindu2008/slow5tools<br/>
 [![C/C++ CI](https://github.com/hasindu2008/slow5lib/actions/workflows/c-cpp.yml/badge.svg)](https://github.com/hasindu2008/slow5lib/actions/workflows/c-cpp.yml)
 [![Python CI](https://github.com/hasindu2008/slow5lib/actions/workflows/python.yml/badge.svg)](https://github.com/hasindu2008/slow5lib/actions/workflows/python.yml)
 
-Please cite the following in your publications when using *slow5lib*:
+Please cite the following in your publications when using *slow5lib/pyslow5*:
 
 > Gamaarachchi, H., Samarakoon, H., Jenner, S.P. et al. Fast nanopore sequencing data analysis with SLOW5. Nat Biotechnol 40, 1026–1029 (2022). https://doi.org/10.1038/s41587-021-01147-4
 
