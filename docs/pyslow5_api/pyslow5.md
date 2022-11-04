@@ -513,3 +513,4 @@ s5 = slow5.Open(file,'w')
 # Write's EOF and closes file
 s5.close()
 ```
+
