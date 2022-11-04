@@ -5,9 +5,25 @@
 **About SLOW5 format:**
 SLOW5 is a new file format for storing signal data from Oxford Nanopore Technologies (ONT) devices. SLOW5 was developed to overcome inherent limitations in the standard FAST5 signal data format that prevent efficient, scalable analysis and cause many headaches for developers. SLOW5 can be encoded in human-readable ASCII format, or a more compact and efficient binary format (BLOW5) - this is analogous to the seminal SAM/BAM format for storing DNA sequence alignments. The BLOW5 binary format supports  *zlib* (DEFLATE) compression, or other compression methods, thereby minimising the data storage footprint while still permitting efficient parallel access. Detailed benchmarking experiments have shown that SLOW5 format is an order of magnitude faster and significantly smaller than FAST5.
 
-Pre-print: https://www.biorxiv.org/content/10.1101/2021.06.29.450255v1
-Publication: https://www.nature.com/articles/s41587-021-01147-4
-SLOW5 specification: https://hasindu2008.github.io/slow5specs
+Pre-print: https://www.biorxiv.org/content/10.1101/2021.06.29.450255v1<br/>
+Publication: https://www.nature.com/articles/s41587-021-01147-4<br/>
+SLOW5 specification: https://hasindu2008.github.io/slow5specs<br/>
+slow5tools: https://github.com/hasindu2008/slow5tools<br/>
+
+Please cite the following in your publications when using *slow5lib/pyslow5*:
+
+> Gamaarachchi, H., Samarakoon, H., Jenner, S.P. et al. Fast nanopore sequencing data analysis with SLOW5. Nat Biotechnol 40, 1026–1029 (2022). https://doi.org/10.1038/s41587-021-01147-4
+
+```
+@article{gamaarachchi2022fast,
+  title={Fast nanopore sequencing data analysis with SLOW5},
+  author={Gamaarachchi, Hasindu and Samarakoon, Hiruna and Jenner, Sasha P and Ferguson, James M and Amos, Timothy G and Hammond, Jillian M and Saadat, Hassaan and Smith, Martin A and Parameswaran, Sri and Deveson, Ira W},
+  journal={Nature biotechnology},
+  pages={1--4},
+  year={2022},
+  publisher={Nature Publishing Group}
+}
+```
 
 ## Building
 
