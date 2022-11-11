@@ -7,7 +7,11 @@ set(DEPLOY_PLATFORM x86)
 project(slow5lib)
 
 #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -Wall -O2 -std=gnu99 -fopenmp")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -Wall -O2 -std=c99")
+IF (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -Wall -O0 -std=c99")
+ELSEIF()
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -Wall -O2 -std=c99")
+ENDIF()
 
 option(SLOW5_USE_ZSTD "Use ZSTD" OFF) #OFF by default
 if(SLOW5_USE_ZSTD)
