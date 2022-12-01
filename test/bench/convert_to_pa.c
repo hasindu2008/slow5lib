@@ -118,7 +118,7 @@ int main(int argc, char *argv[]) {
         tot_time += realtime() - t0;
         /**** Batch fetched ***/
 
-        fprintf(stderr,"batch loaded with %d reads\n",ret);
+//         fprintf(stderr,"batch loaded with %d reads\n",ret);
 
         //process and print (time not measured as we want to compare to the time it takes to read the file)
         #pragma omp parallel for
@@ -130,11 +130,11 @@ int main(int argc, char *argv[]) {
             }
             sums[i] = sum;
         }
-        fprintf(stderr,"batch processed with %d reads\n",ret);
+//         fprintf(stderr,"batch processed with %d reads\n",ret);
         for(int i=0;i<ret;i++){
             fprintf(stdout,"%s\t%f\n",rec[i]->read_id,sums[i]);
         }
-        fprintf(stderr,"batch printed with %d reads\n",ret);
+//         fprintf(stderr,"batch printed with %d reads\n",ret);
 
         /**** Deinit ***/
         t0 = realtime();
