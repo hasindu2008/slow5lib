@@ -57,7 +57,7 @@ On OS X : brew install zlib
 You can optionally enable [*zstd* compression](https://facebook.github.io/zstd) support when building *slow5lib* by invoking `make zstd=1`. This requires __zstd 1.3 or higher development libraries__ installed on your system:
 
 ```sh
-On Debian/Ubuntu : sudo apt-get libzstd1-dev # libzstd-dev on newer distributions if libzstd1-dev is unavailable
+On Debian/Ubuntu : sudo apt-get install libzstd1-dev # libzstd-dev on newer distributions if libzstd1-dev is unavailable
 On Fedora/CentOS : sudo yum libzstd-devel
 On OS X : brew install zstd
 ```
