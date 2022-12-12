@@ -82,7 +82,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: install packages
-      run: pip install numpy
+      run: pip3 install numpy
     - name: build
       run: make pyslow5
     - name: test
