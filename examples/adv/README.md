@@ -9,3 +9,5 @@ This directory contains following advanced examples that uses low-level API.
 
 You can invoke [build.sh](build.sh) from slow5lib directory as `examples/adv/build.sh` to compile the example programmes. Have a look at the script to see the commands used for compiling and linking. Also make sure you get familiar with the basic examples first, before trying these advanced examples.
 
+A public template repository that demonstrates the advanced use of slow5lib is available at [https://github.com/hasindu2008/slow5-template-x].
+
