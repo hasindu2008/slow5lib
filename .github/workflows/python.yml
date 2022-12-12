@@ -81,6 +81,8 @@ jobs:
     runs-on: macos-11
     steps:
     - uses: actions/checkout@v2
+    - name: install packages
+      run: pip install numpy
     - name: build
       run: make pyslow5
     - name: test
