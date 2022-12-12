@@ -49,9 +49,9 @@ extra_compile_args = ['-g', '-Wall', '-O2', '-std=c99', '-DSLOW5_ENABLE_MT=1' ]
 # os.environ["CFLAGS"] = '-g -Wall -O2 -std=c99'
 
 arch=platform.machine()
-if arch in ["aarch64", "arm64"]:
+if arch in ["aarch64"]:
     extra_compile_args.append('-D__ARM_NEON__')
-elif arch in ["aarch64"]:
+elif arch in ["armv7l"]:
 	extra_compile_args.append('-mfpu=neon')
 elif arch in ["x86_64"]:
     extra_compile_args.extend(['-DSTREAMVBYTE_SSSE3=1', '-mssse3'])   # WARNING: ancient x86_64 CPUs don't have SSSE3
