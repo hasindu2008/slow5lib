@@ -76,3 +76,12 @@ jobs:
           ldd --version && gcc --version && python3 --version &&
           make pyslow5
           python3 -m unittest -v python/test.py
+  os_x_11:
+    name: pyslow5 mac os
+    runs-on: macos-11
+    steps:
+    - uses: actions/checkout@v2
+    - name: build
+      run: make pyslow5
+    - name: test
+      run: python3 -m unittest -v python/test.py
