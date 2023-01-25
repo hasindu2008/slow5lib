@@ -39,6 +39,10 @@ static void *ptr_compress_zstd(const void *ptr, size_t count, size_t *n);
 static void *ptr_depress_zstd(const void *ptr, size_t count, size_t *n);
 #endif /* SLOW5_USE_ZSTD */
 
+/* ex_zd */
+static uint8_t *ptr_compress_ex_zd(const int16_t *ptr, size_t count, size_t *n);
+static int16_t *ptr_depress_ex_zd(const uint8_t *ptr, size_t count, size_t *n);
+
 /* other */
 static int vfprintf_compress(struct __slow5_press *comp, FILE *fp, const char *format, va_list ap);
 
@@ -114,6 +118,10 @@ uint8_t slow5_encode_signal_press(enum slow5_press_method method){
             SLOW5_WARNING("You are using a hidden dev features (signal compression in %s). Output files may be useless.","zstd");
             ret = 251;
             break;
+        case SLOW5_COMPRESS_EX_ZD: //hidden feature hack for devs
+            SLOW5_WARNING("You are using a hidden dev features (signal compression in %s). Output files may be useless.","ex-zd");
+            ret = 252;
+            break;
         default:    //todo: Proper error?
             ret = 255;
             SLOW5_WARNING("Unknown signal compression method %d",method);
@@ -137,6 +145,9 @@ enum slow5_press_method slow5_decode_signal_press(uint8_t method){
             break;
         case 251: //hidden feature hack for devs
             ret = SLOW5_COMPRESS_ZSTD;
+            break;
+        case 252: //hidden feature hack for devs
+            ret = SLOW5_COMPRESS_EX_ZD;
             break;
         default: //todo: Proper error?
             ret = 255;
@@ -274,7 +285,7 @@ struct __slow5_press *__slow5_press_init(enum slow5_press_method method) {
             slow5_errno = SLOW5_ERR_ARG;
             return NULL;
 #endif /* SLOW5_USE_ZSTD */
-
+        case SLOW5_COMPRESS_EX_ZD: break;
         default:
             SLOW5_ERROR("Invalid or unsupported (de)compression method '%d'.", method);
             free(comp);
@@ -302,7 +313,7 @@ void __slow5_press_free(struct __slow5_press *comp) {
 #ifdef SLOW5_USE_ZSTD
             case SLOW5_COMPRESS_ZSTD: break;
 #endif /* SLOW5_USE_ZSTD */
-
+            case SLOW5_COMPRESS_EX_ZD: break;
             default:
                 SLOW5_ERROR("Invalid or unsupported (de)compression method '%d'.", comp->method);
                 slow5_errno = SLOW5_ERR_ARG;
@@ -347,7 +358,9 @@ void *slow5_ptr_compress_solo(enum slow5_press_method method, const void *ptr, s
                 out = ptr_compress_zstd(ptr, count, &n_tmp);
                 break;
 #endif /* SLOW5_USE_ZSTD */
-
+            case SLOW5_COMPRESS_EX_ZD:
+                out = ptr_compress_ex_zd(ptr, count, &n_tmp);
+                break;
             default:
                 SLOW5_ERROR("Invalid or unsupported (de)compression method '%d'.", method);
                 slow5_errno = SLOW5_ERR_ARG;
@@ -398,6 +411,10 @@ void *slow5_ptr_compress(struct __slow5_press *comp, const void *ptr, size_t cou
                 out = ptr_compress_zstd(ptr, count, &n_tmp);
                 break;
 #endif /* SLOW5_USE_ZSTD */
+
+            case SLOW5_COMPRESS_EX_ZD:
+                out = ptr_compress_ex_zd(ptr, count, &n_tmp);
+                break;
 
             default:
                 SLOW5_ERROR("Invalid or unsupported (de)compression method '%d'.", comp->method);
@@ -451,6 +468,10 @@ void *slow5_ptr_depress_solo(enum slow5_press_method method, const void *ptr, si
                 out = ptr_depress_zstd(ptr, count, &n_tmp);
                 break;
 #endif /* SLOW5_USE_ZSTD */
+
+            case SLOW5_COMPRESS_EX_ZD:
+                out = ptr_depress_ex_zd(ptr, count, &n_tmp);
+                break;
 
             default:
                 SLOW5_ERROR("Invalid or unsupported (de)compression method '%d'.", method);
@@ -527,6 +548,10 @@ void *slow5_ptr_depress(struct __slow5_press *comp, const void *ptr, size_t coun
                 out = ptr_depress_zstd(ptr, count, &n_tmp);
                 break;
 #endif /* SLOW5_USE_ZSTD */
+
+            case SLOW5_COMPRESS_EX_ZD:
+                out = ptr_depress_ex_zd(ptr, count, &n_tmp);
+                break;
 
             default:
                 SLOW5_ERROR("Invalid or unsupported (de)compression method '%d'.", comp->method);
@@ -1193,7 +1218,843 @@ static void *ptr_depress_zstd(const void *ptr, size_t count, size_t *n) {
 }
 #endif /* SLOW5_USE_ZSTD */
 
+/* EX_ZD */
 
+/*
+ * variable byte 1 except 2 before bitpack
+ * [num exceptions]
+ * [num bytes of next block][exception indices | diff - 1 | bitpack]
+ * [num bytes of next block][exceptions - 256 | bitpack]
+ * data
+ * maximum 256 exceptions
+ */
+
+#define SLOW5_EX_MAX_EXCEPTIONS (UINT16_MAX)
+
+static uint32_t *delta_increasing_u32(const uint32_t *in, uint64_t nin)
+{
+	uint32_t prev;
+	uint32_t *out;
+	uint64_t i;
+
+	if (!nin)
+		return NULL;
+
+	out = malloc(nin * sizeof *out);
+
+	out[0] = in[0];
+	prev = in[0];
+
+	for (i = 1; i < nin; i++) {
+		out[i] = in[i] - prev - 1;
+		prev = in[i];
+	}
+
+	return out;
+}
+
+static uint32_t get_max_u32(const uint32_t *in, uint64_t nin)
+{
+	uint32_t max;
+	uint64_t i;
+
+	max = 0;
+
+	for (i = 0; i < nin; i++) {
+		if (in[i] > max)
+			max = in[i];
+	}
+
+	return max;
+}
+
+
+#define SLOW5_DIV_ROUND_UP(n, d)	((n - 1) / d + 1)
+#define SLOW5_BITS_PER_BYTE		(8)
+#define SLOW5_BITS_TO_BYTES(n)	SLOW5_DIV_ROUND_UP(n, SLOW5_BITS_PER_BYTE)
+#define SLOW5_BYTES_TO_BITS(n)	((n) * SLOW5_BITS_PER_BYTE)
+
+/* uintx */
+
+static uint64_t uintx_bound(uint8_t in_bits, uint8_t out_bits, uint64_t nin)
+{
+	uint64_t nin_elems;
+
+	nin_elems = SLOW5_BYTES_TO_BITS(nin) / in_bits;
+
+	if (!out_bits)
+		return 0;
+
+	return SLOW5_BITS_TO_BYTES(nin_elems * out_bits);
+}
+
+
+static void uintx_update(uint8_t in_bits, uint8_t out_bits, uint64_t *in_i,
+		  uint64_t *out_i, uint8_t *in_bits_free,
+		  uint8_t *out_bits_free, uint8_t *bits_left)
+{
+	int8_t gap;
+
+	gap = in_bits - out_bits;
+
+	if (gap > 0) {
+		if (gap > *in_bits_free) {
+			(*in_i)++;
+			gap -= *in_bits_free;
+		}
+		*bits_left = out_bits;
+		*in_bits_free = SLOW5_BITS_PER_BYTE - gap % SLOW5_BITS_PER_BYTE;
+		*in_i += gap / SLOW5_BITS_PER_BYTE;
+	} else {
+		gap *= -1;
+		if (gap > *out_bits_free) {
+			(*out_i)++;
+			gap -= *out_bits_free;
+		}
+		*bits_left = in_bits;
+		*out_bits_free = SLOW5_BITS_PER_BYTE - gap % SLOW5_BITS_PER_BYTE;
+		*out_i += gap / SLOW5_BITS_PER_BYTE;
+	}
+}
+
+/* if in_bits > out_bits: in must be in big endian format */
+static int uintx_press_core(uint8_t in_bits, uint8_t out_bits, const uint8_t *in,
+		     uint64_t nin, uint8_t *out, uint64_t *nout)
+{
+	/*
+	 * in_bits = 16
+	 * out_bits = 11
+	 * gap = 5
+	 * in_free_bits = 8
+	 * in = [00000{010, 10001011}, ...]
+	 * out = [{01010001, 011}..., ...]
+	 *
+	 * press operations on P11:
+	 * out[0] = in[0] << 5 | in[1] >> 3;
+	 * out[1] = in[1] << 5 | in[2] >> 3;
+	 * ...
+	 *
+	 * in_bits = 14
+	 * out_bits = 9
+	 * gap = 5
+	 * in_free_bits = 8,2
+	 * in = [00000{010, 100010}00, 000 ...]
+	 * out = [{01010001, 0}..., ...]
+	 *
+	 * reverse:
+	 * in_bits = 11
+	 * out_bits = 16
+	 * gap = -5
+	 * in = [{01010001, 011}..., ...]
+	 * out = [00000{010, 10001011}, ...]
+	 *
+	 * press operations on compressed P11:
+	 * out[0] = in[0] >> 5
+	 * out[1] = in[0] << 3 | in[1] >> 5;
+	 * out[2] = in[1] << 3 | in[2] >> 5;
+	 * ...
+	 */
+
+	int dirty;
+	int8_t gap;
+	uint64_t i;
+	uint64_t in_i;
+	uint64_t out_i;
+	uint8_t bits_left;
+	uint8_t cur_out;
+	uint8_t in_bits_free;
+	uint8_t mask;
+	uint8_t out_bits_free;
+
+	/* when decompressing some of out may be skipped */
+	if (in_bits < out_bits)
+		(void) memset(out, 0, *nout);
+
+	bits_left = 0;
+	cur_out = 0;
+	dirty = 0;
+	i = 0;
+	in_bits_free = SLOW5_BITS_PER_BYTE;
+	in_i = 0;
+	out_bits_free = SLOW5_BITS_PER_BYTE;
+	out_i = 0;
+
+	uintx_update(in_bits, out_bits, &in_i, &out_i, &in_bits_free,
+		     &out_bits_free, &bits_left);
+
+	while (i < nin) {
+		mask = 0xFF >> (SLOW5_BITS_PER_BYTE - in_bits_free);
+		gap = in_bits_free - out_bits_free;
+		if (gap > 0) {
+			cur_out |= (in[in_i] & mask) >> gap;
+			in_bits_free -= out_bits_free;
+			bits_left -= out_bits_free;
+			out_bits_free = 0;
+		} else {
+			cur_out |= (in[in_i] & mask) << (-1 * gap);
+			out_bits_free -= in_bits_free;
+			bits_left -= in_bits_free;
+			in_bits_free = 0;
+		}
+		dirty = 1;
+
+		if (!in_bits_free) {
+			in_bits_free = SLOW5_BITS_PER_BYTE;
+			in_i++;
+		}
+
+		if (!out_bits_free) {
+			if (out_i == *nout)
+				return -1;
+			out[out_i++] = cur_out;
+			out_bits_free = SLOW5_BITS_PER_BYTE;
+			cur_out = 0;
+			dirty = 0;
+		}
+
+		if (!bits_left) {
+			uintx_update(in_bits, out_bits, &in_i, &out_i,
+				     &in_bits_free, &out_bits_free,
+				     &bits_left);
+			i++;
+		}
+	}
+
+	/* if there is still data to flush */
+	if (dirty) {
+		if (out_i == *nout)
+			return -1;
+		out[out_i++] = cur_out;
+	}
+
+	*nout = out_i;
+
+	return 0;
+}
+
+static inline uint16_t uint16_bswap(uint16_t x) {
+	return (x<<8) | (x>>8);
+}
+
+static inline uint32_t uint32_bswap(uint32_t x) {
+	return (x>>24) | (x>>8 & 0xff00) | (x<<8 & 0xff0000) | (x<<24);
+}
+
+static inline uint64_t uint64_bswap(uint64_t x){
+	return ((uint32_bswap(x)+0ULL) << 32) | uint32_bswap(x>>32);
+}
+
+#define slow5_letobe16(x) uint16_bswap(x)
+#define slow5_be16tole(x) uint16_bswap(x)
+#define slow5_letobe32(x) uint32_bswap(x)
+#define slow5_be32tole(x) uint32_bswap(x)
+#define slow5_letobe64(x) uint64_bswap(x)
+#define slow5_be64tole(x) uint64_bswap(x)
+
+/* copy h from host endian into be as big endian */
+static void uintx_htobe(uint8_t in_bits, const uint8_t *h, uint8_t *be, uint64_t n)
+{
+	uint64_t i;
+
+	if (in_bits <= SLOW5_BYTES_TO_BITS(sizeof (uint8_t))) {
+		return;
+	} else if (in_bits <= SLOW5_BYTES_TO_BITS(sizeof (uint16_t))) {
+		for (i = 0; i < n / sizeof (uint16_t); i++) {
+			((uint16_t *) be)[i] = slow5_letobe16(((uint16_t *) h)[i]);
+		}
+	} else if (in_bits <= SLOW5_BYTES_TO_BITS(sizeof (uint32_t))) {
+		for (i = 0; i < n / sizeof (uint32_t); i++) {
+			((uint32_t *) be)[i] = slow5_letobe32(((uint32_t *) h)[i]);
+		}
+	} else if (in_bits <= SLOW5_BYTES_TO_BITS(sizeof (uint64_t))) {
+		for (i = 0; i < n / sizeof (uint64_t); i++) {
+			((uint64_t *) be)[i] = slow5_letobe64(((uint64_t *) h)[i]);
+		}
+	}
+}
+
+/* copy be from big endian into h as host endian */
+static void uintx_betoh(uint8_t out_bits, const uint8_t *be, uint8_t *h, uint64_t n)
+{
+	uint64_t i;
+
+	if (out_bits <= SLOW5_BYTES_TO_BITS(sizeof (uint8_t))) {
+		return;
+	} else if (out_bits <= SLOW5_BYTES_TO_BITS(sizeof (uint16_t))) {
+		for (i = 0; i < n / sizeof (uint16_t); i++) {
+			((uint16_t *) h)[i] = slow5_be16tole(((uint16_t *) be)[i]);
+		}
+	} else if (out_bits <= SLOW5_BYTES_TO_BITS(sizeof (uint32_t))) {
+		for (i = 0; i < n / sizeof (uint32_t); i++) {
+			((uint32_t *) h)[i] = slow5_be32tole(((uint32_t *) be)[i]);
+		}
+	} else if (out_bits <= SLOW5_BYTES_TO_BITS(sizeof (uint64_t))) {
+		for (i = 0; i < n / sizeof (uint64_t); i++) {
+			((uint64_t *) h)[i] = slow5_be64tole(((uint64_t *) be)[i]);
+		}
+	}
+}
+
+
+static int uintx_press(uint8_t in_bits, uint8_t out_bits, const uint8_t *in,
+		uint64_t nin, uint8_t *out, uint64_t *nout)
+{
+	int ret;
+	uint64_t nin_bytes;
+	uint8_t *in_be;
+
+	if (!out_bits) {
+		*nout = 0;
+		return 0;
+	}
+
+	nin_bytes = nin * SLOW5_BITS_TO_BYTES(in_bits);
+	in_be = malloc(nin_bytes);
+	if (!in_be)
+		return -1;
+	uintx_htobe(in_bits, in, in_be, nin_bytes);
+
+	ret = uintx_press_core(in_bits, out_bits, in_be, nin, out, nout);
+	free(in_be);
+
+	return ret;
+}
+
+
+static int uint0_depress(uint8_t out_bits, uint64_t nin, uint8_t *out, uint64_t *nout)
+{
+	uint64_t nout_bytes;
+
+	nout_bytes = nin * SLOW5_BITS_TO_BYTES(out_bits);
+	if (*nout < nout_bytes)
+		return -1;
+
+	(void) memset(out, 0, nout_bytes);
+	*nout = nout_bytes;
+
+	return 0;
+}
+
+
+
+static int uintx_depress(uint8_t in_bits, uint8_t out_bits, const uint8_t *in,
+		  uint64_t nin, uint8_t *out, uint64_t *nout)
+{
+	int ret;
+	uint8_t *out_be;
+
+	if (!in_bits)
+		return uint0_depress(out_bits, nin, out, nout);
+
+	out_be = malloc(*nout);
+	if (!out_be)
+		return -1;
+
+	ret = uintx_press_core(in_bits, out_bits, in, nin, out_be, nout);
+
+	if (ret == 0)
+		uintx_betoh(out_bits, out_be, out, *nout);
+
+	free(out_be);
+	return ret;
+}
+
+#define SLOW5_DEFINE_UINTX(bits) \
+static uint64_t uintx_bound_##bits(uint8_t out_bits, uint64_t nin) \
+{ \
+	return uintx_bound(bits, out_bits, nin); \
+} \
+static int uintx_press_##bits(uint8_t out_bits, const uint8_t *in, uint64_t nin, \
+		       uint8_t *out, uint64_t *nout) \
+{ \
+	return uintx_press(bits, out_bits, in, nin, out, nout); \
+} \
+static int uintx_depress_##bits(uint8_t in_bits, const uint8_t *in, uint64_t nin, \
+			 uint8_t *out, uint64_t *nout) \
+{ \
+	return uintx_depress(in_bits, bits, in, nin, out, nout); \
+} \
+
+SLOW5_DEFINE_UINTX(16);
+SLOW5_DEFINE_UINTX(32);
+
+static uint8_t uint_get_minbits(uint64_t max)
+{
+	uint8_t i;
+
+	for (i = 0; i <= SLOW5_BYTES_TO_BITS(sizeof max); i++) {
+		if (max < pow(2, i))
+			return i;
+	}
+
+	return SLOW5_BYTES_TO_BITS(sizeof max);
+}
+
+static uint8_t uint_get_minbits_32(const uint32_t *in, uint64_t nin)
+{
+	uint32_t max;
+
+	max = get_max_u32(in, nin);
+	return uint_get_minbits(max);
+}
+
+uint64_t uint_bound_32(uint8_t out_bits, uint64_t nin)
+{
+	uint64_t nin_bytes;
+	nin_bytes = nin * sizeof (uint32_t);
+
+	return sizeof out_bits + uintx_bound_32(out_bits, nin_bytes);
+}
+
+static int uint_press_32(uint8_t out_bits, const uint32_t *in, uint64_t nin,
+		  uint8_t *out, uint64_t *nout)
+{
+	int ret;
+	uint64_t nout_uintx;
+	const uint8_t *in_uintx;
+	uint8_t *out_uintx;
+
+	in_uintx = (const uint8_t *) in;
+
+	out[0] = out_bits;
+	out_uintx = out + 1;
+	nout_uintx = *nout - sizeof *out;
+
+	ret = uintx_press_32(out_bits, in_uintx, nin, out_uintx, &nout_uintx);
+
+	*nout = 1 + nout_uintx;
+	return ret;
+}
+
+static int uint_depress_32(const uint8_t *in, uint64_t nin, uint32_t *out,
+		    uint64_t *nout)
+{
+	int ret;
+	uint64_t nout_uintx;
+	const uint8_t *in_uintx;
+	uint8_t *out_uintx;
+	uint8_t in_bits;
+
+	in_bits = in[0];
+	in_uintx = in + 1;
+
+	out_uintx = (uint8_t *) out;
+	nout_uintx = *nout * sizeof *out;
+
+	ret = uintx_depress_32(in_bits, in_uintx, nin, out_uintx, &nout_uintx);
+
+	*nout = nout_uintx / sizeof *out;
+	return ret;
+}
+
+static uint16_t get_max_u16(const uint16_t *in, uint64_t nin)
+{
+	uint16_t max;
+	uint64_t i;
+
+	max = 0;
+
+	for (i = 0; i < nin; i++) {
+		if (in[i] > max)
+			max = in[i];
+	}
+
+	return max;
+}
+
+static uint8_t uint_get_minbits_16(const uint16_t *in, uint64_t nin)
+{
+	uint16_t max;
+
+	max = get_max_u16(in, nin);
+	return uint_get_minbits(max);
+}
+
+static uint64_t uint_bound_16(uint8_t out_bits, uint64_t nin)
+{
+	uint64_t nin_bytes;
+	nin_bytes = nin * sizeof (uint16_t);
+
+	return sizeof out_bits + uintx_bound_16(out_bits, nin_bytes);
+}
+
+static int uint_press_16(uint8_t out_bits, const uint16_t *in, uint64_t nin,
+		  uint8_t *out, uint64_t *nout)
+{
+	int ret;
+	uint64_t nout_uintx;
+	const uint8_t *in_uintx;
+	uint8_t *out_uintx;
+
+	in_uintx = (const uint8_t *) in;
+
+	out[0] = out_bits;
+	out_uintx = out + 1;
+	nout_uintx = *nout - sizeof *out;
+
+	ret = uintx_press_16(out_bits, in_uintx, nin, out_uintx, &nout_uintx);
+
+	*nout = 1 + nout_uintx;
+	return ret;
+}
+
+static int uint_depress_16(const uint8_t *in, uint64_t nin, uint16_t *out,
+		    uint64_t *nout)
+{
+	int ret;
+	uint64_t nout_uintx;
+	const uint8_t *in_uintx;
+	uint8_t *out_uintx;
+	uint8_t in_bits;
+
+	in_bits = in[0];
+	in_uintx = in + 1;
+
+	out_uintx = (uint8_t *) out;
+	nout_uintx = *nout * sizeof *out;
+
+	ret = uintx_depress_16(in_bits, in_uintx, nin, out_uintx, &nout_uintx);
+
+	*nout = nout_uintx / sizeof *out;
+	return ret;
+}
+
+
+static void ex_press(const uint16_t *in, uint32_t nin, uint8_t *out,
+		  uint64_t *nout)
+{
+	uint16_t nex;
+	uint16_t *ex;
+	uint8_t *ex_press;
+	uint32_t *ex_pos;
+	uint32_t *ex_pos_delta;
+	uint8_t *ex_pos_press;
+	uint8_t minbits;
+	uint64_t nr_press_tmp;
+	uint16_t nex_pos_press;
+	uint16_t nex_press;
+	uint32_t i;
+	uint32_t j;
+	uint64_t offset;
+
+	nex = 0;
+	ex_pos = malloc(SLOW5_EX_MAX_EXCEPTIONS * sizeof *ex_pos);
+	ex = malloc(SLOW5_EX_MAX_EXCEPTIONS * sizeof *ex);
+
+	for (i = 0; i < nin; i++) {
+		if (in[i] > UINT8_MAX) {
+			ex_pos[nex] = i;
+			ex[nex] = in[i] - UINT8_MAX - 1;
+			nex++;
+			if (nex == 0)
+				fprintf(stderr, "error: ex too many exceptions\n");
+		}
+	}
+
+	(void) memcpy(out, &nex, sizeof nex);
+	offset = sizeof nex;
+
+	if (nex > 1) {
+		ex_pos_delta = delta_increasing_u32(ex_pos, nex);
+
+		minbits = uint_get_minbits_32(ex_pos_delta, nex);
+		nr_press_tmp = uint_bound_32(minbits, nex);
+		ex_pos_press = malloc(nr_press_tmp);
+		/* TODO don't ignore return */
+		(void) uint_press_32(minbits, ex_pos_delta, nex, ex_pos_press,
+				     &nr_press_tmp);
+		free(ex_pos_delta);
+		nex_pos_press = (uint16_t) nr_press_tmp;
+		/*nex_pos_press = bitnd1pack32(ex_pos, nex, ex_pos_press);*/
+
+		(void) memcpy(out + offset, &nex_pos_press, sizeof nex_pos_press);
+		offset += sizeof nex_pos_press;
+
+		if (sizeof nex_pos_press + nex_pos_press > nex * sizeof *ex_pos) {
+			fprintf(stderr, "ex_pos bitpack (%ld) > standard (%ld)\n",
+					sizeof nex_pos_press + nex_pos_press, nex * sizeof *ex_pos);
+		}
+
+		/*
+		(void) memcpy(out + offset, ex_pos, nex * sizeof *ex_pos);
+		offset += nex * sizeof *ex_pos;
+		*/
+		(void) memcpy(out + offset, ex_pos_press, nex_pos_press);
+		free(ex_pos_press);
+		offset += nex_pos_press;
+
+		minbits = uint_get_minbits_16(ex, nex);
+		nr_press_tmp = uint_bound_16(minbits, nex);
+		ex_press = malloc(nr_press_tmp);
+		(void) uint_press_16(minbits, ex, nex, ex_press, &nr_press_tmp);
+		nex_press = (uint16_t) nr_press_tmp;
+
+		(void) memcpy(out + offset, &nex_press, sizeof nex_press);
+		offset += sizeof nex_press;
+
+		if (sizeof nex_press + nex_press > nex * sizeof *ex) {
+			fprintf(stderr, "ex bitpack (%ld) > standard (%ld)\n",
+					sizeof nex_press + nex_press, nex * sizeof *ex);
+		}
+
+		(void) memcpy(out + offset, ex_press, nex_press);
+		free(ex_press);
+		offset += nex_press;
+	} else if (nex == 1) {
+		(void) memcpy(out + offset, ex_pos, nex * sizeof *ex_pos);
+		offset += nex * sizeof *ex_pos;
+		(void) memcpy(out + offset, ex, nex * sizeof *ex);
+		offset += nex * sizeof *ex;
+	}
+	free(ex);
+
+	j = 0;
+	for (i = 0; i < nin; i++) {
+		if (j < nex && i == ex_pos[j]) {
+			j++;
+		} else {
+			(void) memcpy(out + offset, in + i, 1);
+			offset++;
+		}
+	}
+
+	free(ex_pos);
+	*nout = offset;
+}
+
+
+static void undelta_inplace_increasing_u32(uint32_t *in, uint64_t nin)
+{
+	uint32_t prev;
+	uint64_t i;
+
+	prev = in[0];
+
+	for (i = 1; i < nin; i++) {
+		in[i] += prev + 1;
+		prev = in[i];
+	}
+}
+
+
+void ex_depress(const uint8_t *in, uint64_t nin, uint16_t *out, uint32_t *nout)
+{
+	uint16_t nex;
+	uint16_t *ex;
+	uint32_t *ex_pos;
+	uint8_t *ex_pos_press;
+	uint8_t *ex_press;
+	uint16_t nex_press;
+	uint16_t nex_pos_press;
+	uint64_t nex_pos_delta;
+	uint64_t nex_cp;
+	uint32_t i;
+	uint32_t j;
+	uint64_t offset;
+
+	(void) memcpy(&nex, in, sizeof nex);
+	offset = sizeof nex;
+	ex_pos = malloc(nex * sizeof *ex_pos);
+
+	if (nex > 0) {
+		ex = malloc(nex * sizeof *ex);
+
+		if (nex > 1) {
+			/*
+			(void) memcpy(ex_pos, in + offset, nex * sizeof *ex_pos);
+			offset += nex * sizeof *ex_pos;
+			*/
+			(void) memcpy(&nex_pos_press, in + offset, sizeof nex_pos_press);
+			offset += sizeof nex_pos_press;
+
+			ex_pos_press = malloc(nex_pos_press);
+			(void) memcpy(ex_pos_press, in + offset, nex_pos_press);
+			offset += nex_pos_press;
+
+			/* TODO don't ignore return */
+			nex_pos_delta = nex;
+			(void) uint_depress_32(ex_pos_press, nex, ex_pos, &nex_pos_delta);
+			free(ex_pos_press);
+			undelta_inplace_increasing_u32(ex_pos, nex);
+
+			/*(void) bitnd1unpack32(ex_pos_press, nex_pos_press, ex_pos);*/
+
+			(void) memcpy(&nex_press, in + offset, sizeof nex_press);
+			offset += sizeof nex_press;
+
+			ex_press = malloc(nex_press);
+			(void) memcpy(ex_press, in + offset, nex_press);
+			offset += nex_press;
+
+			nex_cp = nex;
+			(void) uint_depress_16(ex_press, nex, ex, &nex_cp);
+			free(ex_press);
+		} else if (nex == 1) {
+			(void) memcpy(ex_pos, in + offset, nex * sizeof *ex_pos);
+			offset += nex * sizeof *ex_pos;
+			(void) memcpy(ex, in + offset, nex * sizeof *ex);
+			offset += nex * sizeof *ex;
+		}
+
+		for (i = 0; i < nex; i++) {
+			out[ex_pos[i]] = ex[i] + UINT8_MAX + 1;
+		}
+		free(ex);
+	}
+
+	i = 0;
+	j = 0;
+	while (offset < nin || j < nex) {
+		if (j < nex && i == ex_pos[j]) {
+			j++;
+		} else {
+			out[i] = in[offset];
+			offset++;
+		}
+
+		i++;
+	}
+
+	free(ex_pos);
+	*nout = i;
+}
+
+/*
+ * delta | zigzag | ex
+ * store first signal at start before vb
+ */
+
+static inline uint16_t zigzag_one_16(int16_t x)
+{
+	return (x + x) ^ (x >> 15);
+}
+
+/* return zigzag delta of in with nin elements */
+static uint16_t *zigdelta_16_u16(const int16_t *in, uint64_t nin)
+{
+	int16_t prev;
+	uint16_t *out;
+	uint64_t i;
+
+	out = malloc(nin * sizeof *out);
+	prev = 0;
+
+	for (i = 0; i < nin; i++) {
+		out[i] = zigzag_one_16(in[i] - prev);
+		prev = in[i];
+	}
+
+	return out;
+}
+
+static void ex_zd_press_16(const int16_t *in, uint32_t nin, uint8_t *out,
+			uint64_t *nout)
+{
+	uint16_t *in_zd;
+	uint64_t nout_tmp;
+
+	in_zd = zigdelta_16_u16(in, nin);
+
+	(void) memcpy(out, in_zd, sizeof *in_zd);
+	nout_tmp = *nout - sizeof *in_zd;
+	ex_press(in_zd + 1, nin - 1, out + sizeof *in_zd, &nout_tmp);
+
+	*nout = nout_tmp + sizeof *in_zd;
+	free(in_zd);
+}
+
+static inline int16_t unzigzag_one_16(uint16_t x)
+{
+	return (x >> 1) ^ -(x & 1);
+}
+
+static void unzigdelta_u16_16(const uint16_t *in, uint64_t nin, int16_t *out)
+{
+	int16_t prev;
+	uint64_t i;
+
+	prev = 0;
+	for (i = 0; i < nin; i++) {
+		out[i] = prev + unzigzag_one_16(in[i]);
+		prev = out[i];
+	}
+}
+static void ex_zd_depress_16(const uint8_t *in, uint64_t nin, int16_t *out,
+			  uint32_t *nout)
+{
+	uint16_t *out_zd;
+	uint32_t nout_tmp;
+
+	out_zd = malloc(nin * sizeof *out_zd);
+	(void) memcpy(out_zd, in, sizeof *out_zd);
+
+	nout_tmp = nin - 1;
+	ex_depress(in + sizeof *out_zd, nin - sizeof *out_zd, out_zd + 1,
+		       &nout_tmp);
+	*nout = nout_tmp + 1;
+
+	unzigdelta_u16_16(out_zd, *nout, out);
+	free(out_zd);
+}
+
+
+
+static uint64_t ex_bound(uint64_t nin)
+{
+	return sizeof (uint8_t) + SLOW5_EX_MAX_EXCEPTIONS * (sizeof (uint32_t) + 2) + nin - SLOW5_EX_MAX_EXCEPTIONS;
+}
+
+static inline size_t ex_zd_bound_16(uint64_t nin)
+{
+	return sizeof (uint16_t) + ex_bound(nin - 1);
+}
+
+static uint8_t *ptr_compress_ex_zd(const int16_t *ptr, size_t count, size_t *n) {
+
+    uint64_t nin = count / sizeof *ptr;
+    int16_t *in = (int16_t *) malloc(nin * sizeof *in);
+    if (!in) {
+        SLOW5_MALLOC_ERROR();
+        slow5_errno = SLOW5_ERR_MEM;
+        return NULL;
+    }
+    memcpy(in, ptr, nin * sizeof *in);
+
+	uint64_t nout_vb = ex_zd_bound_16(nin);
+    uint8_t *out_vb = (uint8_t *) malloc(nout_vb * sizeof *out_vb + sizeof(uint64_t)); //uint64_ for number of signal elements, do it propoerly
+    if (!out_vb) {
+        SLOW5_MALLOC_ERROR();
+        free(in);
+        slow5_errno = SLOW5_ERR_MEM;
+        return NULL;
+    }
+
+    memcpy(out_vb, &nin, sizeof(uint64_t));
+
+
+    //error checkkk
+	ex_zd_press_16(in, nin, out_vb + sizeof(uint64_t), &nout_vb);
+    free(in);
+    *n = nout_vb+sizeof(uint64_t);
+
+    return out_vb;
+
+}
+
+static int16_t *ptr_depress_ex_zd(const uint8_t *ptr, size_t count, size_t *n){
+
+    uint64_t nout_1;
+    memcpy(&nout_1, ptr, sizeof(uint64_t));
+    uint32_t nout = nout_1; //check overflowww
+
+    int16_t *out=malloc(nout*sizeof *out);
+
+	ex_zd_depress_16(ptr+sizeof(uint64_t), count-sizeof(uint64_t), out, &nout);
+    SLOW5_ASSERT(nout==nout_1);
+	*n = nout * sizeof *out;
+
+	return out;
+}
 
 /* Decompress a zlib-compressed string
  *
