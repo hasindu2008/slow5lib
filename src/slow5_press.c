@@ -1763,12 +1763,18 @@ static void ex_press(const uint16_t *in, uint32_t nin, uint8_t *out,
 	if (nex > 1) {
 		ex_pos_delta = delta_increasing_u32(ex_pos, nex);
 
-		minbits = uint_get_minbits_32(ex_pos_delta, nex);
-		nr_press_tmp = uint_bound_32(minbits, nex);
+
+
+
+		// minbits = uint_get_minbits_32(ex_pos_delta, nex);
+		// nr_press_tmp = uint_bound_32(minbits, nex);
+        nr_press_tmp = __slow5_streamvbyte_max_compressedbytes(nex);
+
 		ex_pos_press = malloc(nr_press_tmp);
 		/* TODO don't ignore return */
-		(void) uint_press_32(minbits, ex_pos_delta, nex, ex_pos_press,
-				     &nr_press_tmp);
+		// (void) uint_press_32(minbits, ex_pos_delta, nex, ex_pos_press,
+		// 		     &nr_press_tmp);
+        nr_press_tmp=__slow5_streamvbyte_encode(ex_pos_delta, nex, ex_pos_press);
 		free(ex_pos_delta);
 		nex_pos_press = (uint32_t) nr_press_tmp;
 		/*nex_pos_press = bitnd1pack32(ex_pos, nex, ex_pos_press);*/
@@ -1880,7 +1886,8 @@ void ex_depress(const uint8_t *in, uint64_t nin, uint16_t *out, uint32_t *nout)
 			/* TODO don't ignore return */
 			nex_pos_delta = nex;
             //fprintf(stderr, "nex_pos_delta = %ld\n", nex_pos_delta);
-			(void) uint_depress_32(ex_pos_press, nex, ex_pos, &nex_pos_delta);
+			// (void) uint_depress_32(ex_pos_press, nex, ex_pos, &nex_pos_delta);
+            SLOW5_ASSERT(__slow5_streamvbyte_decode(ex_pos_press, ex_pos, nex)==nex_pos_press);
 
 			free(ex_pos_press);
 			undelta_inplace_increasing_u32(ex_pos, nex);
