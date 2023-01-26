@@ -1229,7 +1229,7 @@ static void *ptr_depress_zstd(const void *ptr, size_t count, size_t *n) {
  * maximum 256 exceptions
  */
 
-#define SLOW5_EX_MAX_EXCEPTIONS (UINT16_MAX)
+#define SLOW5_EX_MAX_EXCEPTIONS (UINT32_MAX)
 
 static uint32_t *delta_increasing_u32(const uint32_t *in, uint64_t nin)
 {
@@ -1723,7 +1723,7 @@ static int uint_depress_16(const uint8_t *in, uint64_t nin, uint16_t *out,
 static void ex_press(const uint16_t *in, uint32_t nin, uint8_t *out,
 		  uint64_t *nout)
 {
-	uint16_t nex;
+	uint32_t nex;
 	uint16_t *ex;
 	uint8_t *ex_press;
 	uint32_t *ex_pos;
@@ -1731,23 +1731,29 @@ static void ex_press(const uint16_t *in, uint32_t nin, uint8_t *out,
 	uint8_t *ex_pos_press;
 	uint8_t minbits;
 	uint64_t nr_press_tmp;
-	uint16_t nex_pos_press;
-	uint16_t nex_press;
+	uint32_t nex_pos_press;
+	uint32_t nex_press;
 	uint32_t i;
 	uint32_t j;
 	uint64_t offset;
 
 	nex = 0;
-	ex_pos = malloc(SLOW5_EX_MAX_EXCEPTIONS * sizeof *ex_pos);
-	ex = malloc(SLOW5_EX_MAX_EXCEPTIONS * sizeof *ex);
+    size_t ex_pos_buff_s = UINT16_MAX;
+	ex_pos = malloc(ex_pos_buff_s * sizeof *ex_pos);
+	ex = malloc(ex_pos_buff_s * sizeof *ex);
 
 	for (i = 0; i < nin; i++) {
 		if (in[i] > UINT8_MAX) {
 			ex_pos[nex] = i;
 			ex[nex] = in[i] - UINT8_MAX - 1;
 			nex++;
-			if (nex == 0)
-				fprintf(stderr, "error: ex too many exceptions\n");
+			if (nex == 0){
+				SLOW5_ERROR("error: ex too many exceptions %d",nex);
+            } else if (nex == ex_pos_buff_s) {
+                ex_pos_buff_s *= 2;
+                ex_pos = realloc(ex_pos, ex_pos_buff_s * sizeof *ex_pos);
+                ex = realloc(ex, ex_pos_buff_s * sizeof *ex);
+            }
 		}
 	}
 
@@ -1764,7 +1770,7 @@ static void ex_press(const uint16_t *in, uint32_t nin, uint8_t *out,
 		(void) uint_press_32(minbits, ex_pos_delta, nex, ex_pos_press,
 				     &nr_press_tmp);
 		free(ex_pos_delta);
-		nex_pos_press = (uint16_t) nr_press_tmp;
+		nex_pos_press = (uint32_t) nr_press_tmp;
 		/*nex_pos_press = bitnd1pack32(ex_pos, nex, ex_pos_press);*/
 
 		(void) memcpy(out + offset, &nex_pos_press, sizeof nex_pos_press);
@@ -1787,7 +1793,7 @@ static void ex_press(const uint16_t *in, uint32_t nin, uint8_t *out,
 		nr_press_tmp = uint_bound_16(minbits, nex);
 		ex_press = malloc(nr_press_tmp);
 		(void) uint_press_16(minbits, ex, nex, ex_press, &nr_press_tmp);
-		nex_press = (uint16_t) nr_press_tmp;
+		nex_press = (uint32_t) nr_press_tmp;
 
 		(void) memcpy(out + offset, &nex_press, sizeof nex_press);
 		offset += sizeof nex_press;
@@ -1839,13 +1845,13 @@ static void undelta_inplace_increasing_u32(uint32_t *in, uint64_t nin)
 
 void ex_depress(const uint8_t *in, uint64_t nin, uint16_t *out, uint32_t *nout)
 {
-	uint16_t nex;
+	uint32_t nex;
 	uint16_t *ex;
 	uint32_t *ex_pos;
 	uint8_t *ex_pos_press;
 	uint8_t *ex_press;
-	uint16_t nex_press;
-	uint16_t nex_pos_press;
+	uint32_t nex_press;
+	uint32_t nex_pos_press;
 	uint64_t nex_pos_delta;
 	uint64_t nex_cp;
 	uint32_t i;
@@ -1873,7 +1879,9 @@ void ex_depress(const uint8_t *in, uint64_t nin, uint16_t *out, uint32_t *nout)
 
 			/* TODO don't ignore return */
 			nex_pos_delta = nex;
+            //fprintf(stderr, "nex_pos_delta = %ld\n", nex_pos_delta);
 			(void) uint_depress_32(ex_pos_press, nex, ex_pos, &nex_pos_delta);
+
 			free(ex_pos_press);
 			undelta_inplace_increasing_u32(ex_pos, nex);
 
@@ -1998,7 +2006,7 @@ static void ex_zd_depress_16(const uint8_t *in, uint64_t nin, int16_t *out,
 }
 
 
-
+//memory inefficient - fix this
 static uint64_t ex_bound(uint64_t nin)
 {
 	return sizeof (uint8_t) + SLOW5_EX_MAX_EXCEPTIONS * (sizeof (uint32_t) + 2) + nin - SLOW5_EX_MAX_EXCEPTIONS;
