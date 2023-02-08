@@ -7,7 +7,9 @@ CC			= cc
 AR			= ar
 SVB			= thirdparty/streamvbyte
 SVBLIB		= $(SVB)/libstreamvbyte.a
-CPPFLAGS	+= -I include/ -I $(SVB)/include/
+RC			= thirdparty/Turbo-Range-Coder
+RCLIB		= $(RC)/librc.a
+CPPFLAGS	+= -I include/ -I $(SVB)/include/ -I $(RC)
 CFLAGS		+= -g -Wall -O2 -std=c99
 LDFLAGS		+= -lm -lz
 ifeq ($(zstd),1)
@@ -43,17 +45,19 @@ SLOW5_H = include/slow5/slow5.h include/slow5/klib/khash.h include/slow5/klib/kv
 .PHONY: clean distclean test install uninstall slow5lib
 
 #libslow5
-slow5lib: $(SHAREDLIB) $(STATICLIB)
+slow5lib: $(STATICLIB)
 
-$(STATICLIB): $(OBJ) $(SVBLIB)
-	cp $(SVBLIB) $@
-	$(AR) rcs $@ $(OBJ)
+$(STATICLIB): $(OBJ) $(SVBLIB) $(RCLIB)
+	$(AR) rcsT $@ $^
 
-$(SHAREDLIB): $(OBJ) $(SVBLIB)
+$(SHAREDLIB): $(OBJ) $(SVBLIB) $(RCLIB)
 	$(CC) $(CFLAGS) -shared $^ -o $@ $(LDFLAGS)
 
 $(SVBLIB):
 	make -C $(SVB) no_simd=$(no_simd) libstreamvbyte.a
+
+$(RCLIB):
+	make -C $(RC) librc.a
 
 $(BUILD_DIR)/slow5.o: src/slow5.c src/slow5_extra.h src/slow5_idx.h src/slow5_misc.h src/klib/ksort.h $(SLOW5_H)
 	$(CC) $(CFLAGS) $(CPPFLAGS) $< -c -fpic -o $@
@@ -73,6 +77,7 @@ $(BUILD_DIR)/slow5_mt.o: src/slow5_mt.c include/slow5/slow5_mt.h $(SLOW5_H)
 clean:
 	rm -rf $(OBJ) $(STATICLIB) $(SHAREDLIB) $(SHAREDLIBV)
 	make -C $(SVB) clean
+	make -C $(RC) clean
 
 # Delete all gitignored files (but not directories)
 distclean: clean

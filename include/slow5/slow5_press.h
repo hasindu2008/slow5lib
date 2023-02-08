@@ -63,7 +63,8 @@ enum slow5_press_method {
     SLOW5_COMPRESS_ZLIB,
     SLOW5_COMPRESS_SVB_ZD, /* streamvbyte zigzag delta */
     SLOW5_COMPRESS_ZSTD,
-    SLOW5_COMPRESS_EX_ZD
+    SLOW5_COMPRESS_EX_ZD,
+    SLOW5_COMPRESS_RC,
 };
 typedef struct{
     enum slow5_press_method record_method;

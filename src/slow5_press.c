@@ -14,6 +14,7 @@
 #include <zstd.h>
 #endif /* SLOW5_USE_ZSTD */
 #include "slow5_misc.h"
+#include <turborc.h>
 
 extern enum slow5_log_level_opt  slow5_log_level;
 extern enum slow5_exit_condition_opt  slow5_exit_condition;
@@ -43,6 +44,10 @@ static void *ptr_depress_zstd(const void *ptr, size_t count, size_t *n);
 static uint8_t *ptr_compress_ex_zd(const int16_t *ptr, size_t count, size_t *n);
 static int16_t *ptr_depress_ex_zd(const uint8_t *ptr, size_t count, size_t *n);
 
+/* range coding */
+static uint8_t *ptr_compress_rc(const uint8_t *ptr, size_t count, size_t *n);
+static uint8_t *ptr_depress_rc(const uint8_t *ptr, size_t count, size_t *n);
+
 /* other */
 static int vfprintf_compress(struct __slow5_press *comp, FILE *fp, const char *format, va_list ap);
 
@@ -68,6 +73,10 @@ uint8_t slow5_encode_record_press(enum slow5_press_method method){
             SLOW5_WARNING("You are using a hidden dev features (record compression in %s). Output files may be useless.","svb-zd");
             ret = 250;
             break;
+        case SLOW5_COMPRESS_RC:  //hidden feature hack for devs
+            SLOW5_WARNING("You are using a hidden dev features (record compression in %s). Output files may be useless.","rc");
+            ret = 251;
+            break;
         default:  //todo: Proper error?
             ret = 255;
             SLOW5_WARNING("Unknown record compression method %d",method);
@@ -91,6 +100,9 @@ enum slow5_press_method slow5_decode_record_press(uint8_t method){
             break;
         case 250:  //hidden feature hack for devs
             ret = SLOW5_COMPRESS_SVB_ZD;
+            break;
+        case 251:  //hidden feature hack for devs
+            ret = SLOW5_COMPRESS_RC;
             break;
         default:    //todo Proper error
             ret = 255;
@@ -286,6 +298,7 @@ struct __slow5_press *__slow5_press_init(enum slow5_press_method method) {
             return NULL;
 #endif /* SLOW5_USE_ZSTD */
         case SLOW5_COMPRESS_EX_ZD: break;
+        case SLOW5_COMPRESS_RC: break;
         default:
             SLOW5_ERROR("Invalid or unsupported (de)compression method '%d'.", method);
             free(comp);
@@ -314,6 +327,7 @@ void __slow5_press_free(struct __slow5_press *comp) {
             case SLOW5_COMPRESS_ZSTD: break;
 #endif /* SLOW5_USE_ZSTD */
             case SLOW5_COMPRESS_EX_ZD: break;
+            case SLOW5_COMPRESS_RC: break;
             default:
                 SLOW5_ERROR("Invalid or unsupported (de)compression method '%d'.", comp->method);
                 slow5_errno = SLOW5_ERR_ARG;
@@ -358,9 +372,15 @@ void *slow5_ptr_compress_solo(enum slow5_press_method method, const void *ptr, s
                 out = ptr_compress_zstd(ptr, count, &n_tmp);
                 break;
 #endif /* SLOW5_USE_ZSTD */
+
             case SLOW5_COMPRESS_EX_ZD:
                 out = ptr_compress_ex_zd(ptr, count, &n_tmp);
                 break;
+
+            case SLOW5_COMPRESS_RC:
+                out = ptr_compress_rc(ptr, count, &n_tmp);
+                break;
+
             default:
                 SLOW5_ERROR("Invalid or unsupported (de)compression method '%d'.", method);
                 slow5_errno = SLOW5_ERR_ARG;
@@ -414,6 +434,10 @@ void *slow5_ptr_compress(struct __slow5_press *comp, const void *ptr, size_t cou
 
             case SLOW5_COMPRESS_EX_ZD:
                 out = ptr_compress_ex_zd(ptr, count, &n_tmp);
+                break;
+
+            case SLOW5_COMPRESS_RC:
+                out = ptr_compress_rc(ptr, count, &n_tmp);
                 break;
 
             default:
@@ -471,6 +495,10 @@ void *slow5_ptr_depress_solo(enum slow5_press_method method, const void *ptr, si
 
             case SLOW5_COMPRESS_EX_ZD:
                 out = ptr_depress_ex_zd(ptr, count, &n_tmp);
+                break;
+
+            case SLOW5_COMPRESS_RC:
+                out = ptr_depress_rc(ptr, count, &n_tmp);
                 break;
 
             default:
@@ -551,6 +579,10 @@ void *slow5_ptr_depress(struct __slow5_press *comp, const void *ptr, size_t coun
 
             case SLOW5_COMPRESS_EX_ZD:
                 out = ptr_depress_ex_zd(ptr, count, &n_tmp);
+                break;
+
+            case SLOW5_COMPRESS_RC:
+                out = ptr_depress_rc(ptr, count, &n_tmp);
                 break;
 
             default:
@@ -2060,6 +2092,49 @@ static int16_t *ptr_depress_ex_zd(const uint8_t *ptr, size_t count, size_t *n){
 	ex_zd_depress_16(ptr+sizeof(uint64_t), count-sizeof(uint64_t), out, &nout);
     SLOW5_ASSERT(nout==nout_1);
 	*n = nout * sizeof *out;
+
+	return out;
+}
+
+/******
+ * RC *
+ ******/
+
+static uint8_t *ptr_compress_rc(const uint8_t *ptr, size_t count, size_t *n)
+{
+	uint8_t *out;
+	size_t outsz;
+
+	/* assume out length <= ptr length */
+	out = (uint8_t *) malloc(count * sizeof *ptr + sizeof count);
+	/* TODO check malloc succeeded */
+
+	/* store uncompressed count before data */
+	memcpy(out, &count, sizeof count);
+	outsz = sizeof count;
+
+	/*
+	 * range coding order-0 and order-1 context mixing with secondary symbol
+	 * estimation (SSE)
+	 */
+	outsz += rcmsenc((unsigned char *) ptr, count, out + sizeof count);
+
+	*n = outsz;
+	return out;
+}
+
+static uint8_t *ptr_depress_rc(const uint8_t *ptr, size_t count, size_t *n)
+{
+	uint8_t *out;
+
+	/* get uncompressed count */
+	memcpy(n, ptr, sizeof *n);
+
+	out = (uint8_t *) malloc(*n * sizeof *out);
+	/* TODO check malloc succeeded */
+
+	/* range decoding */
+	(void) rcmsdec((unsigned char *) ptr, count, out);
 
 	return out;
 }
