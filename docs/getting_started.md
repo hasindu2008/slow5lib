@@ -110,7 +110,7 @@ The instructions to build *pyslow5* and the usage instructions are [here](https:
 
 ### Other languages
 
-A slow5 library for RUST programming language developed by [@bsaintjo](https://github.com/bsaintjo/) is available [here](https://docs.rs/slow5/latest/slow5). A slow5 library in GO language developed by [@Koeng101](https://github.com/Koeng101) is available [here](https://github.com/TimothyStiles/poly/pull/220). We are highly grateful to these community efforts. If anyone is interested in a library form another language, feel free to open an issue.
+A slow5 library for RUST programming language developed by [@bsaintjo](https://github.com/bsaintjo/) is available [here](https://docs.rs/slow5/latest/slow5). A slow5 library in GO language developed by [@Koeng101](https://github.com/Koeng101) is available [here](https://github.com/TimothyStiles/poly/pull/220). We are highly grateful to these community efforts. If anyone is interested in a library from another language, feel free to open an issue.
 
 ### Current limitations & future work
 
