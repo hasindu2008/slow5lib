@@ -33,6 +33,7 @@ Please cite the following in your publications when using *slow5lib/pyslow5*:
 
 ## Building
 
+Building slow5lib requires a compiler that supports C99 standard (with X/Open 7 POSIX 2008 extensions), which is widely available.
 To build the C/C++ library :
 
 ```sh
@@ -115,6 +116,9 @@ You can invoke `examples/build.sh` to compile the example programmes. Have a loo
 Python wrapper for slow5lib or *pyslow5* can be installed using conda as `conda install pyslow5 -c bioconda -c conda-forge` or pypi as `pip install pyslow5`.
 The instructions to build *pyslow5* and the usage instructions are [here](https://hasindu2008.github.io/slow5lib/pyslow5_api/pyslow5.html).
 
+### Other languages
+
+A slow5 library for RUST programming language developed by [@bsaintjo](https://github.com/bsaintjo/) is available [here](https://docs.rs/slow5/latest/slow5). A slow5 library in GO language developed by [@Koeng101](https://github.com/Koeng101) is available [here](https://github.com/TimothyStiles/poly/pull/220). We are highly grateful to these community efforts. If anyone is interested in a library form another language, feel free to open an issue.
 
 ### Current limitations & future work
 
@@ -129,7 +133,6 @@ slow5lib is a reference implementation for SLOW5 format. Depending on the intere
 ### Notes
 
 *slow5lib* from version 0.3.0 onwards has built in [StreamVByte](https://github.com/lemire/streamvbyte) compression support to enable even smaller file sizes, which is applied to the raw signal by default when producing BLOW5 files.  *zlib* compression is then applied by default to each SLOW5 record. If *zstd* is used instead of *zlib* on top of *StreamVByte*, it is similar to ONT's latest [vbz](https://github.com/nanoporetech/vbz_compression) compression. BLOW5 files with *zstd+StreamVByte* are still about 25% smaller than vbz compressed FAST5 files.
-
 
 ## Acknowledgement
 slow5lib uses [klib](https://github.com/attractivechaos/klib) and [StreamVByte](https://github.com/lemire/streamvbyte). Some code snippets have been taken from [Minimap2](https://github.com/lh3/minimap2) and [Samtools](http://samtools.sourceforge.net/).

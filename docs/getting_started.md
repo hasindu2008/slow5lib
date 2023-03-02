@@ -27,7 +27,7 @@ Please cite the following in your publications when using *slow5lib/pyslow5*:
 
 ## Building
 
-To build the C/C++ library :
+Building slow5lib requires a compiler that supports C99 standard (with X/Open 7 POSIX 2008 extensions), which is widely available. To build the C/C++ library :
 
 ```sh
 sudo apt-get install zlib1g-dev   #install zlib development libraries
@@ -44,7 +44,6 @@ On Debian/Ubuntu : sudo apt-get install zlib1g-dev
 On Fedora/CentOS : sudo dnf/yum install zlib-devel
 On OS X : brew install zlib
 ```
-
 
 #### Optional zstd compression
 
@@ -109,6 +108,9 @@ You can invoke `examples/build.sh` to compile the example programmes. Have a loo
 Python wrapper for slow5lib or *pyslow5* can be installed using conda as `conda install pyslow5 -c bioconda -c conda-forge` or pypi as `pip install pyslow5`.
 The instructions to build *pyslow5* and the usage instructions are [here](https://hasindu2008.github.io/slow5lib/pyslow5_api/pyslow5.html).
 
+### Other languages
+
+A slow5 library for RUST programming language developed by [@bsaintjo](https://github.com/bsaintjo/) is available [here](https://docs.rs/slow5/latest/slow5). A slow5 library in GO language developed by [@Koeng101](https://github.com/Koeng101) is available [here](https://github.com/TimothyStiles/poly/pull/220). We are highly grateful to these community efforts. If anyone is interested in a library form another language, feel free to open an issue.
 
 ### Current limitations & future work
 
