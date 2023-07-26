@@ -52,6 +52,7 @@ cdef class Open:
     cdef str rec_press
     cdef str sig_press
     cdef int state
+    cdef int num_read_groups
     cdef int V
     cdef object logger
     cdef list aux_names
@@ -87,6 +88,13 @@ cdef class Open:
     cdef char *start_mux
     cdef char *start_time
     cdef char *end_reason
+    cdef char *tracked_scaling_shift
+    cdef char *tracked_scaling_scale
+    cdef char *predicted_scaling_shift
+    cdef char *predicted_scaling_scale
+    cdef char *num_reads_since_mux_change
+    cdef char *time_since_mux_change
+    cdef char *num_minknow_events
     cdef char **end_reason_labels
     cdef pyslow5.uint8_t end_reason_labels_len
     cdef char *channel_number_val
@@ -95,12 +103,26 @@ cdef class Open:
     cdef pyslow5.uint8_t start_mux_val
     cdef pyslow5.uint64_t start_time_val
     cdef pyslow5.uint8_t end_reason_val
+    cdef double tracked_scaling_shift_val
+    cdef double tracked_scaling_scale_val
+    cdef double predicted_scaling_shift_val
+    cdef double predicted_scaling_scale_val
+    cdef pyslow5.uint32_t num_reads_since_mux_change_val
+    cdef double time_since_mux_change_val
+    cdef pyslow5.uint64_t num_minknow_events_val
     cdef char **channel_number_val_array
     cdef double *median_before_val_array
     cdef pyslow5.int32_t *read_number_val_array
     cdef pyslow5.uint8_t *start_mux_val_array
     cdef pyslow5.uint64_t *start_time_val_array
     cdef pyslow5.uint8_t *end_reason_val_array
+    cdef double *tracked_scaling_shift_val_array
+    cdef double *tracked_scaling_scale_val_array
+    cdef double *predicted_scaling_shift_val_array
+    cdef double *predicted_scaling_scale_val_array
+    cdef pyslow5.uint32_t *num_reads_since_mux_change_val_array
+    cdef double *time_since_mux_change_val_array
+    cdef pyslow5.uint64_t *num_minknow_events_val_array
 
     cdef pyslow5.float total_time_slow5_get_next
     cdef pyslow5.float total_time_yield_reads
@@ -123,6 +145,7 @@ cdef class Open:
         self.sig_press = ""
         # state for read/write. -1=null, 0=read, 1=write, 2=append
         self.state = -1
+        self.num_read_groups = 0
         self.trec = NULL
         self.rid = NULL
         self.rids = NULL
@@ -133,23 +156,23 @@ cdef class Open:
         self.close_state = False
         self.s5_aux_type = NULL
         self.s5_aux_enum = NULL
-        self.aux_get_err = 1
+        self.aux_get_err = 0
         self.aux_get_len = 0
         self.head_len = 0
         self.aux_len = 0
         self.enum_len = 0
         self.shape_seq[0] = 0
         self.shape_get[0] = 0
-        self.e0 = -1
-        self.e1 = -1
-        self.e2 = -1
-        self.e3 = -1
-        self.e4 = -1
-        self.e5 = -1
-        self.e6 = -1
-        self.e7 = -1
-        self.e8 = -1.0
-        self.e9 = -1.0
+        self.e0 = 0
+        self.e1 = 0
+        self.e2 = 0
+        self.e3 = 0
+        self.e4 = 0
+        self.e5 = 0
+        self.e6 = 0
+        self.e7 = 0
+        self.e8 = 0.0
+        self.e9 = 0.0
         self.e10 = 0
         self.e11 = 0
         self.e12 = NULL
@@ -169,20 +192,41 @@ cdef class Open:
         self.start_mux = strdup("start_mux")
         self.start_time = strdup("start_time")
         self.end_reason = strdup("end_reason")
+        self.tracked_scaling_shift = strdup("tracked_scaling_shift")
+        self.tracked_scaling_scale = strdup("tracked_scaling_scale")
+        self.predicted_scaling_shift = strdup("predicted_scaling_shift")
+        self.predicted_scaling_scale = strdup("predicted_scaling_scale")
+        self.num_reads_since_mux_change = strdup("num_reads_since_mux_change")
+        self.time_since_mux_change = strdup("time_since_mux_change")
+        self.num_minknow_events = strdup("num_minknow_events")
         self.end_reason_labels = NULL
         self.end_reason_labels_len = 0
         channel_number_val = NULL
-        median_before_val = -1.0
-        read_number_val = -1
-        start_mux_val = -1
-        start_time_val = -1
-        end_reason_val = -1
+        median_before_val = 0.0
+        read_number_val = 0
+        start_mux_val = 0
+        start_time_val = 0
+        end_reason_val = 0
+        tracked_scaling_shift_val = 0.0
+        tracked_scaling_scale_val = 0.0
+        predicted_scaling_shift_val = 0.0
+        predicted_scaling_scale_val = 0.0
+        num_reads_since_mux_change_val = 0
+        time_since_mux_change_val = 0.0
+        num_minknow_events_val = 0
         channel_number_val_array = NULL
         median_before_val_array = NULL
         read_number_val_array = NULL
         start_mux_val_array = NULL
         start_time_val_array = NULL
         end_reason_val_array = NULL
+        tracked_scaling_shift_val_array = NULL
+        tracked_scaling_scale_val_array = NULL
+        predicted_scaling_shift_val_array = NULL
+        predicted_scaling_scale_val_array = NULL
+        num_reads_since_mux_change_val_array = NULL
+        time_since_mux_change_val_array = NULL
+        num_minknow_events_val_array = NULL
 
 
         self.total_time_slow5_get_next = 0.0
@@ -256,6 +300,7 @@ cdef class Open:
         if self.state == 0:
             self.s5 = pyslow5.slow5_open(self.p, self.m)
             self.logger.debug("Number of read_groups: {}".format(self.s5.header.num_read_groups))
+            self.num_read_groups = self.s5.header.num_read_groups
         elif self.state == 1:
             self.s5 = pyslow5.slow5_open(self.p, self.m)
             if self.s5 is NULL:
@@ -321,6 +366,14 @@ cdef class Open:
         free(self.start_mux)
         free(self.start_time)
         free(self.end_reason)
+        free(self.tracked_scaling_shift)
+        free(self.tracked_scaling_scale)
+        free(self.predicted_scaling_shift)
+        free(self.predicted_scaling_scale)
+        free(self.num_reads_since_mux_change)
+        free(self.time_since_mux_change)
+        free(self.num_minknow_events)
+        
         if self.end_reason_labels is not NULL:
             for i in range(self.end_reason_labels_len):
                 free(self.end_reason_labels[i])
@@ -1025,6 +1078,11 @@ cdef class Open:
 
         return dic
 
+    def get_num_read_groups(self):
+        '''
+        return an int for the number of read_groups present in file
+        '''
+        return self.num_read_groups
 
     def get_read_ids(self):
         '''
@@ -1451,7 +1509,15 @@ cdef class Open:
                "read_number": None,
                "start_mux": None,
                "start_time": None,
-               "end_reason": None}
+               "end_reason": None,
+               "tracked_scaling_shift": None,
+               "tracked_scaling_scale": None,
+               "predicted_scaling_shift": None,
+               "predicted_scaling_scale": None,
+               "num_reads_since_mux_change": None,
+               "time_since_mux_change": None,
+               "num_minknow_events": None,
+               }
 
         if aux:
             return record, aux_rec
@@ -1489,14 +1555,30 @@ cdef class Open:
                      "read_number": type(10),
                      "start_mux": type(1),
                      "start_time": type(100),
-                     "end_reason": type(["a", "b", "c"])}
+                     "end_reason": type(["a", "b", "c"]),
+                     "tracked_scaling_shift": type(1.0),
+                     "tracked_scaling_scale": type(1.0),
+                     "predicted_scaling_shift": type(1.0),
+                     "predicted_scaling_scale": type(1.0),
+                     "num_reads_since_mux_change": type(1),
+                     "time_since_mux_change": type(1.0),
+                     "num_minknow_events": type(1),
+                     }
 
         C_aux_types = {"channel_number": SLOW5_STRING,
                      "median_before":SLOW5_DOUBLE,
                      "read_number": SLOW5_INT32_T,
                      "start_mux": SLOW5_UINT8_T,
                      "start_time": SLOW5_UINT64_T,
-                     "end_reason": SLOW5_ENUM}
+                     "end_reason": SLOW5_ENUM,
+                     "tracked_scaling_shift": SLOW5_DOUBLE,
+                     "tracked_scaling_scale": SLOW5_DOUBLE,
+                     "predicted_scaling_shift": SLOW5_DOUBLE,
+                     "predicted_scaling_scale": SLOW5_DOUBLE,
+                     "num_reads_since_mux_change": SLOW5_UINT32_T,
+                     "time_since_mux_change": SLOW5_DOUBLE,
+                     "num_minknow_events": SLOW5_UINT64_T,
+                     }
 
         for a in user_aux_types:
             if user_aux_types[a] is None:
@@ -1532,7 +1614,15 @@ cdef class Open:
                         "read_number": type(10),
                         "start_mux": type(1),
                         "start_time": type(100),
-                        "end_reason": type(1)}
+                        "end_reason": type(1),
+                        "tracked_scaling_shift": type(1.0),
+                        "tracked_scaling_scale": type(1.0),
+                        "predicted_scaling_shift": type(1.0),
+                        "predicted_scaling_scale": type(1.0),
+                        "num_reads_since_mux_change": type(1),
+                        "time_since_mux_change": type(1.0),
+                        "num_minknow_events": type(1),
+                        }
 
         new_aux = {}
 
@@ -1579,6 +1669,27 @@ cdef class Open:
                     elif a == "end_reason":
                         self.end_reason_val = <uint8_t>aux[a]
                         new_aux[a] = aux[a]
+                    elif a == "tracked_scaling_shift":
+                        self.tracked_scaling_shift_val = <double>aux[a]
+                        new_aux[a] = aux[a]
+                    elif a == "tracked_scaling_scale":
+                        self.tracked_scaling_scale_val = <double>aux[a]
+                        new_aux[a] = aux[a]
+                    elif a == "predicted_scaling_shift":
+                        self.predicted_scaling_shift_val = <double>aux[a]
+                        new_aux[a] = aux[a]
+                    elif a == "predicted_scaling_scale":
+                        self.predicted_scaling_scale_val = <double>aux[a]
+                        new_aux[a] = aux[a]
+                    elif a == "num_reads_since_mux_change":
+                        self.num_reads_since_mux_change_val = <uint32_t>aux[a]
+                        new_aux[a] = aux[a]
+                    elif a == "time_since_mux_change":
+                        self.time_since_mux_change_val = <double>aux[a]
+                        new_aux[a] = aux[a]
+                    elif a == "num_minknow_events":
+                        self.num_minknow_events_val = <uint64_t>aux[a]
+                        new_aux[a] = aux[a]
                     else:
                          self.logger.error("_record_type_validation {}: {} user aux field unknown?".format(a, aux[a]))
 
@@ -1606,7 +1717,15 @@ cdef class Open:
                         "read_number": type(10),
                         "start_mux": type(1),
                         "start_time": type(100),
-                        "end_reason": type(1)}
+                        "end_reason": type(1),
+                        "tracked_scaling_shift": type(1.0),
+                        "tracked_scaling_scale": type(1.0),
+                        "predicted_scaling_shift": type(1.0),
+                        "predicted_scaling_scale": type(1.0),
+                        "num_reads_since_mux_change": type(1),
+                        "time_since_mux_change": type(1.0),
+                        "num_minknow_events": type(1),
+                        }
 
         new_aux = {}
 
@@ -1646,6 +1765,20 @@ cdef class Open:
                     elif a == "start_time":
                         new_aux[a] = aux[a]
                     elif a == "end_reason":
+                        new_aux[a] = aux[a]
+                    elif a == "tracked_scaling_shift":
+                        new_aux[a] = aux[a]
+                    elif a == "tracked_scaling_scale":
+                        new_aux[a] = aux[a]
+                    elif a == "predicted_scaling_shift":
+                        new_aux[a] = aux[a]
+                    elif a == "predicted_scaling_scale":
+                        new_aux[a] = aux[a]
+                    elif a == "num_reads_since_mux_change":
+                        new_aux[a] = aux[a]
+                    elif a == "time_since_mux_change":
+                        new_aux[a] = aux[a]
+                    elif a == "num_minknow_events":
                         new_aux[a] = aux[a]
                     else:
                         self.logger.error("_record_type_validation {}: {} user aux field unknown".format(a, aux[a]))
@@ -1735,7 +1868,15 @@ cdef class Open:
                      "read_number": type(10),
                      "start_mux": type(1),
                      "start_time": type(100),
-                     "end_reason": type(["a", "b", "c"])}
+                     "end_reason": type(["a", "b", "c"]),
+                     "tracked_scaling_shift": type(1.0),
+                     "tracked_scaling_scale": type(1.0),
+                     "predicted_scaling_shift": type(1.0),
+                     "predicted_scaling_scale": type(1.0),
+                     "num_reads_since_mux_change": type(1),
+                     "time_since_mux_change": type(1.0),
+                     "num_minknow_events": type(1),
+                     }
 
         self.logger.debug("write_record: _record_type_validation running")
         checked_record, checked_aux = self._record_type_validation(record, aux)
@@ -1848,6 +1989,20 @@ cdef class Open:
                     ret = slow5_aux_set(self.write, self.start_time, <const void *>&self.start_time_val, self.s5.header)
                 elif a == "end_reason":
                     ret = slow5_aux_set(self.write, self.end_reason, <const void *>&self.end_reason_val, self.s5.header)
+                elif a == "tracked_scaling_shift":
+                    ret = slow5_aux_set(self.write, self.tracked_scaling_shift, <const void *>&self.tracked_scaling_shift_val, self.s5.header)
+                elif a == "tracked_scaling_scale":
+                    ret = slow5_aux_set(self.write, self.tracked_scaling_scale, <const void *>&self.tracked_scaling_scale_val, self.s5.header)
+                elif a == "predicted_scaling_shift":
+                    ret = slow5_aux_set(self.write, self.predicted_scaling_shift, <const void *>&self.predicted_scaling_shift_val, self.s5.header)
+                elif a == "predicted_scaling_scale":
+                    ret = slow5_aux_set(self.write, self.predicted_scaling_scale, <const void *>&self.predicted_scaling_scale_val, self.s5.header)
+                elif a == "num_reads_since_mux_change":
+                    ret = slow5_aux_set(self.write, self.num_reads_since_mux_change, <const void *>&self.num_reads_since_mux_change_val, self.s5.header)
+                elif a == "time_since_mux_change":
+                    ret = slow5_aux_set(self.write, self.time_since_mux_change, <const void *>&self.time_since_mux_change_val, self.s5.header)
+                elif a == "num_minknow_events":
+                    ret = slow5_aux_set(self.write, self.num_minknow_events, <const void *>&self.num_minknow_events_val, self.s5.header)
                 else:
                     ret = -1
                 if ret < 0:
@@ -1865,11 +2020,18 @@ cdef class Open:
         if aux is not None:
             free(self.channel_number_val)
             self.channel_number_val = NULL
-            self.median_before_val = -1.0
-            self.read_number_val = -1
-            self.start_mux_val = -1
-            self.start_time_val = -1
-            self.end_reason_val = -1
+            self.median_before_val = 0.0
+            self.read_number_val = 0
+            self.start_mux_val = 0
+            self.start_time_val = 0
+            self.end_reason_val = 0
+            self.tracked_scaling_shift_val = 0.0
+            self.tracked_scaling_scale_val = 0.0
+            self.predicted_scaling_shift_val = 0.0
+            self.predicted_scaling_scale_val = 0.0
+            self.num_reads_since_mux_change_val = 0
+            self.time_since_mux_change_val = 0.0
+            self.num_minknow_events_val = 0
 
 
         # free memory
@@ -1895,7 +2057,15 @@ cdef class Open:
                      "read_number": type(10),
                      "start_mux": type(1),
                      "start_time": type(100),
-                     "end_reason": type(["a", "b", "c"])}
+                     "end_reason": type(["a", "b", "c"]),
+                     "tracked_scaling_shift": type(1.0),
+                     "tracked_scaling_scale": type(1.0),
+                     "predicted_scaling_shift": type(1.0),
+                     "predicted_scaling_scale": type(1.0),
+                     "num_reads_since_mux_change": type(1),
+                     "time_since_mux_change": type(1.0),
+                     "num_minknow_events": type(1),
+                     }
         # check if empty dic was given
         if aux is not None:
             if len(aux) == 0:
@@ -1922,6 +2092,13 @@ cdef class Open:
             self.start_mux_val_array = <uint8_t *> malloc(sizeof(uint8_t)*batch_len)
             self.start_time_val_array = <uint64_t *> malloc(sizeof(uint64_t)*batch_len)
             self.end_reason_val_array = <uint8_t *> malloc(sizeof(uint8_t)*batch_len)
+            self.tracked_scaling_shift_val_array = <double *> malloc(sizeof(double)*batch_len)
+            self.tracked_scaling_scale_val_array = <double *> malloc(sizeof(double)*batch_len)
+            self.predicted_scaling_shift_val_array = <double *> malloc(sizeof(double)*batch_len)
+            self.predicted_scaling_scale_val_array = <double *> malloc(sizeof(double)*batch_len)
+            self.num_reads_since_mux_change_val_array = <uint32_t *> malloc(sizeof(uint32_t)*batch_len)
+            self.time_since_mux_change_val_array = <double *> malloc(sizeof(double)*batch_len)
+            self.num_minknow_events_val_array = <uint64_t *> malloc(sizeof(uint64_t)*batch_len)
             for i, idx in enumerate(batch):
                 if aux is not None:
                     checked_record, checked_aux = self._multi_record_type_validation(records[idx], aux[idx])
@@ -1939,6 +2116,20 @@ cdef class Open:
                             self.start_time_val_array[i] = <uint64_t>checked_aux[a]
                         elif a == "end_reason":
                             self.end_reason_val_array[i] = <uint8_t>checked_aux[a]
+                        elif a == "tracked_scaling_shift":
+                            self.tracked_scaling_shift_val_array[i] = <double>checked_aux[a]
+                        elif a == "tracked_scaling_scale":
+                            self.tracked_scaling_scale_val_array[i] = <double>checked_aux[a]
+                        elif a == "predicted_scaling_shift":
+                            self.predicted_scaling_shift_val_array[i] = <double>checked_aux[a]
+                        elif a == "predicted_scaling_scale":
+                            self.predicted_scaling_scale_val_array[i] = <double>checked_aux[a]
+                        elif a == "num_reads_since_mux_change":
+                            self.num_reads_since_mux_change_val_array[i] = <uint32_t>checked_aux[a]
+                        elif a == "time_since_mux_change":
+                            self.time_since_mux_change_val_array[i] = <double>checked_aux[a]
+                        elif a == "num_minknow_events":
+                            self.num_minknow_events_val_array[i] = <uint64_t>checked_aux[a]
                     checked_auxs[idx] = checked_aux
                 else:
                     checked_record, checked_aux = self._record_type_validation(records[idx], aux)
@@ -2057,6 +2248,20 @@ cdef class Open:
                             ret = slow5_aux_set(self.twrite[idx], self.start_time, <const void *>&self.start_time_val_array[idx], self.s5.header)
                         elif a == "end_reason":
                             ret = slow5_aux_set(self.twrite[idx], self.end_reason, <const void *>&self.end_reason_val_array[idx], self.s5.header)
+                        elif a == "tracked_scaling_shift":
+                            ret = slow5_aux_set(self.twrite[idx], self.tracked_scaling_shift, <const void *>&self.tracked_scaling_shift_val_array[idx], self.s5.header)
+                        elif a == "tracked_scaling_scale":
+                            ret = slow5_aux_set(self.twrite[idx], self.tracked_scaling_scale, <const void *>&self.tracked_scaling_scale_val_array[idx], self.s5.header)
+                        elif a == "predicted_scaling_shift":
+                            ret = slow5_aux_set(self.twrite[idx], self.predicted_scaling_shift, <const void *>&self.predicted_scaling_shift_val_array[idx], self.s5.header)
+                        elif a == "predicted_scaling_scale":
+                            ret = slow5_aux_set(self.twrite[idx], self.predicted_scaling_scale, <const void *>&self.predicted_scaling_scale_val_array[idx], self.s5.header)
+                        elif a == "num_reads_since_mux_change":
+                            ret = slow5_aux_set(self.twrite[idx], self.num_reads_since_mux_change, <const void *>&self.num_reads_since_mux_change_val_array[idx], self.s5.header)
+                        elif a == "time_since_mux_change":
+                            ret = slow5_aux_set(self.twrite[idx], self.time_since_mux_change, <const void *>&self.time_since_mux_change_val_array[idx], self.s5.header)
+                        elif a == "num_minknow_events":
+                            ret = slow5_aux_set(self.twrite[idx], self.num_minknow_events, <const void *>&self.num_minknow_events_val_array[idx], self.s5.header)
                         else:
                             ret = -1
                         if ret < 0:
@@ -2094,6 +2299,13 @@ cdef class Open:
                 free(self.start_mux_val_array)
                 free(self.start_time_val_array)
                 free(self.end_reason_val_array)
+                free(self.tracked_scaling_shift_val_array)
+                free(self.tracked_scaling_scale_val_array)
+                free(self.predicted_scaling_shift_val_array)
+                free(self.predicted_scaling_scale_val_array)
+                free(self.num_reads_since_mux_change_val_array)
+                free(self.time_since_mux_change_val_array)
+                free(self.num_minknow_events_val_array)
 
         end_multi_write = time.time() - start_multi_write
         self.total_multi_write_time = self.total_multi_write_time + end_multi_write

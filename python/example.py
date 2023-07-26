@@ -130,6 +130,8 @@ print("==============================================")
 s52 = slow5.Open('examples/example2.slow5','r', DEBUG=debug)
 print("get_read check, 0d624d4b-671f-40b8-9798-84f2ccc4d7fc")
 read1 = s52.get_read("0d624d4b-671f-40b8-9798-84f2ccc4d7fc", aux=["read_number", "start_mux", "blah"])
+num_read_groups = s52.get_num_read_groups()
+print("number of read groups: {}".format(num_read_groups))
 # print all fields
 print("read_id:", read1['read_id'])
 print("read_group:", read1['read_group'])
@@ -511,6 +513,59 @@ for read in reads:
     print("ret: write_record(): {}".format(ret))
 
 s58.close()
+F.close()
+print("==============================================")
+print("write reads with new aux fields")
+
+F = slow5.Open('examples/example_write_new_aux.blow5','w', DEBUG=debug)
+header, end_reason_labels = F.get_empty_header(aux=True)
+
+counter = 0
+for i in header:
+    header[i] = "test_{}".format(counter)
+    counter += 1
+
+ret = F.write_header(header, end_reason_labels=end_reason_labels)
+print("ret: write_header(): {}".format(ret))
+
+s58 = slow5.Open('examples/adv/example3.blow5','r', DEBUG=debug)
+reads = s58.seq_reads(aux='all')
+
+for read in reads:
+    record, aux = F.get_empty_record(aux=True)
+    for i in read:
+        if i in record:
+            record[i] = read[i]
+        if i in aux:
+            aux[i] = read[i]
+    aux["tracked_scaling_shift"] = 10.0
+    aux["tracked_scaling_scale"] = 20.0
+    aux["predicted_scaling_shift"] = 30.0
+    aux["predicted_scaling_scale"] = 40.0
+    aux["num_reads_since_mux_change"] = 60
+    aux["time_since_mux_change"] = 50.0
+    aux["num_minknow_events"] = 700
+    ret = F.write_record(record, aux)
+    print("ret: write_record(): {}".format(ret))
+
+s58.close()
+F.close()
+print("==============================================")
+print("read reads with new aux fields")
+
+F = slow5.Open('examples/example_write_new_aux.blow5','r', DEBUG=debug)
+
+reads = F.seq_reads(aux='all')
+
+for read in reads:
+    print("tracked_scaling_shift:", read["tracked_scaling_shift"])
+    print("tracked_scaling_scale:", read["tracked_scaling_scale"])
+    print("predicted_scaling_shift:", read["predicted_scaling_shift"])
+    print("predicted_scaling_scale:", read["predicted_scaling_scale"])
+    print("num_reads_since_mux_change:", read["num_reads_since_mux_change"])
+    print("time_since_mux_change:", read["time_since_mux_change"])
+    print("num_minknow_events:", read["num_minknow_events"])
+
 F.close()
 
 print("==============================================")
