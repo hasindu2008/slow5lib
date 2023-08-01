@@ -284,6 +284,10 @@ for r, read in zip(read_list, selected_reads):
         print(r, "read not found")
 ```
 
+#### `get_num_read_groups()`:
+**NEW: from version 1.1.0+**
+
+Return an int for the number of read_groups present in file
 
 #### `get_header_names()`:
 
