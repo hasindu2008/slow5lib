@@ -1538,12 +1538,12 @@ cdef class Open:
             if header[h] is not None:
                 t = type(header[h])
                 if t is not type("string"):
-                    self.logger.warning("_header_type_validation {}: {} is not a string type, attempting to convert".format(h, header[h]))
+                    self.logger.debug("_header_type_validation {}: {} is not a string type, attempting to convert".format(h, header[h]))
                     #try and convert
                     try:
                         s = str(header[h])
                         header[h] = s
-                        self.logger.warning("_header_type_validation {}: {} conversion successful".format(h, s))
+                        self.logger.debug("_header_type_validation {}: {} conversion successful".format(h, s))
                     except:
                         self.logger.error("_header_type_validation {}: {} could not convert value to string".format(h, header[h]))
                         raise
@@ -1843,7 +1843,7 @@ cdef class Open:
                     try:
                         s = str(i)
                         erl.append(s)
-                        self.logger.warning("write_header end_reason_labels: {} conversion successful".format(s))
+                        self.logger.debug("write_header end_reason_labels: {} conversion successful".format(s))
                     except:
                         self.logger.error("write_header end_reason_labels: {} could not convert value to string".format(i))
                         errors = True
@@ -1955,7 +1955,7 @@ cdef class Open:
 
         self.logger.debug("write_record: self.write processing raw_signal")
         start_write_copy_signal = time.time()
-        
+
 
         if checked_record["signal"].data.contiguous:
             self.temp_array = checked_record["signal"]
