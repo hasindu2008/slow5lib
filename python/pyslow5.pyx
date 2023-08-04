@@ -280,6 +280,7 @@ cdef class Open:
         self.slow5_press_method = {"none": 0,
                                    "zlib": 1,
                                    "svb_zd": 2,
+                                   "svb-zd": 2,
                                    "zstd": 3}
 
         p = str.encode(pathname)
