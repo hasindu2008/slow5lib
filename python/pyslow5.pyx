@@ -243,14 +243,22 @@ cdef class Open:
 
         # sets up logging level/verbosity
         self.V = DEBUG
-        self.logger = logging.getLogger(__name__)
+        self.logger = logging.getLogger("pyslow5")
+        loghandler = logging.StreamHandler()
         if self.V == 1:
-            lev = logging.DEBUG
+            loghandler.setLevel(logging.DEBUG)
         else:
-            lev = logging.WARNING
+            loghandler.setLevel(logging.WARNING)
+        formatter = logging.Formatter('%(asctime)s - %(name)s - [%(levelname)s]: %(message)s', datefmt='%d-%b-%y %H:%M:%S')
+        loghandler.setFormatter(formatter)
+        self.logger.addHandler(loghandler)
+        if self.V == 1:
+            self.logger.setLevel(logging.DEBUG)
+        else:
+            self.logger.setLevel(logging.WARNING)
 
-        logging.basicConfig(format='%(asctime)s - [%(levelname)s]: %(message)s',
-                            datefmt='%d-%b-%y %H:%M:%S', level=lev)
+        # logging.basicConfig(format='%(asctime)s - %(name)s - [%(levelname)s]: %(message)s',
+        #                     datefmt='%d-%b-%y %H:%M:%S', level=lev)
 
         # This should match slow5_defs.h error codes
         self.error_codes = {-1: ["SLOW5_ERR_EOF", "End Of File reached"],
