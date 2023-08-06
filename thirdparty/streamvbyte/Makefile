@@ -24,7 +24,7 @@ else
 CFLAGS = -fPIC -std=c99 -O3 -Wall -Wextra -pedantic -Wshadow
 endif
 endif
-
+# note that on macos, it is arm64 instead of aarch64. however, for now we just let it compile without simd
 
 #LDFLAGS = -shared
 LIBNAME=libstreamvbyte.so.0.0.1
