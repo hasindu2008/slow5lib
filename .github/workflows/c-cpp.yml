@@ -129,6 +129,17 @@ jobs:
       run: make -j8 zstd=1
     - name: test
       run: make test zstd=1
+  os_x_12:
+    name: OSX 12
+    runs-on: macos-12
+    steps:
+    - uses: actions/checkout@v2
+    - name: build
+      run: make -j8
+    - name: test
+      run: make test
+    - name: examples
+      run: make examples
   arm64:
     name: ubuntu arm
     runs-on: ubuntu-latest
