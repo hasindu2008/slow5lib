@@ -24,11 +24,13 @@ On OS X : brew install zstd
 
 BLOW5 files compressed with *zstd* offer smaller file size and better performance compared to the default *zlib*. However, *zlib* runtime library is available by default on almost all distributions unlike *zstd* and thus files compressed with *zlib* will be more 'portable'.
 
+### Install from pypi
+
 ```bash
 python3 -m venv path/to/slow5libvenv
 source path/to/slow5libvenv/bin/activate
 python3 -m pip install --upgrade pip
-python3 -m pip install setuptools cython numpy wheel
+
 # do this separately, after the libs above
 # zlib only build
 python3 -m pip install pyslow5
@@ -48,12 +50,12 @@ python3 -m pip install pyslow5
 # Then once activated, you can just use python3.
 
 # To install a specific version of python, the deadsnakes ppa is a good place to start
-# This is an example for installing python3.7
+# This is an example for installing python3.8
 # you can then call that specific python version
-# > python3.7 -m pip --version
+# > python3.8 -m pip --version
 sudo add-apt-repository ppa:deadsnakes/ppa
 sudo apt-get update
-sudo apt install python3.7 python3.7-dev python3.7-venv
+sudo apt install python3.8 python3.8-dev python3.8-venv
 
 
 # get zlib1g-dev
@@ -73,12 +75,27 @@ Building and installing the python library.
 python3 -m venv /path/to/slow5libvenv
 source /path/to/slow5libvenv/bin/activate
 python3 -m pip install --upgrade pip
-python3 -m pip install setuptools cython numpy wheel
 
 git clone git@github.com:hasindu2008/slow5lib.git
 cd slow5lib
-make
 
+# New build method to work with setuptools deprication
+python3 -m pip install .
+
+# This should not require sudo if using a python virtual environment/venv
+# confirm installation, and find pyslow5==<version>
+python3 -m pip freeze
+
+# Ensure slow5 library is working by running the basic tests
+python3 ./python/example.py
+
+
+# To Remove the library
+python3 -m pip uninstall pyslow5
+
+
+
+# Legacy build methods - not recommended
 # CHOOSE A OR B:
 # (B is the cleanest method)
 # |=======================================================================|
@@ -92,23 +109,13 @@ make
     python3 setup.py install
 # |=======================================================================|
 
-# This should not require sudo if using a python virtual environment/venv
-# confirm installation, and find pyslow5==<version>
-python3 -m pip freeze
-
-# Ensure slow5 library is working by running the basic tests
-python3 ./python/example.py
-
-
-# To Remove the library
-python3 -m pip uninstall pyslow5
 ```
 
 ## Usage
 
 ### Reading/writing a file
 
-#### `Open(FILE, mode, rec_press="zlib", sig_press="svb_zd", DEBUG=0)`:
+#### `Open(FILE, mode, rec_press="zlib", sig_press="svb-zd", DEBUG=0)`:
 
 The pyslow5 library has one main Class, `pyslow5.Open` which opens a slow5/blow5 (slow5 for easy reference) file for reading/writing.
 
@@ -131,7 +138,7 @@ Compression Options:
 
 `sig_press`:
 - "none"
-- "svb_zd" [default]
+- "svb-zd" [default]
 
 Example:
 
@@ -329,6 +336,8 @@ end_reason_labels = s5.get_aux_enum_labels('end_reason')
 print(end_reason_labels)
 
 > ['unknown', 'partial', 'mux_change', 'unblock_mux_change', 'signal_positive', 'signal_negative']
+# or from newer datsets
+> ["unknown", "mux_change", "unblock_mux_change", "data_service_unblock_mux_change", "signal_positive", "signal_negative"]
 
 readID = "r1"
 read = s5.get_read(readID, aux='all')
