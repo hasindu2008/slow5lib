@@ -402,7 +402,14 @@ class TestWriteAux(unittest.TestCase):
                "read_number": None,
                "start_mux": None,
                "start_time": None,
-               "end_reason": None}
+               "end_reason": None,
+               "tracked_scaling_shift": None,
+               "tracked_scaling_scale": None,
+               "predicted_scaling_shift": None,
+               "predicted_scaling_scale": None,
+               "num_reads_since_mux_change": None,
+               "time_since_mux_change": None,
+               "num_minknow_events": None}
         _, aux = self.F.get_empty_record(aux=True)
         for i, rec in enumerate(aux):
             with self.subTest(i=i, attr=rec):
