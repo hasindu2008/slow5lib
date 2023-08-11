@@ -13,6 +13,7 @@ slow5tools: https://github.com/hasindu2008/slow5tools<br/>
 
 [![BioConda Install](https://img.shields.io/conda/dn/bioconda/pyslow5.svg?style=flag&label=BioConda%20install)](https://anaconda.org/bioconda/pyslow5)
 [![PyPI](https://img.shields.io/pypi/v/pyslow5.svg?style=flat)](https://pypi.python.org/pypi/pyslow5)
+![PyPI - Downloads](https://img.shields.io/pypi/dm/pyslow5?label=pyslow5%20PyPi)
 [![C/C++ CI](https://github.com/hasindu2008/slow5lib/actions/workflows/c-cpp.yml/badge.svg)](https://github.com/hasindu2008/slow5lib/actions/workflows/c-cpp.yml)
 [![Python CI](https://github.com/hasindu2008/slow5lib/actions/workflows/python.yml/badge.svg)](https://github.com/hasindu2008/slow5lib/actions/workflows/python.yml)
 
