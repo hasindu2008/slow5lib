@@ -687,6 +687,19 @@ these functions are used by slow5tools and pyslow5 - so any change to a function
 slow5_file_t *slow5_open_with(const char *pathname, const char *mode, enum slow5_fmt format);
 
 /**
+ * Loads the index file for slow5 file given it's pathname.
+ * Will not create the index if not found.
+ *
+ * Return -1 on error,
+ * 0 on success.
+ *
+ * @param   s5p slow5 file structure
+ * @param   pathname    relative or absolute path to slow5 file
+ * @return  error codes described above
+ */
+int slow5_idx_load_with(slow5_file_t *s5p, const char *pathname);
+
+/**
  * Add a new header data attribute.
  *
  * Returns -1 if an input parameter is NULL.
