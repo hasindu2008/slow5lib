@@ -114,6 +114,12 @@ struct slow5_idx *slow5_idx_init(struct slow5_file *s5p) {
             return NULL;
         }
         index->fp = fopen(index->pathname, "w");
+        if(!index->fp){
+            SLOW5_ERROR("Error opening file '%s' for writing: %s.", index->pathname, strerror(errno));
+            slow5_errno = SLOW5_ERR_IO;
+            slow5_idx_free(index);
+            return NULL;
+        }
         if (slow5_idx_write(index, s5p->header->version) != 0) {
             slow5_idx_free(index);
             return NULL;
@@ -148,7 +154,7 @@ int slow5_idx_to(struct slow5_file *s5p, const char *pathname) {
 
     index->fp = fopen(pathname, "w");
     if(!index->fp){
-        SLOW5_ERROR("Error opening file '%s': %s.", pathname, strerror(errno));
+        SLOW5_ERROR("Error opening file '%s' for writing: %s.", pathname, strerror(errno));
         slow5_errno = SLOW5_ERR_IO;
         slow5_idx_free(index);
         return -1;
