@@ -77,6 +77,7 @@ struct slow5_idx *slow5_idx_init_with(struct slow5_file *s5p, const char *pathna
         SLOW5_ERROR("Index file not found at '%s'.", index->pathname)
         slow5_errno =  SLOW5_ERR_NOIDX;
         slow5_idx_free(index);
+        return NULL;
     } else {
         if (slow5_idx_load_fp(index, s5p, index_fp) != 0) {
             slow5_idx_free(index);
