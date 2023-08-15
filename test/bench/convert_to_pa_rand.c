@@ -23,7 +23,7 @@ static inline double realtime(void) {
 int main(int argc, char *argv[]) {
 
     if(argc != 5) {
-        fprintf(stderr, "Usage: %s in_file.blow5 rid_list.txt num_thread batch_size\n", argv[0]);
+        fprintf(stderr, "Usage: %s reads.blow5 rid_list.txt num_thread batch_size\n", argv[0]);
         return EXIT_FAILURE;
     }
 

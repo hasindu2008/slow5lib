@@ -35,8 +35,8 @@ data/test/same_diff_ids.slow5.idx
 data/exp/aux_array/exp_lossless_end_reason.slow5.idx
 test/data/exp/aux_array/exp_lossless_end_reason.slow5.idx
 
-bench/get_all_read_ids
-bench/get_all_samples
-bench/get_selected_read_ids_read_number
-bench/get_selected_read_ids_sample_count
-bench/get_selected_read_ids_samples
+bench/get_read_ids
+bench/get_samples
+bench/get_read_number_rand
+bench/get_sample_count_rand
+bench/get_samples_rand

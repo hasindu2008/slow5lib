@@ -1,6 +1,6 @@
 //get all the samples and sum them to stdout
 //make zstd=1
-//gcc -Wall -O2 -I include/ -o get_all_samples test/bench/get_all_samples.c lib/libslow5.a -lm -lz -lzstd -lpthread  -fopenmp
+//gcc -Wall -O2 -I include/ -o get_samples test/bench/get_samples.c lib/libslow5.a -lm -lz -lzstd -lpthread  -fopenmp
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -141,7 +141,7 @@ void* output_free_batch(void* voidargs){
 
 
     for(int i=0;i<batch_size;i++){
-        fprintf(fp,"%s,%ld\n",slow5_rec[i]->read_id,sums[i]);
+        fprintf(fp,"%s\t%ld\n",slow5_rec[i]->read_id,sums[i]);
     }
     //fprintf(stderr,"batch printed with %d reads\n",batch_size);
     free_raw_batch(mem_records, mem_bytes, batch_size);
@@ -162,25 +162,20 @@ void* output_free_batch(void* voidargs){
 
 int main(int argc, char *argv[]) {
 
-    if(argc != 5) {
-        fprintf(stderr, "Usage: %s in_file.blow5 out_file.csv num_thread batch_size\n", argv[0]);
+    if(argc != 4) {
+        fprintf(stderr, "Usage: %s reads.blow5 num_thread batch_size\n", argv[0]);
         return EXIT_FAILURE;
     }
 
 
-    int batch_size = atoi(argv[4]);
-    int num_thread = atoi(argv[3]);
+    int batch_size = atoi(argv[3]);
+    int num_thread = atoi(argv[2]);
     int ret=batch_size;
     threads = num_thread;
 
 
-    FILE *fp = fopen(argv[2],"w");
-    if(fp==NULL){
-        fprintf(stderr,"Error in opening file %s for writing\n",argv[2]);
-        perror("perr: ");
-        exit(EXIT_FAILURE);
-    }
-    fputs("read_id,samples\n", fp);
+    FILE *fp = stdout;
+    fputs("#read_id\tsample_sum\n", fp);
 
 
     double tot_time = 0;
@@ -271,8 +266,6 @@ int main(int argc, char *argv[]) {
     t0 = realtime();
     slow5_close(sp);
     tot_time += realtime() - t0;
-
-    fclose(fp);
 
     fprintf(stderr,"Time for getting raw bytes (exclude depress & parse) %f\n", tot_time);
 
