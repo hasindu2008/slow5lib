@@ -1,18 +1,20 @@
 # slow5lib
 
-*slow5lib* is a software library for reading & writing SLOW5 files. *slow5lib* is designed to facilitate use of data in SLOW5 format by third-party software packages. Existing packages that read/write data in FAST5 format can be easily modified to support SLOW5.
+*slow5lib* is a software library for reading & writing SLOW5 files. *slow5lib* is designed to facilitate use of data in SLOW5 format by third-party software packages. Existing packages that read/write data in FAST5 or POD5 format can be easily modified to support SLOW5.
 
 **About SLOW5 format:**<br/>
-SLOW5 is a new file format for storing signal data from Oxford Nanopore Technologies (ONT) devices. SLOW5 was developed to overcome inherent limitations in the standard FAST5 signal data format that prevent efficient, scalable analysis and cause many headaches for developers. SLOW5 can be encoded in human-readable ASCII format, or a more compact and efficient binary format (BLOW5) - this is analogous to the seminal SAM/BAM format for storing DNA sequence alignments. The BLOW5 binary format supports  *zlib* (DEFLATE) compression, or other compression methods (see [notes](https://github.com/hasindu2008/slow5lib#notes)), thereby minimising the data storage footprint while still permitting efficient parallel access. Detailed benchmarking experiments have shown that SLOW5 format is an order of magnitude faster and significantly smaller than FAST5.
+SLOW5 is a new file format for storing signal data from Oxford Nanopore Technologies (ONT) devices. SLOW5 was developed to overcome inherent limitations in the standard FAST5 signal data format that prevent efficient, scalable analysis and cause many headaches for developers (and upcoming headaches with ONT's latest POD5 format). SLOW5 can be encoded in human-readable ASCII format, or a more compact and efficient binary format (BLOW5) - this is analogous to the seminal SAM/BAM format for storing DNA sequence alignments. The BLOW5 binary format supports  *zlib* (DEFLATE) compression, or other compression methods (see [notes](https://github.com/hasindu2008/slow5lib#notes)), thereby minimising the data storage footprint while still permitting efficient parallel access. Detailed benchmarking experiments have shown that SLOW5 format is an order of magnitude faster and significantly smaller than FAST5.
 
 Full documentation: https://hasindu2008.github.io/slow5lib<br/>
-Pre-print: https://www.biorxiv.org/content/10.1101/2021.06.29.450255v1<br/>
+<!-- Pre-print: https://www.biorxiv.org/content/10.1101/2021.06.29.450255v1<br/> -->
 Publication: https://www.nature.com/articles/s41587-021-01147-4<br/>
 SLOW5 specification: https://hasindu2008.github.io/slow5specs<br/>
 slow5tools: https://github.com/hasindu2008/slow5tools<br/>
+SLOW5 ecosystem: https://hasindu2008.github.io/slow5<br/>
 
 [![BioConda Install](https://img.shields.io/conda/dn/bioconda/pyslow5.svg?style=flag&label=BioConda%20install)](https://anaconda.org/bioconda/pyslow5)
 [![PyPI](https://img.shields.io/pypi/v/pyslow5.svg?style=flat)](https://pypi.python.org/pypi/pyslow5)
+![PyPI - Downloads](https://img.shields.io/pypi/dm/pyslow5?label=pyslow5%20PyPi)
 [![C/C++ CI](https://github.com/hasindu2008/slow5lib/actions/workflows/c-cpp.yml/badge.svg)](https://github.com/hasindu2008/slow5lib/actions/workflows/c-cpp.yml)
 [![Python CI](https://github.com/hasindu2008/slow5lib/actions/workflows/python.yml/badge.svg)](https://github.com/hasindu2008/slow5lib/actions/workflows/python.yml)
 
@@ -33,6 +35,7 @@ Please cite the following in your publications when using *slow5lib/pyslow5*:
 
 ## Building
 
+Building slow5lib requires a compiler that supports C99 standard (with X/Open 7 POSIX 2008 extensions), which is widely available.
 To build the C/C++ library :
 
 ```sh
@@ -115,6 +118,9 @@ You can invoke `examples/build.sh` to compile the example programmes. Have a loo
 Python wrapper for slow5lib or *pyslow5* can be installed using conda as `conda install pyslow5 -c bioconda -c conda-forge` or pypi as `pip install pyslow5`.
 The instructions to build *pyslow5* and the usage instructions are [here](https://hasindu2008.github.io/slow5lib/pyslow5_api/pyslow5.html).
 
+### Other languages
+
+A slow5 library for RUST programming language developed by [@bsaintjo](https://github.com/bsaintjo/) is available [here](https://docs.rs/slow5/latest/slow5). A slow5 library in GO language developed by [@Koeng101](https://github.com/Koeng101) is available [here](https://github.com/TimothyStiles/poly/pull/220). We are highly grateful to these community efforts. If anyone is interested in a library from another language, feel free to open an issue.
 
 ### Current limitations & future work
 
@@ -129,7 +135,6 @@ slow5lib is a reference implementation for SLOW5 format. Depending on the intere
 ### Notes
 
 *slow5lib* from version 0.3.0 onwards has built in [StreamVByte](https://github.com/lemire/streamvbyte) compression support to enable even smaller file sizes, which is applied to the raw signal by default when producing BLOW5 files.  *zlib* compression is then applied by default to each SLOW5 record. If *zstd* is used instead of *zlib* on top of *StreamVByte*, it is similar to ONT's latest [vbz](https://github.com/nanoporetech/vbz_compression) compression. BLOW5 files with *zstd+StreamVByte* are still about 25% smaller than vbz compressed FAST5 files.
-
 
 ## Acknowledgement
 slow5lib uses [klib](https://github.com/attractivechaos/klib) and [StreamVByte](https://github.com/lemire/streamvbyte). Some code snippets have been taken from [Minimap2](https://github.com/lh3/minimap2) and [Samtools](http://samtools.sourceforge.net/).

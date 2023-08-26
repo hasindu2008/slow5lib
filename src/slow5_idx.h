@@ -46,6 +46,8 @@ struct slow5_idx {
 
 
 struct slow5_idx *slow5_idx_init(struct slow5_file *s5p);
+struct slow5_idx *slow5_idx_init_with(struct slow5_file *s5p, const char *pathname);
+
 /**
  * Create the index file for slow5 file.
  * Overrides if already exists.

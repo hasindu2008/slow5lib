@@ -356,7 +356,13 @@ int version_compatible(void) {
     file_version.major=1 ; file_version.minor=11 ; file_version.patch=1 ;
     ASSERT(slow5_is_version_compatible(file_version, max_supported)==0);  //file 1.11.1 max_supported 1.10.3
 
+    max_supported.major=0  ; max_supported.minor=1  ; max_supported.patch=0  ;
+    file_version.major=1 ; file_version.minor=0 ; file_version.patch=0 ;
+    ASSERT(slow5_is_version_compatible(file_version, max_supported)==0);  //file 1.0.0 max_supported 0.1.0
 
+    max_supported.major=0  ; max_supported.minor=2  ; max_supported.patch=0  ;
+    file_version.major=1 ; file_version.minor=0 ; file_version.patch=0 ;
+    ASSERT(slow5_is_version_compatible(file_version, max_supported)==1);  //file 1.0.0 max_supported 0.2.0 (sepcial case, 1.0.0=0.2.0)
 
     return EXIT_SUCCESS;
 

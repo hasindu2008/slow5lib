@@ -48,14 +48,15 @@ extra_compile_args = ['-g', '-Wall', '-O2', '-std=c99', '-DSLOW5_ENABLE_MT=1' ]
 # extra_compile_args = []
 # os.environ["CFLAGS"] = '-g -Wall -O2 -std=c99'
 
-arch=platform.machine()
-if arch in ["aarch64", "arm64"]:
-    extra_compile_args.append('-D__ARM_NEON__')
-elif arch in ["aarch64"]:
-	extra_compile_args.append('-mfpu=neon')
-elif arch in ["x86_64"]:
-    extra_compile_args.extend(['-DSTREAMVBYTE_SSSE3=1', '-mssse3'])   # WARNING: ancient x86_64 CPUs don't have SSSE3
-
+if platform.system() != 'Darwin':
+    arch=platform.machine()
+    if arch in ["aarch64"]:
+        extra_compile_args.append('-D__ARM_NEON__')
+    elif arch in ["armv7l"]:
+        extra_compile_args.append('-mfpu=neon')
+    elif arch in ["x86_64"]:
+        extra_compile_args.extend(['-DSTREAMVBYTE_SSSE3=1', '-mssse3'])   # WARNING: ancient x86_64 CPUs don't have SSSE3
+# note that on macos, for now we just let it compile without simd
 
 # include_dirs = ['include/', np.get_include(), 'thirdparty/streamvbyte/include']
 libraries = ['m', 'z']
@@ -88,7 +89,7 @@ def readme():
 
 setup(
     name = 'pyslow5',
-    version='0.8.0-dirty',
+    version='1.1.0-dirty',
     url = 'https://github.com/hasindu2008/slow5lib',
     description='slow5lib python bindings',
     long_description=readme(),

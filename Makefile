@@ -90,6 +90,7 @@ pyslow5:
 	python3 setup.py build
 	cp build/lib.*/*.so  ./
 	python3 < python/example.py
+	rm -rf .eggs/
 	python3 setup.py sdist
 
 

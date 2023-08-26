@@ -12,7 +12,8 @@ Low-level API allows much more efficient access to BLOW5 files compared to the h
   &nbsp;&nbsp;&nbsp;&nbsp;sets the level log message verbosity
 * [slow5_set_exit_condition](low_level_api/slow5_set_exit_condition.md)<br/>
   &nbsp;&nbsp;&nbsp;&nbsp;sets if slow5lib should exit the programme on error
-
+* [slow5_idx_load_with](low_level_api/slow5_idx_load.md)<br/>
+  &nbsp;&nbsp;&nbsp;&nbsp;loads the index file for a SLOW5 file given a file path for the index
 
 ### Reading and access
 
