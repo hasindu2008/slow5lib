@@ -1667,6 +1667,52 @@ static int  ex_zd_depress_16(const uint8_t *in, uint64_t nin, int16_t *out,
     return 0;
 }
 
+static inline uint8_t find_qts_of_sample(int16_t s, uint8_t max){
+    uint8_t q = max;
+    while(q){
+        uint16_t mask = (1 << q) - 1;
+        if(!(s & mask)) {
+            break;
+        }
+        q--;
+    }
+    return q;
+}
+
+static inline uint8_t find_qts(const int16_t *s, uint64_t n, uint8_t max){
+    uint8_t q = max;
+    for(uint64_t i=0; i<n; i++){
+        q = find_qts_of_sample(s[i], q);
+        //fprintf(stderr,"Possible q=%d\n", q);
+        if(!q) {
+            //fprintf(stderr,"q foudn to %d st element %d\n", q,i);
+            break;
+        }
+    }
+    return q;
+}
+
+static inline int16_t *do_qts(const int16_t *s, uint64_t n, uint8_t q){
+    int16_t *out = (int16_t *) malloc(n * sizeof *out);
+    if(!out){
+        SLOW5_MALLOC_ERROR();
+        slow5_errno = SLOW5_ERR_MEM;
+        return NULL;
+    }
+    for(uint64_t i=0; i<n; i++){
+        out[i] = s[i] >> q;
+    }
+    return out;
+}
+
+static inline void do_rev_qts_inplace(int16_t *s, uint64_t n, uint8_t q){
+    for(uint64_t i=0; i<n; i++){
+        s[i] = s[i] << q;
+    }
+    return;
+}
+
+
 static uint8_t *ptr_compress_ex_zd(const int16_t *ptr, size_t count, size_t *n) {
 
     uint64_t nin = count / sizeof *ptr;
@@ -1681,22 +1727,43 @@ static uint8_t *ptr_compress_ex_zd(const int16_t *ptr, size_t count, size_t *n) 
         return NULL;
     }
 
-    size_t sz = sizeof nin;
+    uint8_t exzd_ver = 0;
+    size_t sz = sizeof exzd_ver;
     SLOW5_ASSERT(cap_out_vb - offset >= sz);
-    memcpy(out_vb, &nin, sz);
+    memcpy(out_vb, &exzd_ver, sz);
     offset += sz;
+
+    sz = sizeof nin;
+    SLOW5_ASSERT(cap_out_vb - offset >= sz);
+    memcpy(out_vb+offset, &nin, sz);
+    offset += sz;
+
+    uint8_t q = find_qts(in, nin, 5);
+    int16_t *q_in = NULL;
+    if(q){
+        q_in = do_qts(in, nin, q);
+        in = q_in;
+    }
+    sz = sizeof q;
+    SLOW5_ASSERT(cap_out_vb - offset >= sz);
+    memcpy(out_vb+offset, &q, sz);
+    offset += sz;
+    //fprintf(stderr,"here q=%d\n", q);
 
     uint64_t nout_vb = 0;
 	int ret = ex_zd_press_16(in, nin, &out_vb, &cap_out_vb, &offset, &nout_vb);
     if(ret < 0){
         free(out_vb);
+        free(q_in);
         return NULL;
     }
+    free(q_in);
 
     SLOW5_ASSERT(cap_out_vb >= offset);
-    SLOW5_ASSERT(offset == nout_vb + sz); //nout_vb is redundant, can be removed
+    SLOW5_ASSERT(offset == nout_vb + sizeof nin + sizeof q + sizeof exzd_ver); //nout_vb is redundant, can be removed
 
-    *n = nout_vb+sz;
+    *n = offset;
+
 
     return out_vb;
 
@@ -1705,7 +1772,17 @@ static uint8_t *ptr_compress_ex_zd(const int16_t *ptr, size_t count, size_t *n) 
 static int16_t *ptr_depress_ex_zd(const uint8_t *ptr, size_t count, size_t *n){
 
     uint64_t nout;
-    memcpy(&nout, ptr, sizeof(uint64_t));
+    uint64_t offset = 0;
+
+    uint8_t exzd_ver = 0;
+    size_t sz = sizeof exzd_ver;
+    memcpy(&exzd_ver, ptr, sz);
+    offset += sz;
+    SLOW5_ASSERT(exzd_ver == 0);
+
+    sz = sizeof nout;
+    memcpy(&nout, ptr+offset, sz);
+    offset += sz;
 
     int16_t *out= (int16_t *) malloc(nout*sizeof *out);
     if(!out){
@@ -1714,10 +1791,21 @@ static int16_t *ptr_depress_ex_zd(const uint8_t *ptr, size_t count, size_t *n){
         return NULL;
     }
 
-	int ret = ex_zd_depress_16(ptr+sizeof(uint64_t), count-sizeof(uint64_t), out, &nout);
+    uint8_t q = 0;
+    sz = sizeof q;
+    memcpy(&q, ptr+offset, sz);
+    offset += sz;
+
+    SLOW5_ASSERT(q <= 5);
+
+	int ret = ex_zd_depress_16(ptr+offset, count-offset, out, &nout);
     if(ret <0 ){
         free(out);
         return NULL;
+    }
+
+    if(q){
+        do_rev_qts_inplace(out, nout, q);
     }
 
 	*n = nout * sizeof *out;
