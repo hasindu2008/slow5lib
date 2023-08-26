@@ -1,6 +1,6 @@
 //get all the samples and sum them to stdout
 //make zstd=1
-//gcc -Wall -O2 -I include/ -o get_all test/bench/get_all.c lib/libslow5.a python/slow5threads.c -lm -lz -lzstd -lpthread
+//gcc -Wall -O2 -I include/ -o get_samples test/bench/get_samples.c lib/libslow5.a python/slow5threads.c -lm -lz -lzstd -lpthread  -fopenmp
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,21 +19,21 @@ static inline double realtime(void) {
 
 int main(int argc, char *argv[]) {
 
-    if(argc != 5) {
+    if(argc != 4) {
         fprintf(stderr, "Usage: %s reads.blow5 num_thread batch_size\n", argv[0]);
         return EXIT_FAILURE;
     }
 
     slow5_rec_t **rec = NULL;
     int ret=1;
-    int batch_size = atoi(argv[4]);
-    int num_thread = atoi(argv[3]);
+    int batch_size = atoi(argv[3]);
+    int num_thread = atoi(argv[2]);
+    omp_set_num_threads(num_thread);
+
+    uint64_t *sums = malloc(sizeof(uint64_t)*batch_size);
 
     FILE *fp = stdout;
     fputs("#read_id\tsample_sum\n", fp);
-
-    int64_t sum_samples = 0;
-
 
     double tot_time = 0;
     double t0 = realtime();
@@ -54,9 +54,21 @@ int main(int argc, char *argv[]) {
         tot_time += realtime() - t0;
         fprintf(stderr,"batch loaded with %d reads\n",ret);
 
-        for(int i=0; i<ret; i++){
-            sum_samples += rec[i]->len_raw_signal;
+        #pragma omp parallel for
+        for(int i=0;i<ret;i++){
+            uint64_t sum = 0;
+            for(int j=0; j<rec[i]->len_raw_signal; j++){
+                sum += rec[i]->raw_signal[j];
+            }
+            sums[i] = sum;
         }
+
+        fprintf(stderr,"batch processed with %d reads\n",ret);
+
+        for(int i=0;i<ret;i++){
+            fprintf(fp,"%s\t%ld\n",rec[i]->read_id,sums[i]);
+        }
+        fprintf(stderr,"batch printed with %d reads\n",ret);
 
         t0 = realtime();
         slow5_free_batch_lazy(&rec,ret);
@@ -71,8 +83,9 @@ int main(int argc, char *argv[]) {
     slow5_close(sp);
     tot_time += realtime() - t0;
 
-    fprintf(stderr,"Time for getting all records %f\n", tot_time);
-    fprintf(stderr,"%f MSamples/s\n", (double)sum_samples/(tot_time*1000*1000));
+    free(sums);
+
+    fprintf(stderr,"Time for getting samples %f\n", tot_time);
 
     return 0;
 }
