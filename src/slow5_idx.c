@@ -31,17 +31,23 @@ static inline struct slow5_idx *slow5_idx_init_empty(void) {
     return index;
 }
 
-static inline int slow5_idx_load_fp(struct slow5_idx *index, struct slow5_file *s5p, FILE *index_fp) {
+static inline int slow5_idx_load_fp(struct slow5_idx *index, struct slow5_file *s5p, FILE *index_fp, int8_t check_ts) {
 
     index->fp = index_fp;
-    int err;
-    if (slow5_filestamps_cmp(index->pathname, s5p->meta.pathname, &err) < 0.0) {
-        SLOW5_WARNING("Index file '%s' is older than slow5 file '%s'.",
-                index->pathname, s5p->meta.pathname);
+
+    if(check_ts){
+        int err;
+        if (slow5_filestamps_cmp(index->pathname, s5p->meta.pathname, &err) < 0.0) {
+            SLOW5_WARNING("Index file '%s' is older than slow5 file '%s'.",
+                    index->pathname, s5p->meta.pathname);
+        }
+        if (err == -1) {
+            return -1;
+        }
+    } else {
+        SLOW5_INFO("Custom index file '%s' is being used. Time stamps not checked.", index->pathname);
     }
-    if (err == -1) {
-        return -1;
-    }
+
     if (slow5_idx_read(index) != 0) {
         return -1;
     }
@@ -79,7 +85,7 @@ struct slow5_idx *slow5_idx_init_with(struct slow5_file *s5p, const char *pathna
         slow5_idx_free(index);
         return NULL;
     } else {
-        if (slow5_idx_load_fp(index, s5p, index_fp) != 0) {
+        if (slow5_idx_load_fp(index, s5p, index_fp, 0) != 0) {
             slow5_idx_free(index);
             return NULL;
         }
@@ -127,7 +133,7 @@ struct slow5_idx *slow5_idx_init(struct slow5_file *s5p) {
         fclose(index->fp);
         index->fp = NULL;
     } else {
-        if (slow5_idx_load_fp(index, s5p, index_fp) != 0) {
+        if (slow5_idx_load_fp(index, s5p, index_fp, 1) != 0) {
             slow5_idx_free(index);
             return NULL;
         }
