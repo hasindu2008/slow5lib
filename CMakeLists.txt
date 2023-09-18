@@ -20,6 +20,12 @@ if(SLOW5_USE_ZSTD)
 endif(SLOW5_USE_ZSTD)
 unset(SLOW5_USE_ZSTD CACHE)
 
+option(SLOW5_ENABLE_MT "Use SLOW5_ENABLE_MT" OFF) #OFF by default
+if(SLOW5_ENABLE_MT)
+    add_compile_options("-DSLOW5_ENABLE_MT")
+endif(SLOW5_ENABLE_MT)
+unset(SLOW5_ENABLE_MT CACHE)
+
 # option(SLOW5_USE_OPENMP "Use OPENMP" OFF) #OFF by default
 # if(SLOW5_USE_OPENMP)
 #     add_compile_options("-fopenmp")
