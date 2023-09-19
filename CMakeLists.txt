@@ -23,6 +23,8 @@ unset(SLOW5_USE_ZSTD CACHE)
 option(SLOW5_ENABLE_MT "Use SLOW5_ENABLE_MT" OFF) #OFF by default
 if(SLOW5_ENABLE_MT)
     add_compile_options("-DSLOW5_ENABLE_MT")
+    link_libraries("-lpthread")
+    set(slow5_mt src/slow5_mt.c)
 endif(SLOW5_ENABLE_MT)
 unset(SLOW5_ENABLE_MT CACHE)
 
@@ -42,7 +44,6 @@ set(slow5_ src/slow5.c)
 set(slow5_idx src/slow5_idx.c)
 set(slow5_misc src/slow5_misc.c)
 set(slow5_press src/slow5_press.c)
-set(slow5_mt src/slow5_mt.c)
 
 # example source files
 # set(random_read examples/random_read.c)
