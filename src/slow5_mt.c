@@ -333,7 +333,7 @@ int slow5_get_batch(slow5_mt_t *core, slow5_batch_t *db, char **rid, int num_rid
 
     //*read = db->slow5_rec;
 
-    // slow5_free_db_tmp(db);
+    slow5_free_db_tmp(db);
     // slow5_free_db(db);
     // slow5_free_core(core);
 
@@ -354,7 +354,7 @@ int slow5_get_next_batch(slow5_mt_t *core, slow5_batch_t *db, int batch_size){
 
     //*read = db->slow5_rec;
 
-    // slow5_free_db_tmp(db);
+    slow5_free_db_tmp(db);
     // slow5_free_db(db);
     // slow5_free_core(core);
 
@@ -382,7 +382,7 @@ int slow5_write_batch(slow5_mt_t *core, slow5_batch_t *db, int batch_size){
     SLOW5_LOG_DEBUG("Written %d recs\n",num_wr);
 
     // db->slow5_rec = NULL;
-    // slow5_free_db_tmp(db);
+    slow5_free_db_tmp(db);
     // slow5_free_db(db);
     // slow5_free_core(core);
 
@@ -401,7 +401,7 @@ void slow5_free_batch(slow5_batch_t *db){
     free(reads);
     //*read = NULL;
 
-    slow5_free_db_tmp(db);
+    //slow5_free_db_tmp(db);
     slow5_free_db(db);
 }
 
