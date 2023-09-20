@@ -361,6 +361,11 @@ int slow5_get_next_batch(slow5_mt_t *core, slow5_batch_t *db, int batch_size){
     return num_read;
 }
 
+int slow5_encode_batch(slow5_mt_t *core, slow5_batch_t *db, int batch_size){
+    db->n_rec = batch_size;
+    slow5_work_db(core,db,slow5_work_per_single_read3);
+    return db->n_rec;
+}
 
 int slow5_write_batch(slow5_mt_t *core, slow5_batch_t *db, int batch_size){
 
@@ -498,6 +503,10 @@ int slow5_get_next_batch(slow5_mt_t *mt, slow5_batch_t *read_batch, int batch_si
     exit(EXIT_FAILURE);
 }
 int slow5_get_batch(slow5_mt_t *mt, slow5_batch_t *read_batch, char **rid, int num_rid){
+    fprintf(stderr,"slow5lib has not been compiled with lazy multithreading support\n");
+    exit(EXIT_FAILURE);
+}
+int slow5_encode_batch(slow5_mt_t *core, slow5_batch_t *db, int batch_size){
     fprintf(stderr,"slow5lib has not been compiled with lazy multithreading support\n");
     exit(EXIT_FAILURE);
 }
