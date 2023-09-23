@@ -14,11 +14,11 @@ extern enum slow5_exit_condition_opt  slow5_exit_condition;
 #define BUF_INIT_CAP (20*1024*1024)
 #define SLOW5_INDEX_BUF_INIT_CAP (64) // 2^6 TODO is this too little?
 
-static inline struct slow5_idx *slow5_idx_init_empty(void);
-static int slow5_idx_build(struct slow5_idx *index, struct slow5_file *s5p);
-static int slow5_idx_read(struct slow5_idx *index);
 
-static inline struct slow5_idx *slow5_idx_init_empty(void) {
+static int slow5_idx_build(struct slow5_idx *index, struct slow5_file *s5p);
+int slow5_idx_read(struct slow5_idx *index);
+
+struct slow5_idx *slow5_idx_init_empty(void) {
 
     struct slow5_idx *index = (struct slow5_idx *) calloc(1, sizeof *index);
     if(!index){
@@ -404,7 +404,7 @@ int slow5_idx_write(struct slow5_idx *index, struct slow5_version version) {
     return 0;
 }
 
-static int slow5_idx_read(struct slow5_idx *index) {
+int slow5_idx_read(struct slow5_idx *index) {
 
     struct slow5_version max_supported = SLOW5_VERSION_ARRAY;
     const char magic[] = SLOW5_INDEX_MAGIC_NUMBER;
