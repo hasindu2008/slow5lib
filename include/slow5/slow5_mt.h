@@ -4,6 +4,10 @@
 #ifndef SLOW5_MT_H
 #define SLOW5_MT_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
+
 /**************************************************************************************************
  ***  Multi-threading API *************************************************************************
  **************************************************************************************************/
@@ -62,5 +66,9 @@ int slow5_get_next_batch_lazy(slow5_rec_t ***read, slow5_file_t *s5p, int batch_
 int slow5_get_batch_lazy(slow5_rec_t ***read, slow5_file_t *s5p, char **rid, int num_rid, int num_threads);
 int slow5_write_batch_lazy(slow5_rec_t **read, slow5_file_t *s5p, int batch_size, int num_threads);
 void slow5_free_batch_lazy(slow5_rec_t ***read, int num_rec);
+
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */
 
 #endif

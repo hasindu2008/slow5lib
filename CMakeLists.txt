@@ -20,6 +20,14 @@ if(SLOW5_USE_ZSTD)
 endif(SLOW5_USE_ZSTD)
 unset(SLOW5_USE_ZSTD CACHE)
 
+option(SLOW5_ENABLE_MT "Use SLOW5_ENABLE_MT" OFF) #OFF by default
+if(SLOW5_ENABLE_MT)
+    add_compile_options("-DSLOW5_ENABLE_MT")
+    link_libraries("-lpthread")
+    set(slow5_mt src/slow5_mt.c)
+endif(SLOW5_ENABLE_MT)
+unset(SLOW5_ENABLE_MT CACHE)
+
 # option(SLOW5_USE_OPENMP "Use OPENMP" OFF) #OFF by default
 # if(SLOW5_USE_OPENMP)
 #     add_compile_options("-fopenmp")
@@ -51,10 +59,10 @@ add_subdirectory(thirdparty/streamvbyte)
 option(SLOW5_LINK_STATIC "libslow5 will create a static lib" OFF) #OFF by default
 if(SLOW5_LINK_STATIC)
     message( STATUS "libslow5 will create a static lib" )
-    add_library(slow5 STATIC ${slow5_} ${slow5_idx} ${slow5_misc} ${slow5_press})
+    add_library(slow5 STATIC ${slow5_} ${slow5_idx} ${slow5_misc} ${slow5_press} ${slow5_mt})
 else()
     message( STATUS "libslow5 will create a shared lib" )
-    add_library(slow5 SHARED ${slow5_} ${slow5_idx} ${slow5_misc} ${slow5_press})
+    add_library(slow5 SHARED ${slow5_} ${slow5_idx} ${slow5_misc} ${slow5_press} ${slow5_mt})
 endif(SLOW5_LINK_STATIC)
 unset(SLOW5_LINK_STATIC CACHE)
 
