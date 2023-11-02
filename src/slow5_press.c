@@ -1315,7 +1315,7 @@ static int ex_press(const uint16_t *in, uint32_t nin, uint8_t **out_ptr,
 		}
 	}
 
-    if(nex > nin/100){
+    if(nex > nin/10){
         SLOW5_WARNING("ex-zd: %d Exceptions out of %d samples. Compression may not be ideal.",nex,nin);
     }
 
