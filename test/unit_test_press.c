@@ -173,6 +173,85 @@ int press_svb_exp_valid(void) {
     return EXIT_SUCCESS;
 }
 
+
+int press_ex_one_valid(void) {
+
+    const int16_t one[] = { 100 };
+    size_t bytes_ex = 0;
+    uint8_t *one_ex = slow5_ptr_compress_solo(SLOW5_COMPRESS_EX_ZD, one, sizeof *one, &bytes_ex);
+    ASSERT(one_ex);
+    ASSERT(bytes_ex > 0);
+
+    size_t bytes_orig = 0;
+    int16_t *one_depress = slow5_ptr_depress_solo(SLOW5_COMPRESS_EX_ZD, one_ex, bytes_ex, &bytes_orig);
+    ASSERT(bytes_orig == sizeof *one);
+    ASSERT(memcmp(one, one_depress, bytes_orig) == 0);
+    ASSERT(one_depress[0] == one[0]);
+
+    free(one_ex);
+    free(one_depress);
+
+    return EXIT_SUCCESS;
+}
+
+int press_ex_big_valid(void) {
+
+    const int16_t big[] = { 100, -100, 0, 10000, 3442, 234, 2326, 346, 213, 234 };
+    size_t bytes_ex = 0;
+    uint8_t *big_ex = slow5_ptr_compress_solo(SLOW5_COMPRESS_EX_ZD, big, sizeof big, &bytes_ex);
+    ASSERT(big_ex);
+    ASSERT(bytes_ex > 0);
+
+    size_t bytes_orig = 0;
+    int16_t *big_depress = slow5_ptr_depress_solo(SLOW5_COMPRESS_EX_ZD, big_ex, bytes_ex, &bytes_orig);
+    ASSERT(bytes_orig == sizeof big);
+    ASSERT(memcmp(big, big_depress, bytes_orig) == 0);
+
+    free(big_ex);
+    free(big_depress);
+
+    return EXIT_SUCCESS;
+}
+
+
+int press_ex_exp_valid(void) {
+
+    const int16_t big[] = { 1039, 588, 588, 593, 586, 574, 570, 585, 588, 586 };
+    size_t bytes_ex = 0;
+    uint8_t *big_ex = slow5_ptr_compress_solo(SLOW5_COMPRESS_EX_ZD, big, sizeof big, &bytes_ex);
+    ASSERT(big_ex);
+    ASSERT(bytes_ex > 0);
+
+    size_t bytes_orig = 0;
+    int16_t *big_depress = slow5_ptr_depress_solo(SLOW5_COMPRESS_EX_ZD, big_ex, bytes_ex, &bytes_orig);
+    ASSERT(bytes_orig == sizeof big);
+    ASSERT(memcmp(big, big_depress, bytes_orig) == 0);
+
+    free(big_ex);
+    free(big_depress);
+
+    return EXIT_SUCCESS;
+}
+
+int press_ex_huge_valid(void) {
+
+    const int16_t big[] = { 542,543,545,547,515,415,370,409,416,419,416,455,535,542,548,539,495,493,489,486,486,488,476,476,563,549,556,568,535,551,545,512,416,397,393};
+    size_t bytes_ex = 0;
+    uint8_t *big_ex = slow5_ptr_compress_solo(SLOW5_COMPRESS_EX_ZD, big, sizeof big, &bytes_ex);
+    ASSERT(big_ex);
+    ASSERT(bytes_ex > 0);
+
+    size_t bytes_orig = 0;
+    int16_t *big_depress = slow5_ptr_depress_solo(SLOW5_COMPRESS_EX_ZD, big_ex, bytes_ex, &bytes_orig);
+    ASSERT(bytes_orig == sizeof big);
+    ASSERT(memcmp(big, big_depress, bytes_orig) == 0);
+
+    free(big_ex);
+    free(big_depress);
+
+    return EXIT_SUCCESS;
+}
+
 #ifdef SLOW5_USE_ZSTD
 int press_zstd_buf_valid(void) {
 
@@ -229,6 +308,11 @@ int main(void) {
         CMD(press_svb_one_valid)
         CMD(press_svb_big_valid)
         CMD(press_svb_exp_valid)
+
+        CMD(press_ex_one_valid)
+        CMD(press_ex_big_valid)
+        CMD(press_ex_exp_valid)
+        CMD(press_ex_huge_valid)
 
 #ifdef SLOW5_USE_ZSTD
         CMD(press_zstd_buf_valid)

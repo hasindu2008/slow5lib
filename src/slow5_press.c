@@ -1220,16 +1220,6 @@ static void *ptr_depress_zstd(const void *ptr, size_t count, size_t *n) {
 
 /* EX_ZD */
 
-/*
- * variable byte 1 except 2 before bitpack
- * [num exceptions]
- * [num bytes of next block][exception indices | diff - 1 | bitpack]
- * [num bytes of next block][exceptions - 256 | bitpack]
- * data
- * maximum 256 exceptions
- */
-
-#define SLOW5_EX_MAX_EXCEPTIONS (UINT32_MAX)
 
 static uint32_t *delta_increasing_u32(const uint32_t *in, uint64_t nin)
 {
@@ -1325,6 +1315,10 @@ static int ex_press(const uint16_t *in, uint32_t nin, uint8_t **out_ptr,
 		}
 	}
 
+    if(nex > nin/100){
+        SLOW5_WARNING("ex-zd: %d Exceptions out of %d samples. Compression may not be ideal.",nex,nin);
+    }
+
     SLOW5_ASSERT(cap_out - offset >= sizeof nex);
 	(void) memcpy(out+offset, &nex, sizeof nex);
 	offset += sizeof nex;
@@ -1364,7 +1358,6 @@ static int ex_press(const uint16_t *in, uint32_t nin, uint8_t **out_ptr,
 		(void) memcpy(out + offset, ex_pos_press, nex_pos_press);
 		free(ex_pos_press);
 		offset += nex_pos_press;
-
 
         //actual exceptions
         nr_press_tmp = __slow5_streamvbyte_max_compressedbytes(nex);
@@ -1713,12 +1706,15 @@ static inline void do_rev_qts_inplace(int16_t *s, uint64_t n, uint8_t q){
 }
 
 
-static uint8_t *ptr_compress_ex_zd(const int16_t *ptr, size_t count, size_t *n) {
+static uint8_t *ptr_compress_ex_zd_v0(const int16_t *ptr, size_t count, size_t *n) {
 
     uint64_t nin = count / sizeof *ptr;
     const int16_t *in = ptr;
 
-	uint64_t cap_out_vb = count; //heuristic
+    uint8_t exzd_ver = 0;
+    uint8_t q;
+
+	uint64_t cap_out_vb = count + 1024; //heuristic
     size_t offset = 0;
     uint8_t *out_vb = (uint8_t *) malloc(cap_out_vb);
     if (!out_vb) {
@@ -1727,7 +1723,6 @@ static uint8_t *ptr_compress_ex_zd(const int16_t *ptr, size_t count, size_t *n) 
         return NULL;
     }
 
-    uint8_t exzd_ver = 0;
     size_t sz = sizeof exzd_ver;
     SLOW5_ASSERT(cap_out_vb - offset >= sz);
     memcpy(out_vb, &exzd_ver, sz);
@@ -1738,7 +1733,7 @@ static uint8_t *ptr_compress_ex_zd(const int16_t *ptr, size_t count, size_t *n) 
     memcpy(out_vb+offset, &nin, sz);
     offset += sz;
 
-    uint8_t q = find_qts(in, nin, 5);
+    q = find_qts(in, nin, 5);
     int16_t *q_in = NULL;
     if(q){
         q_in = do_qts(in, nin, q);
@@ -1764,27 +1759,23 @@ static uint8_t *ptr_compress_ex_zd(const int16_t *ptr, size_t count, size_t *n) 
 
     *n = offset;
 
-
     return out_vb;
 
 }
 
-static int16_t *ptr_depress_ex_zd(const uint8_t *ptr, size_t count, size_t *n){
+static uint8_t *ptr_compress_ex_zd(const int16_t *ptr, size_t count, size_t *n) {
+    return ptr_compress_ex_zd_v0(ptr, count, n);
+}
+
+static int16_t *ptr_depress_ex_zd_v0(const uint8_t *ptr, size_t count, size_t *n){
 
     uint64_t nout;
     uint64_t offset = 0;
-
-    uint8_t exzd_ver = 0;
-    size_t sz = sizeof exzd_ver;
-    memcpy(&exzd_ver, ptr, sz);
-    offset += sz;
-    SLOW5_ASSERT(exzd_ver == 0);
-
-    sz = sizeof nout;
+    size_t sz = sizeof nout;
     memcpy(&nout, ptr+offset, sz);
     offset += sz;
 
-    int16_t *out= (int16_t *) malloc(nout*sizeof *out);
+    int16_t *out = (int16_t *) malloc(nout*sizeof *out);
     if(!out){
         SLOW5_MALLOC_ERROR();
         slow5_errno = SLOW5_ERR_MEM;
@@ -1798,7 +1789,7 @@ static int16_t *ptr_depress_ex_zd(const uint8_t *ptr, size_t count, size_t *n){
 
     SLOW5_ASSERT(q <= 5);
 
-	int ret = ex_zd_depress_16(ptr+offset, count-offset, out, &nout);
+    int ret = ex_zd_depress_16(ptr+offset, count-offset, out, &nout);
     if(ret <0 ){
         free(out);
         return NULL;
@@ -1808,7 +1799,29 @@ static int16_t *ptr_depress_ex_zd(const uint8_t *ptr, size_t count, size_t *n){
         do_rev_qts_inplace(out, nout, q);
     }
 
-	*n = nout * sizeof *out;
+    *n = nout * sizeof *out;
+    return out;
+}
+
+
+static int16_t *ptr_depress_ex_zd(const uint8_t *ptr, size_t count, size_t *n){
+
+    uint64_t offset = 0;
+    uint8_t exzd_ver = 0;
+    int16_t *out;
+
+    SLOW5_ASSERT(count >= sizeof exzd_ver);
+
+    size_t sz = sizeof exzd_ver;
+    memcpy(&exzd_ver, ptr, sz);
+    offset += sz;
+    if(exzd_ver == 0){
+        out = ptr_depress_ex_zd_v0(ptr+offset, count-sz, n);
+    } else {
+        SLOW5_ERROR("Unsupported exzd version %d. Try a new version of slow5lib/slow5tools", exzd_ver);
+        slow5_errno = SLOW5_ERR_PRESS;
+        return NULL;
+    }
 
 	return out;
 }
