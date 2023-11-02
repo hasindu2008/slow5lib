@@ -1706,7 +1706,7 @@ static inline void do_rev_qts_inplace(int16_t *s, uint64_t n, uint8_t q){
 }
 
 
-static uint8_t *ptr_compress_ex_zd_v0(const int16_t *ptr, size_t count, size_t *n) {
+static inline uint8_t *ptr_compress_ex_zd_v0(const int16_t *ptr, size_t count, size_t *n) {
 
     uint64_t nin = count / sizeof *ptr;
     const int16_t *in = ptr;
@@ -1767,7 +1767,7 @@ static uint8_t *ptr_compress_ex_zd(const int16_t *ptr, size_t count, size_t *n) 
     return ptr_compress_ex_zd_v0(ptr, count, n);
 }
 
-static int16_t *ptr_depress_ex_zd_v0(const uint8_t *ptr, size_t count, size_t *n){
+static inline int16_t *ptr_depress_ex_zd_v0(const uint8_t *ptr, size_t count, size_t *n){
 
     uint64_t nout;
     uint64_t offset = 0;
