@@ -141,6 +141,9 @@ High-level API consists of following functions:
 
 Low-level API allows much more efficient access to BLOW5 files compared to the high-level API.  Low-level API is documented [here](slow5_low_level_api.md).
 
+### Extra multi-threaded API
+
+An optional built-in multithreaded API is under construction. See the [examples](https://github.com/hasindu2008/slow5lib/tree/master/examples/mt) for now. If you intend to use it, request through an [issue](https://github.com/hasindu2008/slow5lib/issues), so that we can finalise and document it.
 
 ## CITATION
 
