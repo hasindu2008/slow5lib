@@ -55,6 +55,7 @@ slow5_batch_t* slow5_init_batch(int batch_capacity);
 int slow5_get_next_batch(slow5_mt_t *mt, slow5_batch_t *read_batch, int batch_size);
 int slow5_get_batch(slow5_mt_t *mt, slow5_batch_t *read_batch, char **rid, int num_rid);
 int slow5_write_batch(slow5_mt_t *mt, slow5_batch_t *read_batch, int batch_size);
+int slow5_encode_batch(slow5_mt_t *core, slow5_batch_t *db, int batch_size);
 void slow5_free_batch(slow5_batch_t *read_batch);
 void slow5_free_mt(slow5_mt_t *mt);
 
