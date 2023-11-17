@@ -42,4 +42,6 @@ Low-level API allows much more efficient access to BLOW5 files compared to the h
   &nbsp;&nbsp;&nbsp;&nbsp;writes an encoded SLOW5 record to a SLOW5 file
 
 
+You may also refer to examples [here](https://github.com/hasindu2008/slow5lib/tree/master/examples/adv).
+
 **If you want any other functionality than what is described above, please open a GitHub issue so such functionality exposed, rather than trying to use internal functions by browsing the code. Such undocumented functions are subject to change.**

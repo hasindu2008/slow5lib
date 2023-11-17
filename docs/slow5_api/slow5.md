@@ -135,15 +135,15 @@ High-level API consists of following functions:
 * [slow5_set_press](slow5_set_press.md)<br/>
   &nbsp;&nbsp;&nbsp;&nbsp;sets the compression method for a BLOW5 file opened for writing
 
-
+You may also refer to examples [here](https://github.com/hasindu2008/slow5lib/tree/master/examples).
 
 ### Low-level API for reading and writing SLOW5 files
 
 Low-level API allows much more efficient access to BLOW5 files compared to the high-level API.  Low-level API is documented [here](slow5_low_level_api.md).
 
-### Extra multi-threaded API
+### Easy multi-thread API
 
-An optional built-in multithreaded API is under construction. See the [examples](https://github.com/hasindu2008/slow5lib/tree/master/examples/mt) for now. If you intend to use it, request through an [issue](https://github.com/hasindu2008/slow5lib/issues), so that we can finalise and document it.
+The easy multi-thread (called *mt* API) API allows the user to access SLOW5 using multiple threads, simply by specifying the number of threads, rather than needing to write their own multi-threading code. mt API is documented [here](slow5_mt_api.md). Note that this API is for your convenience, rather than for efficiency.
 
 ## CITATION
 
