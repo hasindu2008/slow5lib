@@ -118,6 +118,8 @@ jobs:
       run: make -j8
     - name: test-gcc
       run: make test
+    - name: make mt
+      run: examples/mt/build.sh
   os_x_11:
     name: OSX 11
     runs-on: macos-11
