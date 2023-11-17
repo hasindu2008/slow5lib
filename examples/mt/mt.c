@@ -48,7 +48,7 @@ void sequential_read_func(){
             printf("%s\t%ld\n",rec[i]->read_id,len_raw_signal);
         }
 
-        if(ret<batch_size){ //this indicates nothing left to read //need to handle errors
+        if(ret<batch_size){ //this indicates nothing left to read //better handling of errors may be introduced in future
             break;
         }
     }
@@ -68,9 +68,11 @@ void random_read_func(){
        fprintf(stderr,"Error in opening file\n");
        exit(EXIT_FAILURE);
     }
-    slow5_rec_t **rec = NULL;
 
-    int ret = slow5_idx_load(sp);
+    slow5_rec_t **rec = NULL;
+    int ret=0;
+
+    ret = slow5_idx_load(sp);
     if(ret<0){
         fprintf(stderr,"Error in loading index\n");
         exit(EXIT_FAILURE);
@@ -86,18 +88,30 @@ void random_read_func(){
     rid[3]="read_id_4";
 
     slow5_mt_t *mt = slow5_init_mt(num_thread,sp);
+    if (mt==NULL){ //currently not useful, but better have this for future proofing
+        fprintf(stderr,"Error in initialising multi-thread struct\n");
+        exit(EXIT_FAILURE);
+    }
 
     slow5_batch_t *read_batch = slow5_init_batch(batch_size);
+    if (read_batch==NULL){ //currently not useful, but better have this for future proofing
+        fprintf(stderr,"Error in initialising slow5 record batch\n");
+        exit(EXIT_FAILURE);
+    }
 
     ret = slow5_get_batch(mt, read_batch, rid, num_rid);
-    assert(ret==num_rid);
+    if(ret!=num_rid){
+        fprintf(stderr,"Error in fetching all records\n");
+        exit(EXIT_FAILURE);
+    }
+
     for(int i=0;i<ret;i++){
         rec = read_batch->slow5_rec;
         uint64_t len_raw_signal = rec[i]->len_raw_signal;
         printf("%s\t%ld\n",rec[i]->read_id,len_raw_signal);
     }
-    slow5_free_batch(read_batch);
 
+    slow5_free_batch(read_batch);
     slow5_free_mt(mt);
 
     slow5_idx_unload(sp);
@@ -184,7 +198,17 @@ void write_func(){
     int num_thread = 8;
 
     slow5_mt_t *mt = slow5_init_mt(num_thread,sf);
+    if (mt==NULL){ //currently not useful, but better have this for future proofing
+        fprintf(stderr,"Error in initialising multi-thread struct\n");
+        exit(EXIT_FAILURE);
+    }
+
     slow5_batch_t *read_batch = slow5_init_batch(batch_size);
+    if (read_batch==NULL){ //currently not useful, but better have this for future proofing
+        fprintf(stderr,"Error in initialising slow5 record batch\n");
+        exit(EXIT_FAILURE);
+    }
+
     slow5_rec_t **rec = read_batch->slow5_rec;
 
     /******************* SLOW5 records ************************/
@@ -255,7 +279,7 @@ void write_func(){
 
     ret = slow5_write_batch(mt, read_batch,batch_size);
 
-    if(ret<batch_size){
+    if(ret!=batch_size){
         fprintf(stderr,"Writing failed\n");
         exit(EXIT_FAILURE);
     }

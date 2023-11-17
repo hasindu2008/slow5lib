@@ -1,8 +1,8 @@
-# slow5lib Easy multi-thread API
+# slow5lib easy multi-thread API
 
 **NOTE: This API is in beta stage and the documentation is sparse. If something is not clear do not hesitate to open an [issue](https://github.com/hasindu2008/slow5lib/issues).**
 
-The easy multi-thread (called *mt* API) API allows the user to access SLOW5 using multiple threads, simply by specifying the number of threads, rather than needing to write their own multi-threading code. Note that this API is for your convenience, rather than for efficiency. It is not meant to be used by a programmer who has the expertise to write multi-threaded code and use the slow5 low-level API directly. While fetching using this API would be faster than using a single thread, it would not be as efficient as using low-level API functions directly from the programmer's own multi-threaded code.
+The easy multi-thread (called *mt* API) API allows the user to access SLOW5 files using multiple threads, simply by specifying the number of threads, rather than needing to write their own multi-threading code. This API is for programmer's convenience, rather than for efficiency. This API is not meant to be used by a programmer who has the expertise to write multi-threaded code and use the slow5 low-level API directly. While fetching using this API would be faster than using a single thread, it would not be as efficient as using low-level API functions directly from the programmer's own multi-threaded code.
 
 To use this API, include <slow5/slow5_mt.h> in your programme. Make sure to explicitly enable easy multi-thread API as `make slow5_mt=1`, during compile time of slow5lib.
 
@@ -43,7 +43,7 @@ typedef struct {
 * [slow5_get_next_batch](mt_api/slow5_get_next_batch.md)<br/>
   &nbsp;&nbsp;&nbsp;&nbsp;fetches the next batch of records at the current file pointer of a SLOW5 file
 * [slow5_get_batch](mt_api/slow5_get_batch.md)<br/>
-  &nbsp;&nbsp;&nbsp;&nbsp;fetches a batch of SLOW5 records corresponding to a given batch of read ID
+  &nbsp;&nbsp;&nbsp;&nbsp;fetches a batch of SLOW5 records corresponding to a given batch of read IDs
 
 
 ### Writing and editing
