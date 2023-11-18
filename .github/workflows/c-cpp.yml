@@ -107,6 +107,19 @@ jobs:
       run: make clean && make CC=icc -j8 zstd=1
     - name: test zstd
       run: make test zstd=1 CC=icc
+  ubuntu_22:
+    name: Ubuntu 22
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: install packages
+      run: sudo apt-get update && sudo apt-get install zlib1g-dev
+    - name: build-gcc
+      run: make -j8
+    - name: test-gcc
+      run: make test
+    - name: make mt
+      run: examples/mt/build.sh
   os_x_11:
     name: OSX 11
     runs-on: macos-11
