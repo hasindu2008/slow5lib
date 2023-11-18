@@ -1,15 +1,13 @@
 # slow5_idx_load_with
 
 ## NAME
-slow5_idx_load_with - loads the index file for a SLOW5 file given a file path for the index
+slow5_idx_load_with - loads the index file for a SLOW5 file for a user specified file path for the index
 
 ## SYNOPSYS
-`int slow5_idx_load_with(slow5_with_file_t *s5p, const char *pathname)`
+`int slow5_idx_load_with(slow5_file_t *s5p, const char *pathname)`
 
 ## DESCRIPTION
-`slow5_idx_load_with()` loads an index file for a SLOW5 file pointed by *s5p* into the memory from the disk and associates the index with *s5p*. If the index file is not found, the index is first created and written to the disk.
-
-`slow5_idx_load_with()` could be called instead of `slow5_idx_load_with()` when the index file is at a custom location.
+`slow5_idx_load_with()` loads an index file located at *pathname* for a SLOW5 file pointed by *s5p* into the memory from the disk and associates the index with *s5p*. If the index file is not found, it will error out.
 
 ## RETURN VALUE
 Upon successful completion, `slow5_idx_load_with()` returns a non-negative integer. Otherwise, a negative value is returned.

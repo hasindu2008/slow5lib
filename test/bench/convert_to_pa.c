@@ -64,7 +64,7 @@ void free_raw_batch(char **mem_records, size_t *mem_bytes, int batch_size) {
 int main(int argc, char *argv[]) {
 
     if(argc != 4) {
-        fprintf(stderr, "Usage: %s in_file.blow5 num_thread batch_size\n", argv[0]);
+        fprintf(stderr, "Usage: %s reads.blow5 num_thread batch_size\n", argv[0]);
         return EXIT_FAILURE;
     }
 

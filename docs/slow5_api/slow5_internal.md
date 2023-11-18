@@ -40,6 +40,9 @@ DO NOT USE.
 * slow5_hdr_set
 * slow5_hdr_add_rg_data
 
+* slow5_idx_init_empty (used in slow5curl)
+* slow5_idx_read (used in slow5curl)
+
 <!--
 int slow5_hdr_fwrite(FILE *fp, struct slow5_hdr *header, enum slow5_fmt format, slow5_press_method_t comp)
 int slow5_rec_fwrite(FILE *fp, struct slow5_rec *read, struct slow5_aux_meta *aux_meta, enum slow5_fmt format, struct slow5_press *compress)

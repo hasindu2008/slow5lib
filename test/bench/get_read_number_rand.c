@@ -1,6 +1,6 @@
 //get all the samples and sum them to stdout
 //make zstd=1 slow5_mt=1
-//gcc -Wall -O2 -I include/ -o get_selected_read_ids_samples test/bench/get_selected_read_ids_samples.c lib/libslow5.a -lm -lz -lzstd -lpthread  -fopenmp
+//gcc -Wall -O2 -I include/ -o get_read_number_rand test/bench/get_read_number_rand.c lib/libslow5.a -lm -lz -lzstd -lpthread
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,15 +19,14 @@ static inline double realtime(void) {
 
 int main(int argc, char *argv[]) {
 
-    if(argc != 6) {
-        fprintf(stderr, "Usage: %s in_file.blow5 inread_id.csv out_file.csv num_thread batch_size\n", argv[0]);
+    if(argc != 5) {
+        fprintf(stderr, "Usage: %s reads.blow5 inread_id.tsv num_thread batch_size\n", argv[0]);
         return EXIT_FAILURE;
     }
 
     int ret=0;
-    int batch_size = atoi(argv[5]);
-    int num_thread = atoi(argv[4]);
-    omp_set_num_threads(num_thread);
+    int batch_size = atoi(argv[4]);
+    int num_thread = atoi(argv[3]);
 
     uint64_t *sums = malloc(sizeof(uint64_t)*batch_size);
 
@@ -38,19 +37,9 @@ int main(int argc, char *argv[]) {
         perror("perr: ");;
         exit(EXIT_FAILURE);
     }
-    if(fscanf(fpr,"%s",tmp)<1 || strcmp(tmp,",read_id")!=0){
-        fprintf(stderr,"Bad input CSV file. CSV header is expected to have read_id\n");
-        exit(EXIT_FAILURE);
-    }
 
-    FILE *fpw = fopen(argv[3],"w");
-    if(fpw==NULL){
-        fprintf(stderr,"Error in opening file %s for writing\n",argv[3]);
-        perror("perr: ");;
-        exit(EXIT_FAILURE);
-    }
-    fputs("read_id,samples\n", fpw);
-
+    FILE *fpw = stdout;
+    fputs("#read_id\tread_number\n", fpw);
 
     double tot_time = 0;
     double t0 = realtime();
@@ -76,8 +65,7 @@ int main(int argc, char *argv[]) {
 
         int i=0;
         for(i=0; i<batch_size; i++){
-            int crap;
-            if (fscanf(fpr,"%d,%s",&crap,tmp) < 2) {
+            if (fscanf(fpr,"%s",tmp) < 1) {
                 break;
             }
             rid[i] = strdup(tmp);
@@ -94,18 +82,16 @@ int main(int argc, char *argv[]) {
         }
         fprintf(stderr,"batch loaded with %d reads\n",ret);
 
-        #pragma omp parallel for
-        for(int i=0;i<num_rid;i++){
-            uint64_t sum = 0;
-            for(int j=0; j<rec[i]->len_raw_signal; j++){
-                sum += rec[i]->raw_signal[j];
-            }
-            sums[i] = sum;
-        }
-        fprintf(stderr,"batch processed with %d reads\n",ret);
-
         for(int i=0;i<ret;i++){
-            fprintf(fpw,"%s,%ld\n",rec[i]->read_id,sums[i]);
+            t0 = realtime();
+            int err = 0;
+            int32_t rn = slow5_aux_get_int32(rec[i],"read_number",&err);
+            if(err!=0){
+                fprintf(stderr,"Error in getting auxiliary attribute from the file. Error code %d\n",ret);
+                exit(EXIT_FAILURE);
+            }
+            tot_time += realtime() - t0;
+            fprintf(fpw,"%s\t%d\n",rec[i]->read_id, rn);
         }
         fprintf(stderr,"batch printed with %d reads\n",ret);
 
@@ -130,11 +116,10 @@ int main(int argc, char *argv[]) {
 
     free(sums);
     fclose(fpr);
-    fclose(fpw);
 
     free(rid);
 
     fprintf(stderr,"Time for getting samples %f\n", tot_time);
-    return 0;
 
+    return 0;
 }

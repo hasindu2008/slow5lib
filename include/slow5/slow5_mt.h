@@ -4,19 +4,21 @@
 #ifndef SLOW5_MT_H
 #define SLOW5_MT_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
+
 /**************************************************************************************************
- ***  Multi-threading API *************************************************************************
+ ***  Easy Multi-thread API *************************************************************************
  **************************************************************************************************/
 
 /**************** This API is still in beta stage, there could be bugs *************************/
 
 /*
-This is a multi-threading API that can fetch a batch of slow5 records using multiple threads in parallel.
-This API uses a fork-join thread model.
-It is not meant to be used by a programmer who has the expertise to write multi-threaded code and use the slow5 low-level API directly.
+This is a easy multi-thread API that can fetch a batch of slow5 records using multiple threads in parallel.
+This API uses a fork-join thread model. It is not meant to be used by a programmer who has the expertise to write multi-threaded code and use the slow5 low-level API directly.
 While fetching using this API would be faster than using a single thread, it would not be as efficient as using low-level API functions
-directly from the programmer's own multi-threaded code.
-This API can be optimised using a thread pool, but that is not implemented yet.
+directly from the programmer's own multi-threaded code. This API can be optimised using a thread pool, but that is not implemented yet.
 */
 
 /* a batch of read data (dynamic data based on the reads) */
@@ -48,9 +50,10 @@ also each batch call will create and destruct threads rather than using a thread
 
 slow5_mt_t *slow5_init_mt(int num_thread, slow5_file_t *s5p);
 slow5_batch_t* slow5_init_batch(int batch_capacity);
-int slow5_get_next_batch(slow5_mt_t *mt, slow5_batch_t *read_batch, int batch_size);
+int slow5_get_next_batch(slow5_mt_t *mt, slow5_batch_t *read_batch, int num_reads);
 int slow5_get_batch(slow5_mt_t *mt, slow5_batch_t *read_batch, char **rid, int num_rid);
-int slow5_write_batch(slow5_mt_t *mt, slow5_batch_t *read_batch, int batch_size);
+int slow5_write_batch(slow5_mt_t *mt, slow5_batch_t *read_batch, int num_reads);
+int slow5_encode_batch(slow5_mt_t *core, slow5_batch_t *db, int num_reads); //used by slow5curl
 void slow5_free_batch(slow5_batch_t *read_batch);
 void slow5_free_mt(slow5_mt_t *mt);
 
@@ -62,5 +65,9 @@ int slow5_get_next_batch_lazy(slow5_rec_t ***read, slow5_file_t *s5p, int batch_
 int slow5_get_batch_lazy(slow5_rec_t ***read, slow5_file_t *s5p, char **rid, int num_rid, int num_threads);
 int slow5_write_batch_lazy(slow5_rec_t **read, slow5_file_t *s5p, int batch_size, int num_threads);
 void slow5_free_batch_lazy(slow5_rec_t ***read, int num_rec);
+
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */
 
 #endif
