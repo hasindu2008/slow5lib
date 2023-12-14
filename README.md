@@ -41,7 +41,11 @@ To build the C/C++ library :
 ```sh
 sudo apt-get install zlib1g-dev   #install zlib development libraries
 git clone https://github.com/hasindu2008/slow5lib
-cd slow5lib
+cd slow5lib/thirdparty
+git clone https://github.com/sashajenner/pod5-file-format
+cd pod5-file-format
+git checkout svb16_clean
+cd ../../
 make
 ```
 

@@ -7,7 +7,13 @@ CC			= cc
 AR			= ar
 SVB			= thirdparty/streamvbyte
 SVBLIB		= $(SVB)/libstreamvbyte.a
-CPPFLAGS	+= -I include/ -I $(SVB)/include/
+# location of the modified vbz programs
+# clone the fork of pod5-file-format to thirdparty/pod5-file-format
+# git clone https://github.com/sashajenner/pod5-file-format thirdparty/pod5-file-format
+# cd thirdparty/pod5-file-format
+# git checkout svb16_clean
+VBZ		= thirdparty/pod5-file-format/c++/pod5_format
+CPPFLAGS	+= -I include/ -I $(SVB)/include/ -I $(VBZ)
 CFLAGS		+= -g -Wall -O2 -std=c99
 LDFLAGS		+= -lm -lz
 ifeq ($(zstd),1)
@@ -34,6 +40,7 @@ OBJ = $(BUILD_DIR)/slow5.o \
 		$(BUILD_DIR)/slow5_misc.o \
 		$(BUILD_DIR)/slow5_press.o \
 		$(BUILD_DIR)/slow5_mt.o \
+		$(VBZ)/signal_compression.o
 
 PREFIX = /usr/local
 VERSION = `git describe --tags`
@@ -55,6 +62,9 @@ $(SHAREDLIB): $(OBJ) $(SVBLIB)
 $(SVBLIB):
 	make -C $(SVB) no_simd=$(no_simd) libstreamvbyte.a
 
+$(VBZ)/signal_compression.o:
+	make -C $(VBZ) NO_SIMD=$(no_simd) ZSTD=$(zstd)
+
 $(BUILD_DIR)/slow5.o: src/slow5.c src/slow5_extra.h src/slow5_idx.h src/slow5_misc.h src/klib/ksort.h $(SLOW5_H)
 	$(CC) $(CFLAGS) $(CPPFLAGS) $< -c -fpic -o $@
 
@@ -73,6 +83,7 @@ $(BUILD_DIR)/slow5_mt.o: src/slow5_mt.c include/slow5/slow5_mt.h $(SLOW5_H)
 clean:
 	rm -rf $(OBJ) $(STATICLIB) $(SHAREDLIB) $(SHAREDLIBV)
 	make -C $(SVB) clean
+	make -C $(VBZ) clean
 
 # Delete all gitignored files (but not directories)
 distclean: clean
