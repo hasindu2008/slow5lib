@@ -15,8 +15,7 @@
 #endif /* SLOW5_USE_ZSTD */
 /*
  * modified vbz signal compression header file located at
- * pod5-file-format/c++/pod5_format/signal_compression.h from the fork
- * https://github.com/sashajenner/pod5-file-format and branch svb16_clean
+ * ../thirdparty/streamvbyte16/signal_compression.h
  */
 #include <signal_compression.h>
 #include "slow5_misc.h"
@@ -1244,8 +1243,8 @@ static int16_t *ptr_depress_svb_zd(const uint8_t *ptr, size_t count, size_t *n)
 #ifdef SLOW5_USE_ZSTD
 /*
  * Nanopore's pod5 vbz compression minus the c++ bloat. It is really just zigzag
- * delta then 16-bit svb then zstd. The source code can be found in the fork of
- * the pod5-file-format repository.
+ * delta then 16-bit svb then zstd. The source code can be found in
+ * ../thirdparty/streamvbyte16
  */
 
 static uint8_t *ptr_compress_vbz(const int16_t *ptr, size_t count, size_t *n)
@@ -1268,8 +1267,8 @@ static int16_t *ptr_depress_vbz(const uint8_t *ptr, size_t count, size_t *n)
 
 /*
  * Nanopore's pod5 vbz compression without zstd and minus the c++ bloat. It is
- * really just zigzag delta then 16-bit svb. The code can be found in the
- * svb16_clean branch of the pod5-file-format repository.
+ * really just zigzag delta then 16-bit svb. The source code can be found in
+ * ../thirdparty/streamvbyte16
  */
 
 static uint8_t *ptr_compress_svb16_zd(const int16_t *ptr, size_t count,

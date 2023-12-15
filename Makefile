@@ -3,17 +3,13 @@
 # or uncomment the following line
 #zstd=1
 
-CC			= cc
-AR			= ar
-SVB			= thirdparty/streamvbyte
+CC		= cc
+AR		= ar
+SVB		= thirdparty/streamvbyte
+SVB16		= thirdparty/streamvbyte16
 SVBLIB		= $(SVB)/libstreamvbyte.a
-# location of the modified vbz programs
-# clone the fork of pod5-file-format to thirdparty/pod5-file-format
-# git clone https://github.com/sashajenner/pod5-file-format thirdparty/pod5-file-format
-# cd thirdparty/pod5-file-format
-# git checkout svb16_clean
-VBZ		= thirdparty/pod5-file-format/c++/pod5_format
-CPPFLAGS	+= -I include/ -I $(SVB)/include/ -I $(VBZ)
+SVB16LIB	= $(SVB16)/libstreamvbyte16.a
+CPPFLAGS	+= -I include/ -I $(SVB)/include/ -I $(SVB16)
 CFLAGS		+= -g -Wall -O2 -std=c99
 LDFLAGS		+= -lm -lz
 ifeq ($(zstd),1)
@@ -40,7 +36,6 @@ OBJ = $(BUILD_DIR)/slow5.o \
 		$(BUILD_DIR)/slow5_misc.o \
 		$(BUILD_DIR)/slow5_press.o \
 		$(BUILD_DIR)/slow5_mt.o \
-		$(VBZ)/signal_compression.o
 
 PREFIX = /usr/local
 VERSION = `git describe --tags`
@@ -52,18 +47,22 @@ SLOW5_H = include/slow5/slow5.h include/slow5/klib/khash.h include/slow5/klib/kv
 #libslow5
 slow5lib: $(SHAREDLIB) $(STATICLIB)
 
-$(STATICLIB): $(OBJ) $(SVBLIB)
+# TODO: This could be cleaned up nicely, but works for now
+$(STATICLIB): $(OBJ) $(SVBLIB) $(SVB16LIB)
 	cp $(SVBLIB) $@
-	$(AR) rcs $@ $(OBJ)
+	mkdir -p $(BUILD_DIR)/tmp
+	$(AR) x $(SVB16LIB) --output $(BUILD_DIR)/tmp
+	$(AR) rcs $@ $(OBJ) $(BUILD_DIR)/tmp/*.o
+	rm -r $(BUILD_DIR)/tmp
 
-$(SHAREDLIB): $(OBJ) $(SVBLIB)
+$(SHAREDLIB): $(OBJ) $(SVBLIB) $(SVB16LIB)
 	$(CC) $(CFLAGS) -shared $^ -o $@ $(LDFLAGS)
 
 $(SVBLIB):
 	make -C $(SVB) no_simd=$(no_simd) libstreamvbyte.a
 
-$(VBZ)/signal_compression.o:
-	make -C $(VBZ) NO_SIMD=$(no_simd) ZSTD=$(zstd)
+$(SVB16LIB):
+	make -C $(SVB16) NO_SIMD=$(no_simd) ZSTD=$(zstd) libstreamvbyte16.a
 
 $(BUILD_DIR)/slow5.o: src/slow5.c src/slow5_extra.h src/slow5_idx.h src/slow5_misc.h src/klib/ksort.h $(SLOW5_H)
 	$(CC) $(CFLAGS) $(CPPFLAGS) $< -c -fpic -o $@
@@ -83,7 +82,7 @@ $(BUILD_DIR)/slow5_mt.o: src/slow5_mt.c include/slow5/slow5_mt.h $(SLOW5_H)
 clean:
 	rm -rf $(OBJ) $(STATICLIB) $(SHAREDLIB) $(SHAREDLIBV)
 	make -C $(SVB) clean
-	make -C $(VBZ) clean
+	make -C $(SVB16) clean
 
 # Delete all gitignored files (but not directories)
 distclean: clean
