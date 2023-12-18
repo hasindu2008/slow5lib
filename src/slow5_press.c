@@ -15,9 +15,9 @@
 #endif /* SLOW5_USE_ZSTD */
 /*
  * modified vbz signal compression header file located at
- * ../thirdparty/streamvbyte16/signal_compression.h
+ * ../thirdparty/streamvbyte16/streamvbyte16.h
  */
-#include <signal_compression.h>
+#include <streamvbyte16.h>
 #include "slow5_misc.h"
 
 extern enum slow5_log_level_opt  slow5_log_level;

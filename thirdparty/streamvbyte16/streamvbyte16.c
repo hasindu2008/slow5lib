@@ -2,10 +2,10 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include "signal_compression.h"
+#include "streamvbyte16.h"
 
-#include "svb16/decode.hpp"
-#include "svb16/encode.hpp"
+#include "svb16/decode.h"
+#include "svb16/encode.h"
 
 #ifdef VBZ_USE_ZSTD
 #include <zstd.h>

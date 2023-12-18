@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common.hpp"  // architecture macros
+#include "common.h"  // architecture macros
 
 #if defined(_MSC_VER)
 #include <intrin.h>

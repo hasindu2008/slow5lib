@@ -1,5 +1,5 @@
-#ifndef SIGNAL_COMPRESSION_H
-#define SIGNAL_COMPRESSION_H
+#ifndef STREAMVBYTE16_H
+#define STREAMVBYTE16_H
 
 #include <stdint.h>
 
@@ -50,4 +50,4 @@ int16_t *decompress_signal_nozstd(
         size_t count,
         uint32_t *n);
 
-#endif /* signal_compression.h */
+#endif /* streamvbyte16.h */

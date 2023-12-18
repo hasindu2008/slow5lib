@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common.hpp"  // architecture macros
+#include "common.h"  // architecture macros
 
 #if defined(SVB16_X64)
 

@@ -1,11 +1,11 @@
 #pragma once
 
-#include "common.hpp"
-#include "decode_scalar.hpp"
+#include "common.h"
+#include "decode_scalar.h"
 #include "svb16.h"  // svb16_key_length
 #ifdef SVB16_X64
-#include "decode_x64.hpp"
-#include "simd_detect_x64.hpp"
+#include "decode_x64.h"
+#include "simd_detect_x64.h"
 #endif
 
 // Required extra space after readable buffers passed in.

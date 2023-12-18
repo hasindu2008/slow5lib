@@ -1,9 +1,9 @@
 #pragma once
 
-#include "common.hpp"
-#include "encode_scalar.hpp"
-#include "intrinsics.hpp"
-#include "shuffle_tables.hpp"
+#include "common.h"
+#include "encode_scalar.h"
+#include "intrinsics.h"
+#include "shuffle_tables.h"
 #include "svb16.h"  // svb16_key_length
 
 #include <stddef.h>

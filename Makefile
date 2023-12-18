@@ -51,9 +51,10 @@ slow5lib: $(SHAREDLIB) $(STATICLIB)
 $(STATICLIB): $(OBJ) $(SVBLIB) $(SVB16LIB)
 	cp $(SVBLIB) $@
 	mkdir -p $(BUILD_DIR)/tmp
-	$(AR) x $(SVB16LIB) --output $(BUILD_DIR)/tmp
+	cp $(SVB16LIB) $(BUILD_DIR)/tmp/tmp.a
+	cd $(BUILD_DIR)/tmp && $(AR) x tmp.a && cd ../..
 	$(AR) rcs $@ $(OBJ) $(BUILD_DIR)/tmp/*.o
-	rm -r $(BUILD_DIR)/tmp
+	rm -rf $(BUILD_DIR)/tmp
 
 $(SHAREDLIB): $(OBJ) $(SVBLIB) $(SVB16LIB)
 	$(CC) $(CFLAGS) -shared $^ -o $@ $(LDFLAGS)
@@ -62,7 +63,7 @@ $(SVBLIB):
 	make -C $(SVB) no_simd=$(no_simd) libstreamvbyte.a
 
 $(SVB16LIB):
-	make -C $(SVB16) NO_SIMD=$(no_simd) ZSTD=$(zstd) libstreamvbyte16.a
+	make -C $(SVB16) no_simd=$(no_simd) zstd=$(zstd) libstreamvbyte16.a
 
 $(BUILD_DIR)/slow5.o: src/slow5.c src/slow5_extra.h src/slow5_idx.h src/slow5_misc.h src/klib/ksort.h $(SLOW5_H)
 	$(CC) $(CFLAGS) $(CPPFLAGS) $< -c -fpic -o $@

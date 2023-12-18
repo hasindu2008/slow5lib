@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common.hpp"
+#include "common.h"
 
 #include <assert.h>
 #include <stddef.h>

@@ -3,16 +3,16 @@
 # ZSTD=1 for zstd
 
 CC = cc
-OBJ = signal_compression.o
+OBJ = streamvbyte16.o
 STATICLIB = libstreamvbyte16.a
 CFLAGS += -Wall -O2 -std=c99 -fpic -g
 
-ifeq ($(NO_SIMD),1)
+ifeq ($(no_simd),1)
 else
 CFLAGS += -march=native -DVBZ_ENABLE_SIMD
 endif
 
-ifeq ($(ZSTD),1)
+ifeq ($(zstd),1)
 CFLAGS += -DVBZ_USE_ZSTD
 #LDFLAGS += -lzstd
 endif
@@ -22,7 +22,7 @@ endif
 $(STATICLIB): $(OBJ)
 	$(AR) rcs $@ $^
 
-signal_compression.o: signal_compression.c signal_compression.h svb16/*
+streamvbyte16.o: streamvbyte16.c streamvbyte16.h svb16/*.h
 	$(CC) $(CFLAGS) $< -c -fpic -o $@
 
 clean:

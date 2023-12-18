@@ -1,5 +1,5 @@
 #pragma once
-#include "common.hpp"  // arch macros
+#include "common.h"  // arch macros
 
 #include <stdint.h>
 
