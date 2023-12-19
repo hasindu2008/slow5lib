@@ -51,8 +51,7 @@ slow5lib: $(SHAREDLIB) $(STATICLIB)
 $(STATICLIB): $(OBJ) $(SVBLIB) $(SVB16LIB)
 	cp $(SVBLIB) $@
 	mkdir -p $(BUILD_DIR)/tmp
-	cp $(SVB16LIB) $(BUILD_DIR)/tmp/tmp.a
-	cd $(BUILD_DIR)/tmp && $(AR) x tmp.a && cd ../..
+	cd $(BUILD_DIR)/tmp && $(AR) x ../../$(SVB16LIB) && cd ../..
 	$(AR) rcs $@ $(OBJ) $(BUILD_DIR)/tmp/*.o
 	rm -rf $(BUILD_DIR)/tmp
 
