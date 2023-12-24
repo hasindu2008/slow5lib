@@ -61,8 +61,11 @@ extern "C" {
 enum slow5_press_method {
     SLOW5_COMPRESS_NONE,
     SLOW5_COMPRESS_ZLIB,
-    SLOW5_COMPRESS_SVB_ZD, /* streamvbyte zigzag delta */
+    SLOW5_COMPRESS_SVB_ZD,	/* 32-bit streamvbyte zigzag delta */
     SLOW5_COMPRESS_ZSTD,
+    SLOW5_COMPRESS_VBZ,		/* nanopore's pod5 vbz */
+    SLOW5_COMPRESS_SVB16_ZD,	/* vbz without zstd, aka 16-bit streamvbyte
+				   zigzag delta */
 };
 typedef struct{
     enum slow5_press_method record_method;
