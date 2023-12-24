@@ -8,7 +8,7 @@ AR			= ar
 SVB			= thirdparty/streamvbyte
 SVBLIB		= $(SVB)/libstreamvbyte.a
 CPPFLAGS	+= -I include/ -I $(SVB)/include/
-CFLAGS		+= -g -Wall -O2 -std=c99
+CFLAGS		+= -g -Wall -O3 -std=c99
 LDFLAGS		+= -lm -lz
 ifeq ($(zstd),1)
 CFLAGS		+= -DSLOW5_USE_ZSTD
