@@ -7,9 +7,16 @@ OBJ = streamvbyte16.o
 STATICLIB = libstreamvbyte16.a
 CFLAGS += -Wall -O3 -std=c99 -fpic -g
 
+PROC_AUTO:=$(shell uname -m)
+PROCESSOR ?= $(PROC_AUTO)
+
 ifeq ($(no_simd),1)
 else
+ifeq ($(PROCESSOR), aarch64)
+CFLAGS += -DVBZ_ENABLE_SIMD
+else ifeq ($(PROCESSOR), x86_64)
 CFLAGS += -DVBZ_ENABLE_SIMD -msse4.1
+endif
 endif
 
 ifeq ($(zstd),1)
