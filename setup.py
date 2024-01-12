@@ -18,9 +18,9 @@ include_dirs = []
 # for the install.
 try:
     import numpy as np
-    include_dirs = ['include/', np.get_include(), 'thirdparty/streamvbyte/include']
+    include_dirs = ['include/', np.get_include(), 'thirdparty/streamvbyte/include', 'thirdparty/streamvbyte16/']
 except ImportError:
-    include_dirs = ['include/', 'thirdparty/streamvbyte/include']
+    include_dirs = ['include/', 'thirdparty/streamvbyte/include', 'thirdparty/streamvbyte16/']
     def np(*args, ** kwargs ):
         import numpy as np
         return np(*args, ** kwargs)
@@ -38,12 +38,15 @@ except ImportError:
 
 sources=['python/pyslow5.pyx', 'src/slow5.c', 'src/slow5_press.c', 'src/slow5_misc.c', 'src/slow5_idx.c',
             'src/slow5_mt.c',
-            'thirdparty/streamvbyte/src/streamvbyte_zigzag.c', 'thirdparty/streamvbyte/src/streamvbyte_decode.c', 'thirdparty/streamvbyte/src/streamvbyte_encode.c']
+            'thirdparty/streamvbyte/src/streamvbyte_zigzag.c', 'thirdparty/streamvbyte/src/streamvbyte_decode.c', 'thirdparty/streamvbyte/src/streamvbyte_encode.c',
+            'thirdparty/streamvbyte16/streamvbyte16.c' ]
 depends=['python/pyslow5.pxd', 'python/pyslow5.h',
             'slow5/slow5.h', 'slow5/slow5_defs.h', 'slow5/slow5_error.h', 'slow5/slow5_press.h', 'slow5/slow5_lazymt.h',
             'slow5/klib/khash.h', 'slow5/klib/kvec.h',
             'src/slow5_extra.h', 'src/slow5_idx.h', 'src/slow5_misc.h', 'src/klib/ksort.h',
-            'thirdparty/streamvbyte/include/streamvbyte.h', 'thirdparty/streamvbyte/include/streamvbyte_zigzag.h']
+            'thirdparty/streamvbyte/include/streamvbyte.h', 'thirdparty/streamvbyte/include/streamvbyte_zigzag.h',
+            'thirdparty/streamvbyte16/streamvbyte16.h', ]
+# need to add other headers
 extra_compile_args = ['-g', '-Wall', '-O2', '-std=c99', '-DSLOW5_ENABLE_MT=1' ]
 # extra_compile_args = []
 # os.environ["CFLAGS"] = '-g -Wall -O2 -std=c99'
