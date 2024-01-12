@@ -144,15 +144,33 @@ static inline int slow5_munmap(struct slow5_file *s5p)
     int ret;
 
     if (!s5p->meta.mp) {
-        s5p->meta.msize = 0;
+        s5p->meta.mlen = 0;
+        s5p->meta.mlen_page = 0;
         return 0;
     }
 
-    ret = munmap(s5p->meta.mp, s5p->meta.msize);
+    ret = munmap(s5p->meta.mp, s5p->meta.mlen_page);
 
     s5p->meta.mp = NULL;
-    s5p->meta.msize = 0;
+    s5p->meta.mlen = 0;
+    s5p->meta.mlen_page = 0;
     return ret;
+}
+
+/*
+ * advise the usage of the memory mapped SLOW5 file
+ * s5p must be a valid pointer
+ * advise can be any valid advice option for posix_madvise
+ * include <sys/mman.h> to reference any of these option
+ * common options are:
+ * - POSIX_MADV_NORMAL: default
+ * - POSIX_MADV_SEQUENTIAL: expect read retrievals in sequential order
+ * - POSIX_MADV_RANDOM: expect read retrievals in random order
+ * return 0 on success, positive on error (see posix_madvise)
+ */
+int slow5_madvise(struct slow5_file *s5p, int advice)
+{
+    return posix_madvise(s5p->meta.mp, s5p->meta.mlen_page, advice);
 }
 
 /*
@@ -182,13 +200,8 @@ int slow5_mmap(struct slow5_file *s5p)
         return -1;
 
     s5p->meta.mp = mp;
-    s5p->meta.msize = size;
-
-    ret = posix_madvise(mp, length, POSIX_MADV_RANDOM);
-    if (ret) {
-        slow5_munmap(s5p);
-        return ret;
-    }
+    s5p->meta.mlen = size;
+    s5p->meta.mlen_page = length;
 
     return 0;
 }
@@ -203,7 +216,7 @@ int slow5_mread(const struct slow5_file *s5p, void *mem, uint64_t bytes,
 {
     // reading outside the memory mapping
     if (offset < s5p->meta.start_rec_offset ||
-        offset + bytes > s5p->meta.msize + s5p->meta.start_rec_offset)
+        offset + bytes > s5p->meta.mlen + s5p->meta.start_rec_offset)
         return -1;
 
     (void) memcpy(mem, s5p->meta.mp + offset, bytes);
