@@ -16,6 +16,8 @@ extern "C" {
 The API documentation is available at https://hasindu2008.github.io/slow5tools/
 */
 
+#define SLOW5_ROUND_UP_TO(x, to) ((x) * ((x) % (to) + 1))
+
 //#define MIN(A,B) ( ( (A) < (B) ) ? (A) : (B) )
 //#define MAX(A,B) ( ( (A) > (B) ) ? (A) : (B) )
 #define SLOW5_LENGTH(X) (sizeof X / sizeof X[0])

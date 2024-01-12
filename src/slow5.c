@@ -37,6 +37,9 @@ SOFTWARE.
 #include <stdio.h>
 #include <string.h>
 #include <float.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #include <slow5/slow5.h>
 #include "slow5_extra.h"
 #include "slow5_idx.h"
@@ -95,8 +98,119 @@ inline int *slow5_errno_location(void) {
 
 /* Definitions */
 
-// slow5 file
+// memory mapping
 
+/*
+ * get SLOW5 file size
+ * s5p and size must be valid pointers
+ * return 0 on success, -1 on error
+ */
+int slow5_size(const struct slow5_file *s5p, off_t *size)
+{
+    struct stat statbuf;
+    int ret;
+
+    ret = fstat(s5p->meta.fd, &statbuf);
+    if (ret)
+        return -1;
+
+    *size = statbuf.st_size;
+    return ret;
+}
+
+/*
+ * get the size as a multiple of the page size
+ * psize must be a valid pointer
+ * return 0 on success, -1 on error
+ */
+int slow5_psize(const off_t size, size_t *psize)
+{
+    long pagesize;
+    pagesize = sysconf(_SC_PAGE_SIZE);
+    if (pagesize == -1)
+        return -1;
+
+    *psize = SLOW5_ROUND_UP_TO(size, pagesize);
+    return 0;
+}
+
+/*
+ * memory unmap the SLOW5 file
+ * s5p must be a valid pointer
+ * return 0 on success, -1 on error
+ */
+static inline int slow5_munmap(struct slow5_file *s5p)
+{
+    int ret;
+
+    if (!s5p->meta.mp) {
+        s5p->meta.msize = 0;
+        return 0;
+    }
+
+    ret = munmap(s5p->meta.mp, s5p->meta.msize);
+
+    s5p->meta.mp = NULL;
+    s5p->meta.msize = 0;
+    return ret;
+}
+
+/*
+ * memory map the SLOW5 file
+ * s5p must be a valid pointer
+ * return 0 on success, -1 on error
+ */
+int slow5_mmap(struct slow5_file *s5p)
+{
+    int ret;
+    off_t size;
+    size_t length;
+    void *mp;
+
+    ret = slow5_size(s5p, &size);
+    if (ret)
+        return ret;
+
+    size -= s5p->meta.start_rec_offset;
+    ret = slow5_psize(size, &length);
+    if (ret)
+        return ret;
+
+    mp = mmap(NULL, length, PROT_READ, MAP_PRIVATE, s5p->meta.fd,
+              s5p->meta.start_rec_offset);
+    if (mp == MAP_FAILED)
+        return -1;
+
+    s5p->meta.mp = mp;
+    s5p->meta.msize = size;
+
+    ret = posix_madvise(mp, length, POSIX_MADV_RANDOM);
+    if (ret) {
+        slow5_munmap(s5p);
+        return ret;
+    }
+
+    return 0;
+}
+
+/*
+ * copy bytes from memory mapped SLOW5 file at offset into mem
+ * s5p and mem must be valid pointers
+ * return 0 on success, -1 on error (attempt to read outside of memory mapping)
+ */
+int slow5_mread(const struct slow5_file *s5p, void *mem, uint64_t bytes,
+                off_t offset)
+{
+    // reading outside the memory mapping
+    if (offset < s5p->meta.start_rec_offset ||
+        offset + bytes > s5p->meta.msize + s5p->meta.start_rec_offset)
+        return -1;
+
+    (void) memcpy(mem, s5p->meta.mp + offset, bytes);
+    return 0;
+}
+
+// slow5 file
 
 /*
  * core function for opening a SLOW5 file
@@ -113,6 +227,8 @@ inline int *slow5_errno_location(void) {
  * SLOW5_ERR_IO     ftello, fileno failed
  */
 struct slow5_file *slow5_init(FILE *fp, const char *pathname, enum slow5_fmt format) {
+    int ret;
+
     /* pathname allowed to be NULL at this point */
     if (!fp) {
         SLOW5_ERROR("Argument '%s' cannot be NULL.", SLOW5_TO_STR(fp));
@@ -187,10 +303,22 @@ struct slow5_file *slow5_init(FILE *fp, const char *pathname, enum slow5_fmt for
         return NULL;
     }
 
+    ret = slow5_mmap(s5p);
+    if (ret) {
+        SLOW5_ERROR("mmap failed: %s", strerror(errno));
+        free(fread_buff);
+        slow5_press_free(s5p->compress);
+        slow5_hdr_free(header);
+        free(s5p);
+        slow5_errno = SLOW5_ERR_IO;
+        return NULL;
+    }
+
     s5p->meta.pathname = pathname;
     if ((s5p->meta.start_rec_offset = ftello(fp)) == -1) {
         SLOW5_ERROR("Obtaining file offset with ftello() failed: %s.", strerror(errno));
         free(fread_buff);
+        slow5_munmap(s5p);
         slow5_press_free(s5p->compress);
         slow5_hdr_free(header);
         free(s5p);
@@ -512,6 +640,7 @@ static inline slow5_file_t *slow5_open_append(const char *filename, enum slow5_f
  */
 int slow5_close(struct slow5_file *s5p) {
     int ret = 0;
+    int err;
 
     if (!s5p) {
         ret = EOF;
@@ -526,6 +655,15 @@ int slow5_close(struct slow5_file *s5p) {
                     ret = EOF;
                 }
             }
+        }
+
+        err = slow5_munmap(s5p);
+        if (err) {
+            // not critical - so do not call exit
+            SLOW5_ERROR("munmap failed for file '%s': %s.",
+                        s5p->meta.pathname, strerror(errno));
+            slow5_errno = SLOW5_ERR_IO;
+            ret = EOF;
         }
 
         if (fclose(s5p->fp) == EOF) {
@@ -2409,6 +2547,8 @@ void slow5_hdr_data_free(struct slow5_hdr *header) {
  * SLOW5_ERR_IO
  */
 void *slow5_get_mem(const char *read_id, size_t *n, const struct slow5_file *s5p) {
+    int ret;
+
     if (!read_id || !s5p) {
         if (!read_id) {
             SLOW5_ERROR("Argument '%s' cannot be NULL.", SLOW5_TO_STR(read_id));
@@ -2462,9 +2602,10 @@ void *slow5_get_mem(const char *read_id, size_t *n, const struct slow5_file *s5p
         mem[bytes] = '\0';
     }
 
-    if (pread(s5p->meta.fd, mem, bytes, offset) != bytes) {
-        SLOW5_ERROR("Failed to pread '%zu' bytes at offset '%zu' from slow5 file '%s'.",
-                bytes, offset, s5p->meta.pathname);
+    ret = slow5_mread(s5p, mem, bytes, offset);
+    if (ret) {
+        SLOW5_ERROR("Failed to read '%zu' bytes at offset '%zu' from slow5 file memory mapping '%s'.",
+                    bytes, offset, s5p->meta.pathname);
         free(mem);
         slow5_errno = SLOW5_ERR_IO;
         goto err;
