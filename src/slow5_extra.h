@@ -23,6 +23,8 @@ these functions are used by slow5tools and pyslow5 - so any change to a function
 slow5_file_t *slow5_init(FILE *fp, const char *pathname, enum slow5_fmt format);
 slow5_file_t *slow5_init_empty(FILE *fp, const char *pathname, enum slow5_fmt format);
 int slow5_is_eof(FILE *fp, const char *eof, size_t n);
+int slow5_is_meof(const struct slow5_file *s5p, const char *eof, size_t n,
+                  uint64_t offset);
 
 // slow5 header
 slow5_hdr_t *slow5_hdr_init_empty(void);
@@ -60,8 +62,8 @@ void slow5_aux_meta_free(slow5_aux_meta_t *aux_meta);
 char **slow5_aux_meta_enum_parse(char *tok, enum slow5_aux_type type, uint8_t *n);
 
 // slow5 record
-void *slow5_get_mem(const char *read_id, size_t *n, const slow5_file_t *s5p);
-void *slow5_get_next_mem(size_t *n, const slow5_file_t *s5p);
+void *slow5_get_mem(const char *read_id, size_t *n, slow5_file_t *s5p);
+void *slow5_get_next_mem(size_t *n, slow5_file_t *s5p);
 int slow5_rec_set(slow5_rec_t *read, slow5_aux_meta_t *aux_meta, const char *attr, const void *data);
 int slow5_rec_set_array(slow5_rec_t *read, slow5_aux_meta_t *aux_meta, const char *attr, const void *data, size_t len);
 static inline int slow5_rec_set_string(slow5_rec_t *read, slow5_aux_meta_t *aux_meta, const char *attr, const char *data) {
