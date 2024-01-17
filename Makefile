@@ -10,7 +10,7 @@ SVB16		= thirdparty/streamvbyte16
 SVBLIB		= $(SVB)/libstreamvbyte.a
 SVB16LIB	= $(SVB16)/libstreamvbyte16.a
 CPPFLAGS	+= -I include/ -I $(SVB)/include/ -I $(SVB16)
-CFLAGS		+= -g -Wall -O2 -std=c99
+CFLAGS		+= -g -Wall -O3 -std=c99
 LDFLAGS		+= -lm -lz
 ifeq ($(zstd),1)
 CFLAGS		+= -DSLOW5_USE_ZSTD
