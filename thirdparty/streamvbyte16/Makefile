@@ -20,7 +20,7 @@ else ifeq ($(PROCESSOR), armv7l)
 # for 32-bit ARM processors
 CFLAGS += -mfpu=neon
 else ifeq ($(PROCESSOR), x86_64)
-CFLAGS += -mssse3 -msse4.1
+CFLAGS += -msse4.1
 endif
 endif
 
