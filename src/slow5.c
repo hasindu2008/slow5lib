@@ -100,6 +100,9 @@ inline int *slow5_errno_location(void) {
 
 // memory mapping
 
+#define SLOW5_MPTR(s5p) ((s5p)->meta.mp + (s5p)->meta.moffset)
+#define SLOW5_MOUT(s5p, bytes, offset) ((bytes) + (offset) > (s5p)->meta.mlen)
+
 /*
  * get SLOW5 file size
  * s5p and size must be valid pointers
@@ -188,11 +191,12 @@ int slow5_mmap(struct slow5_file *s5p)
  * return 0 on success, -1 on error (attempt to read beyond the memory mapping)
  * note that this mmap implementation inefficiently copies to a malloced buffer
  */
+static inline
 int slow5_mread(const struct slow5_file *s5p, void *mem, uint64_t bytes,
                 uint64_t offset)
 {
     // reading beyond the memory mapping
-    if (offset + bytes > s5p->meta.mlen)
+    if (SLOW5_MOUT(s5p, bytes, offset))
         return -1;
 
     (void) memcpy(mem, s5p->meta.mp + offset, bytes);
@@ -3343,6 +3347,12 @@ void *slow5_get_next_mem(size_t *n, struct slow5_file *s5p) {
 
     if (s5p->format == SLOW5_FORMAT_ASCII) {
         size_t cap = 0;
+
+        /*
+         * For your information, mmap is not being used here. If mmap becomes of
+         * use then by all means replace getline with an mmap equivalent.
+         */
+
         ssize_t bytes_tmp = getline(&mem, &cap, s5p->fp);
         if (bytes_tmp == -1) { /* getline failed */
             if (feof(s5p->fp)) {
@@ -3361,19 +3371,15 @@ void *slow5_get_next_mem(size_t *n, struct slow5_file *s5p) {
     } else if (s5p->format == SLOW5_FORMAT_BINARY) {
         slow5_rec_size_t bytes_tmp;
 
-        /* try to read the record size */
-        ret = slow5_mread(s5p, &bytes_tmp, sizeof bytes_tmp, s5p->meta.moffset);
-        if (ret) {
+        // reading beyond the memory mapping
+        if (SLOW5_MOUT(s5p, sizeof bytes_tmp, s5p->meta.moffset)) {
             const char eof[] = SLOW5_BINARY_EOF;
             int is_eof = 0;
             if (s5p->meta.mlen - s5p->meta.moffset == sizeof eof) {
                 /* check if eof */
-                is_eof = slow5_is_meof(s5p, eof, sizeof eof, s5p->meta.moffset);
-                if (is_eof == -1) { /* io/mem error */
-                    SLOW5_ERROR("%s", "Internal error while checking for blow5 eof marker.");
-                } else if (is_eof == 1) {
+                is_eof = !memcmp(SLOW5_MPTR(s5p), eof, sizeof eof);
+                if (is_eof)
                     slow5_errno = SLOW5_ERR_EOF;
-                }
             }
             if (!is_eof) { /* it is not the end of the file */
                 SLOW5_ERROR("%s", "Malformed blow5 record. Failed to read the record size. Missing blow5 end of file marker.");
@@ -3381,6 +3387,9 @@ void *slow5_get_next_mem(size_t *n, struct slow5_file *s5p) {
             }
             goto err;
         }
+
+        (void) memcpy(&bytes_tmp, SLOW5_MPTR(s5p), sizeof bytes_tmp);
+
         s5p->meta.moffset += sizeof bytes_tmp;
         bytes = bytes_tmp;
 
@@ -4786,42 +4795,6 @@ int slow5_is_eof(FILE *fp, const char *eof, size_t n) {
 
     free(buf_eof);
     return 0;
-}
-
-/*
- * check if the memory mapped SLOW5 file at offset matches eof for n bytes
- * does not actually check if the end of file has been reached
- * s5p and eof must be valid pointers
- * return 1 on success, 0 on failure, -1 on error and set slow5_errno
- */
-int slow5_is_meof(const struct slow5_file *s5p, const char *eof, size_t n,
-                  uint64_t offset)
-{
-    uint8_t *buf;
-    int ret;
-
-    buf = (uint8_t *) malloc(n);
-    if (!buf) {
-        SLOW5_MALLOC_ERROR();
-        slow5_errno = SLOW5_ERR_MEM;
-        return -1;
-    }
-
-    ret = slow5_mread(s5p, buf, n, offset);
-    if (ret) {
-        free(buf);
-        slow5_errno = SLOW5_ERR_IO;
-        return -1;
-    }
-
-    ret = memcmp(buf, eof, n);
-    if (ret) {
-        free(buf);
-        return 0;
-    }
-
-    free(buf);
-    return 1;
 }
 
 /* following can be moved to version.c file later when it gows out of control */

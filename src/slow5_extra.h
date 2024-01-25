@@ -23,8 +23,6 @@ these functions are used by slow5tools and pyslow5 - so any change to a function
 slow5_file_t *slow5_init(FILE *fp, const char *pathname, enum slow5_fmt format);
 slow5_file_t *slow5_init_empty(FILE *fp, const char *pathname, enum slow5_fmt format);
 int slow5_is_eof(FILE *fp, const char *eof, size_t n);
-int slow5_is_meof(const struct slow5_file *s5p, const char *eof, size_t n,
-                  uint64_t offset);
 
 // slow5 header
 slow5_hdr_t *slow5_hdr_init_empty(void);
