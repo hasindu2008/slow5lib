@@ -100,8 +100,11 @@ inline int *slow5_errno_location(void) {
 
 // memory mapping
 
-#define SLOW5_MPTR(s5p) ((s5p)->meta.mp + (s5p)->meta.moffset)
-#define SLOW5_MOUT(s5p, bytes, offset) ((bytes) + (offset) > (s5p)->meta.mlen)
+#define SLOW5_MPTR_AT(s5p, offset) ((s5p)->meta.mp + (offset))
+#define SLOW5_MOUT_AT(s5p, bytes, offset) ((bytes) + (offset) > (s5p)->meta.mlen)
+#define SLOW5_MPTR(s5p) SLOW5_MPTR_AT(s5p, (s5p)->meta.moffset)
+#define SLOW5_MOUT(s5p, bytes) SLOW5_MOUT_AT(s5p, bytes, (s5p)->meta.moffset)
+#define SLOW5_MLEFT(s5p) ((s5p)->meta.mlen - (s5p)->meta.moffset)
 
 /*
  * get SLOW5 file size
@@ -189,14 +192,14 @@ int slow5_mmap(struct slow5_file *s5p)
  * copy bytes from memory mapped SLOW5 file at offset into mem
  * s5p and mem must be valid pointers
  * return 0 on success, -1 on error (attempt to read beyond the memory mapping)
- * note that this mmap implementation inefficiently copies to a malloced buffer
+ * note that this inefficiently copies to a buffer
  */
 static inline
 int slow5_mread(const struct slow5_file *s5p, void *mem, uint64_t bytes,
                 uint64_t offset)
 {
     // reading beyond the memory mapping
-    if (SLOW5_MOUT(s5p, bytes, offset))
+    if (SLOW5_MOUT_AT(s5p, bytes, offset))
         return -1;
 
     (void) memcpy(mem, s5p->meta.mp + offset, bytes);
@@ -2605,17 +2608,6 @@ void *slow5_get_mem(const char *read_id, size_t *n, struct slow5_file *s5p) {
 
     s5p->meta.moffset = offset + bytes;
 
-    if (s5p->format == SLOW5_FORMAT_ASCII) {
-        /* in case the non-memory-mapped file pointer is used in
-           slow5_get_next_mem */
-        ret = fseek(s5p->fp, offset + bytes, SEEK_SET);
-        if (ret) {
-            free(mem);
-            slow5_errno = SLOW5_ERR_IO;
-            goto err;
-        }
-    }
-
     if (n) {
         *n = bytes;
     }
@@ -3346,36 +3338,47 @@ void *slow5_get_next_mem(size_t *n, struct slow5_file *s5p) {
     int ret;
 
     if (s5p->format == SLOW5_FORMAT_ASCII) {
-        size_t cap = 0;
+        char *c;
+        char *tmp;
 
-        /*
-         * For your information, mmap is not being used here. If mmap becomes of
-         * use then by all means replace getline with an mmap equivalent.
-         */
-
-        ssize_t bytes_tmp = getline(&mem, &cap, s5p->fp);
-        if (bytes_tmp == -1) { /* getline failed */
-            if (feof(s5p->fp)) {
-                free(mem);
-                slow5_errno = SLOW5_ERR_EOF;
-                goto err;
-            }
-            SLOW5_ERROR("Reading the next slow5 record until newline failed: %s", strerror(errno));
-            free(mem);
+        if (!SLOW5_MLEFT(s5p)) {
+            slow5_errno = SLOW5_ERR_EOF;
+            goto err;
+        } else if (SLOW5_MLEFT(s5p) < 0) {
+            SLOW5_ERROR("%s\n", "Reading the next slow5 record until newline failed");
             slow5_errno = SLOW5_ERR_IO;
             goto err;
         }
-        bytes = bytes_tmp;
+
+        mem = SLOW5_MPTR(s5p);
+        c = memchr(mem, '\n', SLOW5_MLEFT(s5p));
+        if (!c) {
+            slow5_errno = SLOW5_ERR_TRUNC;
+            goto err;
+        }
+        bytes = c - mem + 1;
+
+        tmp = (char *) malloc(bytes);
+        if (!tmp) {
+            SLOW5_MALLOC_ERROR();
+            slow5_errno = SLOW5_ERR_MEM;
+            goto err;
+        }
+
+        (void) memcpy(tmp, mem, bytes);
+        s5p->meta.moffset += bytes;
+
+        mem = tmp;
         mem[-- bytes] = '\0'; /* remove newline for parsing */
 
     } else if (s5p->format == SLOW5_FORMAT_BINARY) {
         slow5_rec_size_t bytes_tmp;
 
         // reading beyond the memory mapping
-        if (SLOW5_MOUT(s5p, sizeof bytes_tmp, s5p->meta.moffset)) {
+        if (SLOW5_MOUT(s5p, sizeof bytes_tmp)) {
             const char eof[] = SLOW5_BINARY_EOF;
             int is_eof = 0;
-            if (s5p->meta.mlen - s5p->meta.moffset == sizeof eof) {
+            if (SLOW5_MLEFT(s5p) == sizeof eof) {
                 /* check if eof */
                 is_eof = !memcmp(SLOW5_MPTR(s5p), eof, sizeof eof);
                 if (is_eof)
