@@ -2591,12 +2591,6 @@ void *slow5_get_mem(const char *read_id, size_t *n, struct slow5_file *s5p) {
         goto err;
     }
 
-    if (s5p->format == SLOW5_FORMAT_ASCII) {
-        bytes -= 1;
-        /* null terminate */
-        mem[bytes] = '\0';
-    }
-
     ret = slow5_mread(s5p, mem, bytes, offset);
     if (ret) {
         SLOW5_ERROR("Failed to read '%zu' bytes at offset '%zu' from slow5 file memory mapping '%s'.",
@@ -2607,6 +2601,12 @@ void *slow5_get_mem(const char *read_id, size_t *n, struct slow5_file *s5p) {
     }
 
     s5p->meta.moffset = offset + bytes;
+
+    if (s5p->format == SLOW5_FORMAT_ASCII) {
+        bytes -= 1;
+        /* null terminate */
+        mem[bytes] = '\0';
+    }
 
     if (n) {
         *n = bytes;
