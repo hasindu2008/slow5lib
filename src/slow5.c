@@ -106,11 +106,6 @@ inline int *slow5_errno_location(void) {
 #define SLOW5_MOUT(s5p, bytes) SLOW5_MOUT_AT(s5p, bytes, (s5p)->meta.moffset)
 #define SLOW5_MLEFT(s5p) ((s5p)->meta.mlen - (s5p)->meta.moffset)
 
-const void *slow5_get_mmem(const char *read_id, size_t *n,
-                           struct slow5_file *s5p);
-int slow5_rec_depress_mparse(const char **mem, size_t *bytes,
-                             const char *read_id, struct slow5_rec **read,
-                             struct slow5_file *s5p);
 /*
  * get SLOW5 file size
  * s5p and size must be valid pointers
@@ -2879,6 +2874,13 @@ int slow5_decode(char **mem, size_t *bytes, slow5_rec_t **read, slow5_file_t *s5
     return slow5_rec_depress_parse((char **)mem, bytes, NULL, read, s5p);
 }
 
+/* same as slow5_decode but mem is a mmap pointer when SLOW5_FORMAT_BINARY */
+int slow5_mdecode(const char **mem, size_t *bytes, slow5_rec_t **read,
+                  slow5_file_t *s5p)
+{
+    return slow5_rec_depress_mparse((const char **)mem, bytes, NULL, read, s5p);
+}
+
 /*
  * parse read_mem with read_size bytes, intended read ID read_id, the given format and auxiliary meta data aux_meta
  * if read compression is used read_mem should be decompressed beforehand, signal decompression is handled here though
@@ -3563,9 +3565,119 @@ void *slow5_get_next_mem(size_t *n, struct slow5_file *s5p) {
         return NULL;
 }
 
+// same as slow5_get_next_mem but return mmap pointer when SLOW5_FORMAT_BINARY
+const void *slow5_get_next_mmem(size_t *n, struct slow5_file *s5p)
+{
+    if (!s5p) {
+        SLOW5_ERROR("Argument '%s' cannot be NULL.", SLOW5_TO_STR(s5p));
+        slow5_errno = SLOW5_ERR_ARG;
+        goto err;
+    }
+
+    const char *mem;
+    size_t bytes;
+
+    if (s5p->format == SLOW5_FORMAT_ASCII) {
+        char *c;
+        char *tmp;
+
+        if (!SLOW5_MLEFT(s5p)) {
+            slow5_errno = SLOW5_ERR_EOF;
+            goto err;
+        } else if (SLOW5_MLEFT(s5p) < 0) {
+            SLOW5_ERROR("%s\n", "Reading the next slow5 record until newline failed");
+            slow5_errno = SLOW5_ERR_IO;
+            goto err;
+        }
+
+        mem = SLOW5_MPTR(s5p);
+        c = memchr(mem, '\n', SLOW5_MLEFT(s5p));
+        if (!c) {
+            slow5_errno = SLOW5_ERR_TRUNC;
+            goto err;
+        }
+        bytes = c - mem + 1;
+
+        tmp = (char *) malloc(bytes);
+        if (!tmp) {
+            SLOW5_MALLOC_ERROR();
+            slow5_errno = SLOW5_ERR_MEM;
+            goto err;
+        }
+
+        (void) memcpy(tmp, mem, bytes);
+        s5p->meta.moffset += bytes;
+
+        tmp[-- bytes] = '\0'; /* remove newline for parsing */
+        mem = tmp;
+
+    } else if (s5p->format == SLOW5_FORMAT_BINARY) {
+        slow5_rec_size_t bytes_tmp;
+
+        // reading beyond the memory mapping
+        if (SLOW5_MOUT(s5p, sizeof bytes_tmp)) {
+            const char eof[] = SLOW5_BINARY_EOF;
+            int is_eof = 0;
+            if (SLOW5_MLEFT(s5p) == sizeof eof) {
+                /* check if eof */
+                is_eof = !memcmp(SLOW5_MPTR(s5p), eof, sizeof eof);
+                if (is_eof)
+                    slow5_errno = SLOW5_ERR_EOF;
+            }
+            if (!is_eof) { /* it is not the end of the file */
+                SLOW5_ERROR("%s", "Malformed blow5 record. Failed to read the record size. Missing blow5 end of file marker.");
+                slow5_errno = SLOW5_ERR_TRUNC;
+            }
+            goto err;
+        }
+
+        (void) memcpy(&bytes_tmp, SLOW5_MPTR(s5p), sizeof bytes_tmp);
+
+        s5p->meta.moffset += sizeof bytes_tmp;
+        bytes = bytes_tmp;
+
+        if (SLOW5_MOUT(s5p, bytes)) {
+            SLOW5_ERROR("Malformed blow5 record. Failed to read '%zu' bytes from memory mapped blow5 file '%s'. EOF reached unexpectedly.",
+                        bytes, s5p->meta.pathname)
+            slow5_errno = SLOW5_ERR_TRUNC;
+            goto err;
+        }
+        mem = SLOW5_MPTR(s5p);
+        s5p->meta.moffset += bytes;
+
+    } else {
+        SLOW5_ERROR("Invalid slow5 format '%d'.", s5p->format);
+        slow5_errno = SLOW5_ERR_UNK;
+        goto err;
+    }
+
+    if (n) {
+        *n = bytes;
+    }
+    return mem;
+
+    err:
+        if (n) {
+            *n = 0;
+        }
+        return NULL;
+}
+
 
 int slow5_get_next_bytes(char **mem, size_t *bytes, slow5_file_t *s5p){
     *mem = (char *) slow5_get_next_mem(bytes, s5p);
+    if (*mem == NULL) {
+        return -1;
+    } else {
+        return 0;
+    }
+}
+
+/* same as slow5_get_next_bytes but mem is a mmap pointer when
+   SLOW5_FORMAT_BINARY */
+int slow5_get_next_mbytes(const char **mem, size_t *bytes, slow5_file_t *s5p)
+{
+    *mem = (const char *) slow5_get_next_mmem(bytes, s5p);
     if (*mem == NULL) {
         return -1;
     } else {
@@ -3602,28 +3714,34 @@ int slow5_get_next_bytes(char **mem, size_t *bytes, slow5_file_t *s5p){
  * @return  error code described above
  */
 int slow5_get_next(struct slow5_rec **read, struct slow5_file *s5p) {
+    int ret = 0;
+
     if (!read) {
         SLOW5_ERROR_EXIT("Argument '%s' cannot be NULL.", SLOW5_TO_STR(read));
         return slow5_errno = SLOW5_ERR_ARG;
     }
 
     size_t bytes;
-    char *mem;
-    if (!(mem = (char *)slow5_get_next_mem(&bytes, s5p))) {
+    const char *mem;
+    const char *tmp;
+    if (!(mem = (const char *)slow5_get_next_mmem(&bytes, s5p))) {
         if (slow5_errno != SLOW5_ERR_EOF) {
             SLOW5_EXIT_IF_ON_ERR();
         }
         return slow5_errno;
     }
 
-    if (slow5_rec_depress_parse(&mem, &bytes, NULL, read, s5p) != 0) {
+    tmp = mem;
+    if (slow5_rec_depress_mparse(&tmp, &bytes, NULL, read, s5p) != 0) {
         SLOW5_EXIT_IF_ON_ERR();
-        free(mem);
-        return slow5_errno;
+        ret = slow5_errno;
     }
 
-    free(mem);
-    return 0;
+    if (tmp != mem)
+        free((void *) tmp);
+    if (s5p->format == SLOW5_FORMAT_ASCII)
+        free((void *) mem);
+    return ret;
 }
 
 // For non-array types
