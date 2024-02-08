@@ -28,6 +28,11 @@ ifeq ($(zstd),1)
 CFLAGS += -DVBZ_USE_ZSTD
 #LDFLAGS += -lzstd
 endif
+ifeq ($(zstd_local),)
+else
+CFLAGS += -DVBZ_USE_ZSTD
+CPPFLAGS += -I $(zstd_local)
+endif
 
 .PHONY = clean
 
@@ -35,7 +40,7 @@ $(STATICLIB): $(OBJ)
 	$(AR) rcs $@ $^
 
 streamvbyte16.o: streamvbyte16.c streamvbyte16.h svb16/*.h
-	$(CC) $(CFLAGS) $< -c -fpic -o $@
+	$(CC) $(CFLAGS) $(CPPFLAGS) $< -c -fpic -o $@
 
 clean:
 	rm -f $(OBJ) $(STATICLIB)
