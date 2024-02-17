@@ -298,6 +298,10 @@ struct slow5_file_meta {
     uint64_t start_rec_offset;  ///< offset (in bytes) of the first SLOW5 record (skipping the SLOW5 header; used for indexing)
     char *fread_buffer;         ///< buffer for fread
     const char *mode;           ///< file mode
+
+    void *mp;                   ///< memory map pointer
+    off_t mlen;                 ///< slow5 file size
+    uint64_t moffset;           ///< current byte offset from the memory map pointer
 };
 typedef struct slow5_file_meta slow5_file_meta_t;
 
@@ -327,6 +331,19 @@ IMPORTANT: The high-level is stable
 existing function prototypes must NOT be changed as such changes affects the backward compatibility
 newer functions can be added while keeping the existing ones intact
 */
+
+/*
+ * advise the usage of the memory mapped SLOW5 file
+ * s5p must be a valid pointer
+ * advice can be any valid advice option for posix_madvise
+ * include <sys/mman.h> to reference any of these option
+ * common options are:
+ * - POSIX_MADV_NORMAL: default
+ * - POSIX_MADV_SEQUENTIAL: expect read retrievals in sequential order
+ * - POSIX_MADV_RANDOM: expect read retrievals in random order
+ * return 0 on success, positive on error (see posix_madvise)
+ */
+int slow5_madvise(struct slow5_file *s5p, int advice);
 
 /**
  * Open a slow5 file with a specific mode given it's pathname.

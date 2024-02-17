@@ -60,8 +60,8 @@ void slow5_aux_meta_free(slow5_aux_meta_t *aux_meta);
 char **slow5_aux_meta_enum_parse(char *tok, enum slow5_aux_type type, uint8_t *n);
 
 // slow5 record
-void *slow5_get_mem(const char *read_id, size_t *n, const slow5_file_t *s5p);
-void *slow5_get_next_mem(size_t *n, const slow5_file_t *s5p);
+void *slow5_get_mem(const char *read_id, size_t *n, slow5_file_t *s5p);
+void *slow5_get_next_mem(size_t *n, slow5_file_t *s5p);
 int slow5_rec_set(slow5_rec_t *read, slow5_aux_meta_t *aux_meta, const char *attr, const void *data);
 int slow5_rec_set_array(slow5_rec_t *read, slow5_aux_meta_t *aux_meta, const char *attr, const void *data, size_t len);
 static inline int slow5_rec_set_string(slow5_rec_t *read, slow5_aux_meta_t *aux_meta, const char *attr, const char *data) {
@@ -84,6 +84,17 @@ void slow5_memcpy_null_type(uint8_t *data, enum slow5_aux_type type);
 char *slow5_type_to_str(uint8_t *data, const char *type, size_t len, size_t *str_len);
 char *slow5_aux_type_to_str(enum slow5_aux_type type);
 char *slow5_data_to_str(uint8_t *data, enum slow5_aux_type type, uint64_t ptr_len, size_t *str_len);
+
+// mmap
+const void *slow5_get_mmem(const char *read_id, size_t *n,
+                           struct slow5_file *s5p);
+const void *slow5_get_next_mmem(size_t *n, struct slow5_file *s5p);
+int slow5_get_next_mbytes(const char **mem, size_t *bytes, slow5_file_t *s5p);
+int slow5_rec_depress_mparse(const char **mem, size_t *bytes,
+                             const char *read_id, struct slow5_rec **read,
+                             struct slow5_file *s5p);
+int slow5_mdecode(const char **mem, size_t *bytes, slow5_rec_t **read,
+                  slow5_file_t *s5p);
 
 
 
