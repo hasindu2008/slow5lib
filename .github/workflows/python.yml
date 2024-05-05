@@ -98,3 +98,25 @@ jobs:
       run: make pyslow5
     - name: test
       run: python3 -m unittest -v python/test.py
+  os_x_13:
+    name: pyslow5 mac os
+    runs-on: macos-13
+    steps:
+    - uses: actions/checkout@v2
+    - name: install packages
+      run: pip3 install numpy setuptools
+    - name: build
+      run: make pyslow5
+    - name: test
+      run: python3 -m unittest -v python/test.py
+  os_x_14:
+    name: pyslow5 mac os
+    runs-on: macos-12
+    steps:
+    - uses: actions/checkout@v2
+    - name: install packages
+      run: pip3 install numpy setuptools
+    - name: build
+      run: make pyslow5
+    - name: test
+      run: python3 -m unittest -v python/test.py
