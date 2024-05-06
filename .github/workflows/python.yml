@@ -115,7 +115,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: install packages
-      run: pip3 install numpy setuptools
+      run: pip3 install numpy setuptools --break-system-packages
     - name: build
       run: make pyslow5
     - name: test
