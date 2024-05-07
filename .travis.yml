@@ -73,14 +73,14 @@ jobs:
           packages:
             - zlib1g-dev
       script: make && make test
-    # - name: "IBM Z CPUs"
-    #   arch: s390x
-    #   os: linux
-    #   addons:
-    #     apt:
-    #       packages:
-    #         - zlib1g-dev
-    #   script: make && make test
+    - name: "IBM Z CPUs"
+      arch: s390x
+      os: linux
+      addons:
+        apt:
+          packages:
+            - zlib1g-dev
+      script: make && make test
     # - stage: deploy
     #   name: "GitHub Release"
     #   dist: trusty
