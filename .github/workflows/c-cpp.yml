@@ -153,6 +153,28 @@ jobs:
       run: make test
     - name: examples
       run: make examples
+  os_x_13:
+    name: OSX 13
+    runs-on: macos-13
+    steps:
+    - uses: actions/checkout@v2
+    - name: build
+      run: make -j8
+    - name: test
+      run: make test
+    - name: examples
+      run: make examples
+  os_x_14:
+    name: OSX 14
+    runs-on: macos-14
+    steps:
+    - uses: actions/checkout@v2
+    - name: build
+      run: make -j8
+    - name: test
+      run: make test
+    - name: examples
+      run: make examples
   arm64:
     name: ubuntu arm
     runs-on: ubuntu-latest

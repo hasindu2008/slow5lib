@@ -10,6 +10,16 @@ slow5lib - slow5 Overview
 
 slow5lib is a library for reading and writing SLOW5 files. Compiling slow5lib requires a C compiler that conforms to at least c99 standard with X/Open 7, incorporating POSIX 2008 extension support.
 
+### Table of Contents
+
+- [Data Structures](#data-structures)
+- [High-level API](#high-level-api)
+  - [Common](#common)
+  - [Reading](#reading)
+  - [Writing](#writing)
+- [Low-level API for reading and writing SLOW5 files](#low-level-api-for-reading-and-writing-slow5-files)
+- [Easy multi-thread API](#easy-multi-thread-api)
+
 ### Data Structures
 
 The *slow5_file_t* structure stores the file pointer, parsed SLOW5 header and other metadata of an opened SLOW5 file.
@@ -80,7 +90,7 @@ High-level API consists of following functions:
 * [slow5_rec_free](slow5_rec_free.md)<br/>
   &nbsp;&nbsp;&nbsp;&nbsp;frees up a SLOW5 record from memory
 
-### Reading
+#### Reading
 * [slow5_get](slow5_get.md)<br/>
   &nbsp;&nbsp;&nbsp;&nbsp;fetches a record corresponding to a given read ID
 * [slow5_get_next](slow5_get_next.md)<br/>
@@ -114,7 +124,7 @@ High-level API consists of following functions:
     * [slow5_aux_get_double_array](slow5_aux_get_array.md)
     * [slow5_aux_get_string](slow5_aux_get_array.md)
 
-### Writing
+#### Writing
 
 * [slow5_hdr_add](slow5_hdr_add.md)<br/>
   &nbsp;&nbsp;&nbsp;&nbsp;adds a new header data attribute to a SLOW5 header
@@ -161,14 +171,3 @@ Please cite the following in your publications when using *slow5lib/pyslow5*:
   publisher={Nature Publishing Group}
 }
 ```
-
-
-<!--
-### Low-level API for reading and writing SLOW5 files
-* [slow5_open_with](low_level_api/slow5_open_with.md)
-    Open a SLOW5 file. User can specify the SLOW5 format.
-
-adding read groups
-setting different compression
-
--->

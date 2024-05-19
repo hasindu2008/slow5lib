@@ -1,7 +1,6 @@
 
 // an example programme is for a lazy programmer. see mt.c instead.
 // uses the optional multi-threaded API under  the lazy mode to fetch batches of records in parallel
-// this is under construction and is yet beta
 
 #include <assert.h>
 #include <math.h>

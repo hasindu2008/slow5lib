@@ -2,8 +2,8 @@
 
 *slow5lib* is a software library for reading & writing SLOW5 files. *slow5lib* is designed to facilitate use of data in SLOW5 format by third-party software packages. Existing packages that read/write data in FAST5 or POD5 format can be easily modified to support SLOW5.
 
-**About SLOW5 format:**
-SLOW5 is a new file format for storing signal data from Oxford Nanopore Technologies (ONT) devices. SLOW5 was developed to overcome inherent limitations in the standard FAST5 signal data format that prevent efficient, scalable analysis and cause many headaches for developers (and upcoming headaches with ONT's latest POD5 format). SLOW5 can be encoded in human-readable ASCII format, or a more compact and efficient binary format (BLOW5) - this is analogous to the seminal SAM/BAM format for storing DNA sequence alignments. The BLOW5 binary format supports  *zlib* (DEFLATE) compression, or other compression methods, thereby minimising the data storage footprint while still permitting efficient parallel access. Detailed benchmarking experiments have shown that SLOW5 format is an order of magnitude faster and significantly smaller than FAST5.
+**About SLOW5 format:**<br/>
+SLOW5 is a new file format for storing signal data from Oxford Nanopore Technologies (ONT) devices. SLOW5 was developed to overcome inherent limitations in the standard FAST5 signal data format that prevent efficient, scalable analysis and cause many headaches for developers (and upcoming headaches with ONT's latest POD5 format). SLOW5 can be encoded in human-readable ASCII format, or a more compact and efficient binary format (BLOW5) - this is analogous to the seminal SAM/BAM format for storing DNA sequence alignments. The BLOW5 binary format supports  *zlib* (DEFLATE) compression, or other compression methods (see [notes](https://github.com/hasindu2008/slow5lib#notes)), thereby minimising the data storage footprint while still permitting efficient parallel access. Detailed benchmarking experiments have shown that SLOW5 format is an order of magnitude faster and significantly smaller than FAST5.
 
 <!-- Pre-print: https://www.biorxiv.org/content/10.1101/2021.06.29.450255v1<br/> -->
 Publication: https://www.nature.com/articles/s41587-021-01147-4<br/>
@@ -26,9 +26,24 @@ Please cite the following in your publications when using *slow5lib/pyslow5*:
 }
 ```
 
+## Table of Contents
+
+- [Building](#building)
+  - [Optional zstd compression](#optional-zstd-compression)
+  - [Without SIMD](#without-simd)
+  - [Advanced building options](#advanced-building-options)
+- [Usage](#usage)
+  - [Examples](#examples)
+  - [pyslow5](#pyslow5)
+  - [Other languages](#other-languages)
+  - [Current limitations & future work](#current-limitations--future-work)
+  - [Notes](#notes)
+- [Acknowledgement](#acknowledgement)
+
 ## Building
 
-Building slow5lib requires a compiler that supports C99 standard (with X/Open 7 POSIX 2008 extensions), which is widely available. To build the C/C++ library :
+Building slow5lib requires a compiler that supports C99 standard (with X/Open 7 POSIX 2008 extensions), which is widely available.
+To build the C/C++ library :
 
 ```sh
 sudo apt-get install zlib1g-dev   #install zlib development libraries
@@ -51,7 +66,7 @@ On OS X : brew install zlib
 You can optionally enable [*zstd* compression](https://facebook.github.io/zstd) support when building *slow5lib* by invoking `make zstd=1`. This requires __zstd 1.3 or higher development libraries__ installed on your system:
 
 ```sh
-On Debian/Ubuntu : sudo apt-get libzstd1-dev # libzstd-dev on newer distributions if libzstd1-dev is unavailable
+On Debian/Ubuntu : sudo apt-get install libzstd1-dev # libzstd-dev on newer distributions if libzstd1-dev is unavailable
 On Fedora/CentOS : sudo yum libzstd-devel
 On OS X : brew install zstd
 ```
@@ -62,6 +77,9 @@ SLOW5 files compressed with *zstd* offer smaller file size and better performanc
 
 *slow5lib* from version 0.3.0 onwards uses code from [StreamVByte](https://github.com/lemire/streamvbyte) and by default requires vector instructions (SSSE3 or higher for Intel/AMD and neon for ARM). If your processor is an ancient processor with no such vector instructions, invoke make as `make no_simd=1`.
 
+#### Advanced building options
+
+- To support large files on 32-bit systems use: `CFLAGS="-D_FILE_OFFSET_BITS=64"  make`.
 
 ## Usage
 
@@ -126,7 +144,6 @@ slow5lib is a reference implementation for SLOW5 format. Depending on the intere
 ### Notes
 
 *slow5lib* from version 0.3.0 onwards has built in [StreamVByte](https://github.com/lemire/streamvbyte) compression support to enable even smaller file sizes, which is applied to the raw signal by default when producing BLOW5 files.  *zlib* compression is then applied by default to each SLOW5 record. If *zstd* is used instead of *zlib* on top of *StreamVByte*, it is similar to ONT's latest [vbz](https://github.com/nanoporetech/vbz_compression) compression. BLOW5 files with *zstd+StreamVByte* are still about 25% smaller than vbz compressed FAST5 files.
-
 
 ## Acknowledgement
 slow5lib uses [klib](https://github.com/attractivechaos/klib) and [StreamVByte](https://github.com/lemire/streamvbyte). Some code snippets have been taken from [Minimap2](https://github.com/lh3/minimap2) and [Samtools](http://samtools.sourceforge.net/).
