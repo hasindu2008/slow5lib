@@ -15,8 +15,8 @@ SLOW5 ecosystem: https://hasindu2008.github.io/slow5<br/>
 [![BioConda Install](https://img.shields.io/conda/dn/bioconda/pyslow5.svg?style=flag&label=BioConda%20install)](https://anaconda.org/bioconda/pyslow5)
 [![PyPI](https://img.shields.io/pypi/v/pyslow5.svg?style=flat)](https://pypi.python.org/pypi/pyslow5)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/pyslow5?label=pyslow5%20PyPi)
-[![C/C++ CI](https://github.com/hasindu2008/slow5lib/actions/workflows/c-cpp.yml/badge.svg)](https://github.com/hasindu2008/slow5lib/actions/workflows/c-cpp.yml)
-[![Python CI](https://github.com/hasindu2008/slow5lib/actions/workflows/python.yml/badge.svg)](https://github.com/hasindu2008/slow5lib/actions/workflows/python.yml)
+[![C CI](https://github.com/hasindu2008/slow5lib/actions/workflows/c-cpp.yml/badge.svg)](https://github.com/hasindu2008/slow5lib/actions/workflows/c-cpp.yml)
+[![Py CI](https://github.com/hasindu2008/slow5lib/actions/workflows/python.yml/badge.svg)](https://github.com/hasindu2008/slow5lib/actions/workflows/python.yml)
 
 Please cite the following in your publications when using *slow5lib/pyslow5*:
 
@@ -32,6 +32,20 @@ Please cite the following in your publications when using *slow5lib/pyslow5*:
   publisher={Nature Publishing Group}
 }
 ```
+
+## Table of Contents
+
+- [Building](#building)
+  - [Optional zstd compression](#optional-zstd-compression)
+  - [Without SIMD](#without-simd)
+  - [Advanced building options](#advanced-building-options)
+- [Usage](#usage)
+  - [Examples](#examples)
+  - [pyslow5](#pyslow5)
+  - [Other languages](#other-languages)
+  - [Current limitations & future work](#current-limitations--future-work)
+  - [Notes](#notes)
+- [Acknowledgement](#acknowledgement)
 
 ## Building
 
@@ -54,7 +68,6 @@ On Fedora/CentOS : sudo dnf/yum install zlib-devel
 On OS X : brew install zlib
 ```
 
-
 #### Optional zstd compression
 
 You can optionally enable [*zstd* compression](https://facebook.github.io/zstd) support when building *slow5lib* by invoking `make zstd=1`. This requires __zstd 1.3 or higher development libraries__ installed on your system:
@@ -71,6 +84,9 @@ SLOW5 files compressed with *zstd* offer smaller file size and better performanc
 
 *slow5lib* from version 0.3.0 onwards uses code from [StreamVByte](https://github.com/lemire/streamvbyte) and by default requires vector instructions (SSSE3 or higher for Intel/AMD and neon for ARM). If your processor is an ancient processor with no such vector instructions, invoke make as `make no_simd=1`.
 
+#### Advanced building options
+
+- To support large files on 32-bit systems use: `CFLAGS="-D_FILE_OFFSET_BITS=64"  make`.
 
 ## Usage
 
