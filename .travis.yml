@@ -80,7 +80,21 @@ jobs:
         apt:
           packages:
             - zlib1g-dev
-      script: make && make test
+            - valgrind
+      script:
+        - make && make test
+        - ./test/test.sh mem
+    - name: "IBM Z CPUs with zstd"
+      arch: s390x
+      os: linux
+      addons:
+        apt:
+          packages:
+            - zlib1g-dev
+            - libzstd1-dev
+      script:
+        - make zstd=1 && make test zstd=1
+        - ./test/test.sh mem
     # - stage: deploy
     #   name: "GitHub Release"
     #   dist: trusty
