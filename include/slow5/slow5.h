@@ -133,7 +133,6 @@ enum slow5_aux_type {
 };
 
 #define SLOW5_IS_PTR(type)              ((type) >= SLOW5_INT8_T_ARRAY)
-#define SLOW5_IS_PTR_MULTIBYTE(type)    ((type) >= SLOW5_INT16_T_ARRAY && (type) <= SLOW5_DOUBLE_ARRAY)
 #define SLOW5_TO_PRIM_TYPE(ptr_type)    ((enum slow5_aux_type) ((ptr_type) - SLOW5_INT8_T_ARRAY))
 
 /* NULL (missing value) representation */

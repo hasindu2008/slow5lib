@@ -45,29 +45,16 @@ extern "C" {
 
 static inline void slow5_byte_swap(void *dest, const void *src, size_t size){
     if(size==2){
+
         uint16_t tmp = ((uint16_t*)src)[0];
         tmp = (tmp << 8) | (tmp >> 8);
         ((uint16_t*)dest)[0] = tmp;
-
-        // char tmp0 = ((char*)src)[0];
-        // char tmp1 = ((char*)src)[1];
-        // ((char*)dest)[0] = tmp1;
-        // ((char*)dest)[1] = tmp0;
 
     } else if(size==4){
 
         uint32_t tmp = ((uint32_t*)src)[0];
         tmp = (tmp >> 24) | ((tmp << 8) & 0x00FF0000) | ((tmp >> 8) & 0x0000FF00) | (tmp << 24);
         ((uint32_t*)dest)[0] = tmp;
-
-        // char tmp0 = ((char*)src)[0];
-        // char tmp1 = ((char*)src)[1];
-        // char tmp2 = ((char*)src)[2];
-        // char tmp3 = ((char*)src)[3];
-        // ((char*)dest)[0] = tmp3;
-        // ((char*)dest)[1] = tmp2;
-        // ((char*)dest)[2] = tmp1;
-        // ((char*)dest)[3] = tmp0;
 
     } else if(size==8){
 
@@ -77,23 +64,6 @@ static inline void slow5_byte_swap(void *dest, const void *src, size_t size){
              ((tmp >> 24) & 0x0000000000FF0000) | ((tmp >> 40) & 0x000000000000FF00) | (tmp << 56);
         ((uint64_t*)dest)[0] = tmp;
 
-
-        // char tmp0 = ((char*)src)[0];
-        // char tmp1 = ((char*)src)[1];
-        // char tmp2 = ((char*)src)[2];
-        // char tmp3 = ((char*)src)[3];
-        // char tmp4 = ((char*)src)[4];
-        // char tmp5 = ((char*)src)[5];
-        // char tmp6 = ((char*)src)[6];
-        // char tmp7 = ((char*)src)[7];
-        // ((char*)dest)[0] = tmp7;
-        // ((char*)dest)[1] = tmp6;
-        // ((char*)dest)[2] = tmp5;
-        // ((char*)dest)[3] = tmp4;
-        // ((char*)dest)[4] = tmp3;
-        // ((char*)dest)[5] = tmp2;
-        // ((char*)dest)[6] = tmp1;
-        // ((char*)dest)[7] = tmp0;
     }
 }
 
