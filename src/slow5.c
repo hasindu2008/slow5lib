@@ -1001,7 +1001,7 @@ void *slow5_hdr_to_mem(struct slow5_hdr *header, enum slow5_fmt format, slow5_pr
         len += sizeof version->patch;
         memcpy(mem + len, &record_comp, sizeof record_comp);
         len += sizeof record_comp;
-        memcpy(mem + len, &header->num_read_groups, sizeof header->num_read_groups); SLOW5_BYTE_SWAP_VOID(mem + len, sizeof header->num_read_groups);
+        SLOW5_MEMCPY(mem + len, &header->num_read_groups, sizeof header->num_read_groups); // SLOW5_BYTE_SWAP_VOID(mem + len, sizeof header->num_read_groups);
         len += sizeof header->num_read_groups;
         memcpy(mem + len, &signal_comp, sizeof signal_comp);
         len += sizeof signal_comp;
@@ -1145,7 +1145,7 @@ void *slow5_hdr_to_mem(struct slow5_hdr *header, enum slow5_fmt format, slow5_pr
         mem[len] = '\0';
     } else if (format == SLOW5_FORMAT_BINARY) { //write the header size in bytes (which was skipped previously)
         header_size = len - (SLOW5_BINARY_HDR_SIZE_OFFSET + sizeof header_size);
-        memcpy(mem + SLOW5_BINARY_HDR_SIZE_OFFSET, &header_size, sizeof header_size); SLOW5_BYTE_SWAP_VOID(mem + SLOW5_BINARY_HDR_SIZE_OFFSET, sizeof header_size);
+        SLOW5_MEMCPY(mem + SLOW5_BINARY_HDR_SIZE_OFFSET, &header_size, sizeof header_size); //SLOW5_BYTE_SWAP_VOID(mem + SLOW5_BINARY_HDR_SIZE_OFFSET, sizeof header_size);
     }
 
     if (n != NULL) {
@@ -2817,8 +2817,8 @@ int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struc
 
                 case COL_read_id:
                     size = sizeof read->read_id_len;
-                    memcpy(&read->read_id_len, read_mem + offset, size);
-                    SLOW5_BYTE_SWAP(&read->read_id_len);
+                    SLOW5_MEMCPY(&read->read_id_len, read_mem + offset, size);
+                    //SLOW5_BYTE_SWAP(&read->read_id_len);
                     offset += size;
 
                     size = read->read_id_len * sizeof *read->read_id;
@@ -2844,43 +2844,43 @@ int slow5_rec_parse(char *read_mem, size_t read_size, const char *read_id, struc
 
                 case COL_read_group:
                     size = sizeof read->read_group;
-                    memcpy(&read->read_group, read_mem + offset, size);
-                    SLOW5_BYTE_SWAP(&read->read_group);
+                    SLOW5_MEMCPY(&read->read_group, read_mem + offset, size);
+                    //SLOW5_BYTE_SWAP(&read->read_group);
                     offset += size;
                     break;
 
                 case COL_digitisation:
                     size = sizeof read->digitisation;
-                    memcpy(&read->digitisation, read_mem + offset, size);
-                    SLOW5_BYTE_SWAP(&read->digitisation);
+                    SLOW5_MEMCPY(&read->digitisation, read_mem + offset, size);
+                    //SLOW5_BYTE_SWAP(&read->digitisation);
                     offset += size;
                     break;
 
                 case COL_offset:
                     size = sizeof read->offset;
-                    memcpy(&read->offset, read_mem + offset, size);
-                    SLOW5_BYTE_SWAP(&read->offset);
+                    SLOW5_MEMCPY(&read->offset, read_mem + offset, size);
+                    //SLOW5_BYTE_SWAP(&read->offset);
                     offset += size;
                     break;
 
                 case COL_range:
                     size = sizeof read->range;
-                    memcpy(&read->range, read_mem + offset, size);
-                    SLOW5_BYTE_SWAP(&read->range);
+                    SLOW5_MEMCPY(&read->range, read_mem + offset, size);
+                    //SLOW5_BYTE_SWAP(&read->range);
                     offset += size;
                     break;
 
                 case COL_sampling_rate:
                     size = sizeof read->sampling_rate;
-                    memcpy(&read->sampling_rate, read_mem + offset, size);
-                    SLOW5_BYTE_SWAP(&read->sampling_rate);
+                    SLOW5_MEMCPY(&read->sampling_rate, read_mem + offset, size);
+                    //SLOW5_BYTE_SWAP(&read->sampling_rate);
                     offset += size;
                     break;
 
                 case COL_len_raw_signal:
                     size = sizeof read->len_raw_signal;
-                    memcpy(&read->len_raw_signal, read_mem + offset, size);
-                    SLOW5_BYTE_SWAP(&read->len_raw_signal);
+                    SLOW5_MEMCPY(&read->len_raw_signal, read_mem + offset, size);
+                    //SLOW5_BYTE_SWAP(&read->len_raw_signal);
                     offset += size;
                     break;
 
@@ -3103,8 +3103,8 @@ static int slow5_rec_aux_parse(char *tok, char *read_mem, uint64_t offset, size_
             if (SLOW5_IS_PTR(aux_meta->types[i])) {
                 /* Type is an array */
                 size = sizeof len;
-                memcpy(&len, read_mem + offset, size);
-                SLOW5_BYTE_SWAP(&len);
+                SLOW5_MEMCPY(&len, read_mem + offset, size);
+                //SLOW5_BYTE_SWAP(&len);
                 offset += size;
             }
 
@@ -3956,19 +3956,19 @@ void *slow5_rec_to_mem(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, 
         mem = (char *) malloc(cap * sizeof *mem);
         SLOW5_MALLOC_CHK(mem);
 
-        memcpy(mem + curr_len, &read->read_id_len, sizeof read->read_id_len); SLOW5_BYTE_SWAP_VOID(mem + curr_len, sizeof read->read_id_len);
+        SLOW5_MEMCPY(mem + curr_len, &read->read_id_len, sizeof read->read_id_len); //SLOW5_BYTE_SWAP_VOID(mem + curr_len, sizeof read->read_id_len);
         curr_len += sizeof read->read_id_len;
         memcpy(mem + curr_len, read->read_id, read->read_id_len * sizeof *read->read_id);
         curr_len += read->read_id_len * sizeof *read->read_id;
-        memcpy(mem + curr_len, &read->read_group, sizeof read->read_group); SLOW5_BYTE_SWAP_VOID(mem + curr_len, sizeof read->read_group);
+        SLOW5_MEMCPY(mem + curr_len, &read->read_group, sizeof read->read_group); //SLOW5_BYTE_SWAP_VOID(mem + curr_len, sizeof read->read_group);
         curr_len += sizeof read->read_group;
-        memcpy(mem + curr_len, &read->digitisation, sizeof read->digitisation); SLOW5_BYTE_SWAP_VOID(mem + curr_len, sizeof read->digitisation);
+        SLOW5_MEMCPY(mem + curr_len, &read->digitisation, sizeof read->digitisation); //SLOW5_BYTE_SWAP_VOID(mem + curr_len, sizeof read->digitisation);
         curr_len += sizeof read->digitisation;
-        memcpy(mem + curr_len, &read->offset, sizeof read->offset); SLOW5_BYTE_SWAP_VOID(mem + curr_len, sizeof read->offset);
+        SLOW5_MEMCPY(mem + curr_len, &read->offset, sizeof read->offset); //SLOW5_BYTE_SWAP_VOID(mem + curr_len, sizeof read->offset);
         curr_len += sizeof read->offset;
-        memcpy(mem + curr_len, &read->range, sizeof read->range); SLOW5_BYTE_SWAP_VOID(mem + curr_len, sizeof read->range);
+        SLOW5_MEMCPY(mem + curr_len, &read->range, sizeof read->range); //SLOW5_BYTE_SWAP_VOID(mem + curr_len, sizeof read->range);
         curr_len += sizeof read->range;
-        memcpy(mem + curr_len, &read->sampling_rate, sizeof read->sampling_rate); SLOW5_BYTE_SWAP_VOID(mem + curr_len, sizeof read->sampling_rate);
+        SLOW5_MEMCPY(mem + curr_len, &read->sampling_rate, sizeof read->sampling_rate); //SLOW5_BYTE_SWAP_VOID(mem + curr_len, sizeof read->sampling_rate);
         curr_len += sizeof read->sampling_rate;
 
         size_t bytes_raw_sig = read->len_raw_signal * sizeof *read->raw_signal;
@@ -3988,7 +3988,7 @@ void *slow5_rec_to_mem(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, 
             read->raw_signal = (int16_t *) raw_sig_svb;
         }
 
-        memcpy(mem + curr_len, &read->len_raw_signal, sizeof read->len_raw_signal); SLOW5_BYTE_SWAP_VOID(mem + curr_len, sizeof read->len_raw_signal);
+        SLOW5_MEMCPY(mem + curr_len, &read->len_raw_signal, sizeof read->len_raw_signal); //SLOW5_BYTE_SWAP_VOID(mem + curr_len, sizeof read->len_raw_signal);
         curr_len += sizeof read->len_raw_signal;
         memcpy(mem + curr_len, read->raw_signal, bytes_raw_sig); SLOW5_BYTE_SWAP_ARRAY_VOID(mem + curr_len, sizeof *read->raw_signal, read->len_raw_signal);
         curr_len += bytes_raw_sig;
@@ -4018,7 +4018,7 @@ void *slow5_rec_to_mem(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, 
                         mem = (char *) realloc(mem, cap);
                         SLOW5_MALLOC_CHK(mem);
                     }
-                    memcpy(mem + curr_len, &aux_data.len, sizeof aux_data.len); SLOW5_BYTE_SWAP_VOID(mem + curr_len, sizeof aux_data.len);
+                    SLOW5_MEMCPY(mem + curr_len, &aux_data.len, sizeof aux_data.len); //SLOW5_BYTE_SWAP_VOID(mem + curr_len, sizeof aux_data.len);
                     curr_len += sizeof aux_data.len;
 
                 } else if (curr_len + aux_data.bytes >= cap) { // Realloc if necessary
@@ -4059,7 +4059,7 @@ void *slow5_rec_to_mem(struct slow5_rec *read, struct slow5_aux_meta *aux_meta, 
             uint8_t *comp_mem_full = (uint8_t *) malloc(sizeof record_size + record_size);
             SLOW5_MALLOC_CHK(comp_mem_full);
             // Copy size of compressed record
-            memcpy(comp_mem_full, &record_size, sizeof record_size); SLOW5_BYTE_SWAP_VOID(comp_mem_full, sizeof record_size);
+            SLOW5_MEMCPY(comp_mem_full, &record_size, sizeof record_size); //SLOW5_BYTE_SWAP_VOID(comp_mem_full, sizeof record_size);
             // Copy compressed record
             memcpy(comp_mem_full + sizeof record_size, comp_mem, record_size);
             free(comp_mem);
