@@ -92,6 +92,7 @@ jobs:
           packages:
             - zlib1g-dev
             - libzstd1-dev
+            - valgrind
       script:
         - make zstd=1 && make test zstd=1
         - ./test/test.sh mem
