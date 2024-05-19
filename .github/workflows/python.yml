@@ -14,7 +14,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: install packages
-      run: python3 --version && sudo apt-get update && sudo apt-get install -y zlib1g-dev python3-pip openssl && pip3 install  --verbose setuptools cython "numpy>=1.13.3,<1.15.0" --user
+      run: sudo apt-get update && sudo apt-get install -y zlib1g-dev python3-pip python3-cython python3-setuptools python3-numpy
     - name: env
       run: lsb_release -a &&  ldd --version && gcc --version && g++ --version && python3 --version
     - name: build
