@@ -17,7 +17,7 @@
 
 extern enum slow5_log_level_opt  slow5_log_level;
 extern enum slow5_exit_condition_opt  slow5_exit_condition;
-extern int slow5_bigend;
+extern int8_t slow5_bigend;
 
 /* zlib */
 static int zlib_init_deflate(z_stream *strm);

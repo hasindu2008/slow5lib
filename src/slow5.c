@@ -86,7 +86,8 @@ static inline slow5_file_t *slow5_open_append(const char *filename,  enum slow5_
 
 enum slow5_log_level_opt slow5_log_level = SLOW5_LOG_INFO;
 enum slow5_exit_condition_opt slow5_exit_condition = SLOW5_EXIT_OFF;
-int slow5_bigend = 0;
+int8_t slow5_bigend = 0;
+int8_t slow5_skip_rid = 0;
 
 __thread int slow5_errno_intern = 0;
 
@@ -2523,6 +2524,9 @@ int slow5_get(const char *read_id, struct slow5_rec **read, struct slow5_file *s
     size_t bytes;
     char *mem;
     if (!(mem = (char *)slow5_get_mem(read_id, &bytes, s5p))) {
+        if(slow5_errno == SLOW5_ERR_NOTFOUND && slow5_skip_rid == 1){
+            return slow5_errno;
+        }
         SLOW5_EXIT_IF_ON_ERR();
         return slow5_errno;
     }
@@ -4622,6 +4626,12 @@ void slow5_set_log_level(enum slow5_log_level_opt log_level) {
 /* set the condition of exit (on error, warning, neither) */
 void slow5_set_exit_condition(enum slow5_exit_condition_opt exit_condition) {
     slow5_exit_condition = exit_condition;
+}
+
+/* no error messages printed and not exit when a requested read ID is not found in index*/
+// being tested, do not use until added to documentation
+void slow5_set_skip_rid(){
+    slow5_skip_rid = 1;
 }
 
 /*

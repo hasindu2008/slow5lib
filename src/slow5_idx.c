@@ -11,7 +11,8 @@
 
 extern enum slow5_log_level_opt  slow5_log_level;
 extern enum slow5_exit_condition_opt  slow5_exit_condition;
-extern int slow5_bigend;
+extern int8_t slow5_bigend;
+extern int8_t slow5_skip_rid;
 
 #define BUF_INIT_CAP (20*1024*1024)
 #define SLOW5_INDEX_BUF_INIT_CAP (64) // 2^6 TODO is this too little?
@@ -535,7 +536,9 @@ int slow5_idx_get(struct slow5_idx *index, const char *read_id, struct slow5_rec
 
     khint_t pos = kh_get(slow5_s2i, index->hash, read_id);
     if (pos == kh_end(index->hash)) {
-        SLOW5_ERROR("Read ID '%s' was not found.", read_id)
+        if (slow5_skip_rid == 0) {
+            SLOW5_ERROR("Read ID '%s' was not found.", read_id)
+        }
         ret = -1;
     } else if (read_index) {
         *read_index = kh_value(index->hash, pos);
