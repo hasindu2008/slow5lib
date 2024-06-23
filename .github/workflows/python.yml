@@ -58,6 +58,28 @@ jobs:
       run: make pyslow5
     - name: test
       run: python3 -m unittest -v python/test.py
+  ubuntu_22:
+    name: pyslow5 Ubuntu 22
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: install packages
+      run: sudo apt-get update && sudo apt-get install -y zlib1g-dev python3-pip && pip3 install setuptools cython numpy
+    - name: build
+      run: make pyslow5
+    - name: test
+      run: python3 -m unittest -v python/test.py
+  ubuntu_24:
+    name: pyslow5 Ubuntu 24
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: install packages
+      run: sudo apt-get update && sudo apt-get install -y zlib1g-dev python3-pip && pip3 install setuptools cython numpy
+    - name: build
+      run: make pyslow5
+    - name: test
+      run: python3 -m unittest -v python/test.py
   arm64:
     name: pyslow5 ubuntu arm
     runs-on: ubuntu-latest

@@ -120,6 +120,19 @@ jobs:
       run: make test
     - name: make mt
       run: examples/mt/build.sh
+  ubuntu_24:
+    name: Ubuntu 24
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: install packages
+      run: sudo apt-get update && sudo apt-get install zlib1g-dev
+    - name: build-gcc
+      run: make -j8
+    - name: test-gcc
+      run: make test
+    - name: make mt
+      run: examples/mt/build.sh
   os_x_11:
     name: OSX 11
     runs-on: macos-11
