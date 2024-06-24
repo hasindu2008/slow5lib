@@ -29,3 +29,4 @@ set(streamvbyte_zigzag src/streamvbyte_zigzag.c)
 
 # Build a shared lib
 add_library(streamvbyte_slow5 STATIC ${streamvbyte_decode} ${streamvbyte_encode} ${streamvbyte_zigzag})
+target_include_directories(streamvbyte_slow5 PUBLIC ${PROJECT_SOURCE_DIR}/include)
