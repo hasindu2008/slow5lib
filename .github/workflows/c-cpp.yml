@@ -3,8 +3,8 @@ name: C/C++ CI
 on:
   push:
     branches: [ '*' ]
-  pull_request:
-    branches: [ '*' ]
+  # pull_request:
+  #   branches: [ '*' ]
 
 jobs:
   # ubuntu_14:
@@ -40,7 +40,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: install packages
-      run: apt-get update && apt-get install -y zlib1g-dev gcc g++ autoconf automake make
+      run: apt-get update && apt-get install -y zlib1g-dev gcc g++ autoconf automake make cmake
     - name: build
       run:  mkdir build && cd build && cmake .. && make -j8 && cd ..
     - name: test
