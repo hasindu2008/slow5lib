@@ -128,6 +128,8 @@ Following examples will be added upon request. If you are interested, open a Git
 
 You can invoke `examples/build.sh` to compile the example programmes. Have a look at the script to see the commands used for compiling and linking. If you compiled *slow5lib* with *zstd* support enabled, make sure you append `-lzstd` to the compilation commands.
 
+Some examples demonstrating t the use of easy multi-thread API are available [here](https://github.com/hasindu2008/slow5lib/tree/master/examples/mt)
+
 
 ### pyslow5
 
