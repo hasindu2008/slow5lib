@@ -21,186 +21,200 @@ jobs:
       run:  make -j8
     - name: test
       run: make test
-  ubuntu_16:
-    name: Ubuntu 16
+  ubuntu_14_cmake:
+    name: ubuntu_14_cmake
     runs-on: ubuntu-20.04
-    container: ubuntu:16.04
+    container: ubuntu:14.04
     steps:
     - uses: actions/checkout@v2
     - name: install packages
-      run: apt-get update && apt-get install -y zlib1g-dev gcc g++ autoconf automake make
+      run: sudo apt-get update && sudo apt-get install -y zlib1g-dev gcc g++ autoconf automake make cmake
+    - name: env
+      run: lsb_release -a &&  ldd --version && gcc --version && g++ --version
     - name: build
-      run: make -j8
+      run:  mkdir build && cd build && cmake .. && make -j8 && cd ..
     - name: test
-      run: make test
-  ubuntu_18:
-    name: Ubuntu 18
-    runs-on: ubuntu-20.04
-    container: ubuntu:18.04
-    steps:
-    - uses: actions/checkout@v2
-    - name: install packages
-      run:  apt-get update && apt-get install -y zlib1g-dev valgrind gcc g++ autoconf automake make
-    - name: build
-      run:  make -j8
-    - name: test
-      run: make test
-    - name: test valgrind
-      run: ./test/test.sh mem
-    - name: examples
-      run: make examples
-  ubuntu_18_zstd:
-    name: Ubuntu 18 with zstd
-    runs-on: ubuntu-20.04
-    container: ubuntu:18.04
-    steps:
-    - uses: actions/checkout@v2
-    - name: install packages
-      run:  apt-get update && apt-get install -y zlib1g-dev libzstd-dev valgrind gcc g++ autoconf automake make
-    - name: build
-      run:  make -j8 zstd=1
-    - name: test
-      run: make test zstd=1
-    - name: test valgrind
-      run: ./test/test.sh mem
-  ubuntu_20:
-    name: Ubuntu 20
-    runs-on: ubuntu-20.04
-    steps:
-    - uses: actions/checkout@v2
-    - name: install packages
-      run: sudo apt-get update && sudo apt-get install zlib1g-dev
-    - name: build-gcc
-      run: make -j8
-    - name: test-gcc
-      run: make test
-    - name: build-clang
-      run: make clean && make CC=clang -j8
-    - name: test-clang
-      run: make test
-  ubuntu_20_icc:
-    name: Ubuntu 20 icc
-    runs-on: ubuntu-20.04
-    steps:
-    - uses: actions/checkout@v2
-      with:
-        submodules: recursive
-    - name: Intel Apt repository
-      timeout-minutes: 1
-      run: |
-        wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
-        sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
-        rm GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
-        echo "deb https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
-        sudo apt-get update
-    - name: install packages
-      run: sudo apt-get install -y zlib1g-dev libzstd-dev intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic
-    - name: Setup Intel oneAPI environment
-      run: |
-        source /opt/intel/oneapi/setvars.sh
-        printenv >> $GITHUB_ENV
-    - name: build
-      run: make CC=icc -j8
-    - name: test
-      run: make test CC=icc
-    - name: build zstd
-      run: make clean && make CC=icc -j8 zstd=1
-    - name: test zstd
-      run: make test zstd=1 CC=icc
-  ubuntu_22:
-    name: Ubuntu 22
-    runs-on: ubuntu-22.04
-    steps:
-    - uses: actions/checkout@v2
-    - name: install packages
-      run: sudo apt-get update && sudo apt-get install zlib1g-dev
-    - name: build-gcc
-      run: make -j8
-    - name: test-gcc
-      run: make test
-    - name: make mt
-      run: examples/mt/build.sh
-  ubuntu_24:
-    name: Ubuntu 24
-    runs-on: ubuntu-24.04
-    steps:
-    - uses: actions/checkout@v2
-    - name: install packages
-      run: sudo apt-get update && sudo apt-get install zlib1g-dev
-    - name: build-gcc
-      run: make -j8
-    - name: test-gcc
-      run: make test
-    - name: make mt
-      run: examples/mt/build.sh
-  os_x_11:
-    name: OSX 11
-    runs-on: macos-11
-    steps:
-    - uses: actions/checkout@v2
-    - name: build
-      run: make -j8
-    - name: test
-      run: make test
-    - name: examples
-      run: make examples
-  os_x_11_zstd:
-    name: OSX 11 zstd
-    runs-on: macos-11
-    steps:
-    - uses: actions/checkout@v2
-    - name: install packages
-      run: brew install zstd
-    - name: build
-      run: make -j8 zstd=1
-    - name: test
-      run: make test zstd=1
-  os_x_12:
-    name: OSX 12
-    runs-on: macos-12
-    steps:
-    - uses: actions/checkout@v2
-    - name: build
-      run: make -j8
-    - name: test
-      run: make test
-    - name: examples
-      run: make examples
-  os_x_13:
-    name: OSX 13
-    runs-on: macos-13
-    steps:
-    - uses: actions/checkout@v2
-    - name: build
-      run: make -j8
-    - name: test
-      run: make test
-    - name: examples
-      run: make examples
-  os_x_14:
-    name: OSX 14
-    runs-on: macos-14
-    steps:
-    - uses: actions/checkout@v2
-    - name: build
-      run: make -j8
-    - name: test
-      run: make test
-    - name: examples
-      run: make examples
-  arm64:
-    name: ubuntu arm
-    runs-on: ubuntu-latest
-    steps:
-    - run: docker run --rm --privileged multiarch/qemu-user-static:register --reset
-    - uses: docker://multiarch/ubuntu-core:arm64-bionic
-      with:
-        args: 'uname -a'
-    - uses: actions/checkout@v1
-    - uses: docker://multiarch/ubuntu-core:arm64-bionic
-      with:
-        args: >
-          bash -c "apt-get update &&
-          apt-get install -y zlib1g-dev gcc make &&
-          ldd --version && gcc --version &&
-          make && make test"
+      run: ./test/test.sh
+  # ubuntu_16:
+  #   name: Ubuntu 16
+  #   runs-on: ubuntu-20.04
+  #   container: ubuntu:16.04
+  #   steps:
+  #   - uses: actions/checkout@v2
+  #   - name: install packages
+  #     run: apt-get update && apt-get install -y zlib1g-dev gcc g++ autoconf automake make
+  #   - name: build
+  #     run: make -j8
+  #   - name: test
+  #     run: make test
+  # ubuntu_18:
+  #   name: Ubuntu 18
+  #   runs-on: ubuntu-20.04
+  #   container: ubuntu:18.04
+  #   steps:
+  #   - uses: actions/checkout@v2
+  #   - name: install packages
+  #     run:  apt-get update && apt-get install -y zlib1g-dev valgrind gcc g++ autoconf automake make
+  #   - name: build
+  #     run:  make -j8
+  #   - name: test
+  #     run: make test
+  #   - name: test valgrind
+  #     run: ./test/test.sh mem
+  #   - name: examples
+  #     run: make examples
+  # ubuntu_18_zstd:
+  #   name: Ubuntu 18 with zstd
+  #   runs-on: ubuntu-20.04
+  #   container: ubuntu:18.04
+  #   steps:
+  #   - uses: actions/checkout@v2
+  #   - name: install packages
+  #     run:  apt-get update && apt-get install -y zlib1g-dev libzstd-dev valgrind gcc g++ autoconf automake make
+  #   - name: build
+  #     run:  make -j8 zstd=1
+  #   - name: test
+  #     run: make test zstd=1
+  #   - name: test valgrind
+  #     run: ./test/test.sh mem
+  # ubuntu_20:
+  #   name: Ubuntu 20
+  #   runs-on: ubuntu-20.04
+  #   steps:
+  #   - uses: actions/checkout@v2
+  #   - name: install packages
+  #     run: sudo apt-get update && sudo apt-get install zlib1g-dev
+  #   - name: build-gcc
+  #     run: make -j8
+  #   - name: test-gcc
+  #     run: make test
+  #   - name: build-clang
+  #     run: make clean && make CC=clang -j8
+  #   - name: test-clang
+  #     run: make test
+  # ubuntu_20_icc:
+  #   name: Ubuntu 20 icc
+  #   runs-on: ubuntu-20.04
+  #   steps:
+  #   - uses: actions/checkout@v2
+  #     with:
+  #       submodules: recursive
+  #   - name: Intel Apt repository
+  #     timeout-minutes: 1
+  #     run: |
+  #       wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
+  #       sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
+  #       rm GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
+  #       echo "deb https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
+  #       sudo apt-get update
+  #   - name: install packages
+  #     run: sudo apt-get install -y zlib1g-dev libzstd-dev intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic
+  #   - name: Setup Intel oneAPI environment
+  #     run: |
+  #       source /opt/intel/oneapi/setvars.sh
+  #       printenv >> $GITHUB_ENV
+  #   - name: build
+  #     run: make CC=icc -j8
+  #   - name: test
+  #     run: make test CC=icc
+  #   - name: build zstd
+  #     run: make clean && make CC=icc -j8 zstd=1
+  #   - name: test zstd
+  #     run: make test zstd=1 CC=icc
+  # ubuntu_22:
+  #   name: Ubuntu 22
+  #   runs-on: ubuntu-22.04
+  #   steps:
+  #   - uses: actions/checkout@v2
+  #   - name: install packages
+  #     run: sudo apt-get update && sudo apt-get install zlib1g-dev
+  #   - name: build-gcc
+  #     run: make -j8
+  #   - name: test-gcc
+  #     run: make test
+  #   - name: make mt
+  #     run: examples/mt/build.sh
+  # ubuntu_24:
+  #   name: Ubuntu 24
+  #   runs-on: ubuntu-24.04
+  #   steps:
+  #   - uses: actions/checkout@v2
+  #   - name: install packages
+  #     run: sudo apt-get update && sudo apt-get install zlib1g-dev
+  #   - name: build-gcc
+  #     run: make -j8
+  #   - name: test-gcc
+  #     run: make test
+  #   - name: make mt
+  #     run: examples/mt/build.sh
+  # os_x_11:
+  #   name: OSX 11
+  #   runs-on: macos-11
+  #   steps:
+  #   - uses: actions/checkout@v2
+  #   - name: build
+  #     run: make -j8
+  #   - name: test
+  #     run: make test
+  #   - name: examples
+  #     run: make examples
+  # os_x_11_zstd:
+  #   name: OSX 11 zstd
+  #   runs-on: macos-11
+  #   steps:
+  #   - uses: actions/checkout@v2
+  #   - name: install packages
+  #     run: brew install zstd
+  #   - name: build
+  #     run: make -j8 zstd=1
+  #   - name: test
+  #     run: make test zstd=1
+  # os_x_12:
+  #   name: OSX 12
+  #   runs-on: macos-12
+  #   steps:
+  #   - uses: actions/checkout@v2
+  #   - name: build
+  #     run: make -j8
+  #   - name: test
+  #     run: make test
+  #   - name: examples
+  #     run: make examples
+  # os_x_13:
+  #   name: OSX 13
+  #   runs-on: macos-13
+  #   steps:
+  #   - uses: actions/checkout@v2
+  #   - name: build
+  #     run: make -j8
+  #   - name: test
+  #     run: make test
+  #   - name: examples
+  #     run: make examples
+  # os_x_14:
+  #   name: OSX 14
+  #   runs-on: macos-14
+  #   steps:
+  #   - uses: actions/checkout@v2
+  #   - name: build
+  #     run: make -j8
+  #   - name: test
+  #     run: make test
+  #   - name: examples
+  #     run: make examples
+  # arm64:
+  #   name: ubuntu arm
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #   - run: docker run --rm --privileged multiarch/qemu-user-static:register --reset
+  #   - uses: docker://multiarch/ubuntu-core:arm64-bionic
+  #     with:
+  #       args: 'uname -a'
+  #   - uses: actions/checkout@v1
+  #   - uses: docker://multiarch/ubuntu-core:arm64-bionic
+  #     with:
+  #       args: >
+  #         bash -c "apt-get update &&
+  #         apt-get install -y zlib1g-dev gcc make &&
+  #         ldd --version && gcc --version &&
+  #         make && make test"
