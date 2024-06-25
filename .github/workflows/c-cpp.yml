@@ -44,7 +44,7 @@ jobs:
     - name: build
       run:  mkdir build && cd build && cmake .. && make -j8 && cd ..
     - name: test
-      run: ./test/test.sh
+      run: test/test.sh
   # ubuntu_18:
   #   name: Ubuntu 18
   #   runs-on: ubuntu-20.04
