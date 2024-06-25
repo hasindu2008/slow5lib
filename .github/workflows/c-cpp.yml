@@ -42,7 +42,7 @@ jobs:
     - name: install packages
       run: apt-get update && apt-get install -y zlib1g-dev gcc g++ autoconf automake make cmake
     - name: build
-      run:  mkdir build && cd build && cmake -DSLOW5_LINK_STATIC=ON -DSLOW5_USE_ZSTD=ON -DSLOW5_ENABLE_MT=OFF .. && make -j8
+      run:  mkdir build && cd build && cmake -DSLOW5_LINK_STATIC=ON -DSLOW5_USE_ZSTD=OFF -DSLOW5_ENABLE_MT=OFF .. && make -j8
   ubuntu_18:
     name: Ubuntu 18
     runs-on: ubuntu-20.04
