@@ -1,6 +1,5 @@
 # compilation options
 # no_simd=1 for no SSE SIMD
-# zstd=1 for zstd
 
 CC = cc
 OBJ = streamvbyte16.o
@@ -24,15 +23,6 @@ CFLAGS += -msse4.1
 endif
 endif
 
-ifeq ($(zstd),1)
-CFLAGS += -DVBZ_USE_ZSTD
-#LDFLAGS += -lzstd
-endif
-ifeq ($(zstd_local),)
-else
-CFLAGS += -DVBZ_USE_ZSTD
-CPPFLAGS += -I $(zstd_local)
-endif
 
 .PHONY = clean
 
