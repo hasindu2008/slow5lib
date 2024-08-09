@@ -1,6 +1,6 @@
 # slow5lib easy multi-thread API
 
-**NOTE: This API is in beta stage and the documentation is sparse. If something is not clear do not hesitate to open an [issue](https://github.com/hasindu2008/slow5lib/issues).**
+**NOTE: This API documentation is sparse. If something is not clear do not hesitate to open an [issue](https://github.com/hasindu2008/slow5lib/issues).**
 
 The easy multi-thread (called *mt* API) API allows the user to access SLOW5 files using multiple threads, simply by specifying the number of threads, rather than needing to write their own multi-threading code. This API is for programmer's convenience, rather than for efficiency. This API is not meant to be used by a programmer who has the expertise to write multi-threaded code and use the slow5 low-level API directly. While fetching using this API would be faster than using a single thread, it would not be as efficient as using low-level API functions directly from the programmer's own multi-threaded code.
 

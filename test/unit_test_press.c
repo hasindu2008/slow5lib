@@ -2,6 +2,12 @@
 #include <slow5/slow5.h>
 #include <string.h>
 
+static inline int is_big_endian(void)
+{
+    long one= 1;
+    return !(*((char *)(&one)));
+}
+
 int press_init_valid(void) {
     struct __slow5_press *comp = __slow5_press_init(SLOW5_COMPRESS_NONE);
     ASSERT(comp->method == SLOW5_COMPRESS_NONE);
@@ -104,6 +110,11 @@ int press_printf_valid(void) {
 
 int press_svb_one_valid(void) {
 
+    if(is_big_endian()){
+        fprintf(stderr,"Not running as this feature is not there for big-endian\n");
+        return(EXIT_SUCCESS);
+    }
+
     const int16_t one[] = { 100 };
     size_t bytes_svb = 0;
     uint8_t *one_svb = slow5_ptr_compress_solo(SLOW5_COMPRESS_SVB_ZD, one, sizeof *one, &bytes_svb);
@@ -123,10 +134,17 @@ int press_svb_one_valid(void) {
     free(one_svb);
     free(one_depress);
 
+    fprintf(stderr, "Ran press_svb_one_valid\n");
+
     return EXIT_SUCCESS;
 }
 
 int press_svb_big_valid(void) {
+
+    if(is_big_endian()){
+        fprintf(stderr,"Not running as this feature is not there for big-endian\n");
+        return(EXIT_SUCCESS);
+    }
 
     const int16_t big[] = { 100, -100, 0, 10000, 3442, 234, 2326, 346, 213, 234 };
     size_t bytes_svb = 0;
@@ -146,10 +164,17 @@ int press_svb_big_valid(void) {
     free(big_svb);
     free(big_depress);
 
+    fprintf(stderr, "Ran press_svb_big_valid\n");
+
     return EXIT_SUCCESS;
 }
 
 int press_svb_exp_valid(void) {
+
+    if(is_big_endian()){
+        fprintf(stderr,"Not running as this feature is not there for big-endian\n");
+        return(EXIT_SUCCESS);
+    }
 
     const int16_t big[] = { 1039, 588, 588, 593, 586, 574, 570, 585, 588, 586 };
     size_t bytes_svb = 0;
@@ -169,6 +194,8 @@ int press_svb_exp_valid(void) {
 
     free(big_svb);
     free(big_depress);
+
+    fprintf(stderr, "Ran press_svb_exp_valid\n");
 
     return EXIT_SUCCESS;
 }

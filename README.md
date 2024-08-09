@@ -15,8 +15,8 @@ SLOW5 ecosystem: https://hasindu2008.github.io/slow5<br/>
 [![BioConda Install](https://img.shields.io/conda/dn/bioconda/pyslow5.svg?style=flag&label=BioConda%20install)](https://anaconda.org/bioconda/pyslow5)
 [![PyPI](https://img.shields.io/pypi/v/pyslow5.svg?style=flat)](https://pypi.python.org/pypi/pyslow5)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/pyslow5?label=pyslow5%20PyPi)
-[![C/C++ CI](https://github.com/hasindu2008/slow5lib/actions/workflows/c-cpp.yml/badge.svg)](https://github.com/hasindu2008/slow5lib/actions/workflows/c-cpp.yml)
-[![Python CI](https://github.com/hasindu2008/slow5lib/actions/workflows/python.yml/badge.svg)](https://github.com/hasindu2008/slow5lib/actions/workflows/python.yml)
+[![C CI](https://github.com/hasindu2008/slow5lib/actions/workflows/c-cpp.yml/badge.svg)](https://github.com/hasindu2008/slow5lib/actions/workflows/c-cpp.yml)
+[![Py CI](https://github.com/hasindu2008/slow5lib/actions/workflows/python.yml/badge.svg)](https://github.com/hasindu2008/slow5lib/actions/workflows/python.yml)
 
 Please cite the following in your publications when using *slow5lib/pyslow5*:
 
@@ -32,6 +32,20 @@ Please cite the following in your publications when using *slow5lib/pyslow5*:
   publisher={Nature Publishing Group}
 }
 ```
+
+## Table of Contents
+
+- [Building](#building)
+  - [Optional zstd compression](#optional-zstd-compression)
+  - [Without SIMD](#without-simd)
+  - [Advanced building options](#advanced-building-options)
+- [Usage](#usage)
+  - [Examples](#examples)
+  - [pyslow5](#pyslow5)
+  - [Other languages](#other-languages)
+  - [Current limitations & future work](#current-limitations--future-work)
+  - [Notes](#notes)
+- [Acknowledgement](#acknowledgement)
 
 ## Building
 
@@ -54,7 +68,6 @@ On Fedora/CentOS : sudo dnf/yum install zlib-devel
 On OS X : brew install zlib
 ```
 
-
 #### Optional zstd compression
 
 You can optionally enable [*zstd* compression](https://facebook.github.io/zstd) support when building *slow5lib* by invoking `make zstd=1`. This requires __zstd 1.3 or higher development libraries__ installed on your system:
@@ -71,6 +84,9 @@ SLOW5 files compressed with *zstd* offer smaller file size and better performanc
 
 *slow5lib* from version 0.3.0 onwards uses code from [StreamVByte](https://github.com/lemire/streamvbyte) and by default requires vector instructions (SSSE3 or higher for Intel/AMD and neon for ARM). If your processor is an ancient processor with no such vector instructions, invoke make as `make no_simd=1`.
 
+#### Advanced building options
+
+- To support large files on 32-bit systems use: `CFLAGS="-D_FILE_OFFSET_BITS=64"  make`.
 
 ## Usage
 
@@ -112,6 +128,8 @@ Following examples will be added upon request. If you are interested, open a Git
 
 You can invoke `examples/build.sh` to compile the example programmes. Have a look at the script to see the commands used for compiling and linking. If you compiled *slow5lib* with *zstd* support enabled, make sure you append `-lzstd` to the compilation commands.
 
+Some examples demonstrating t the use of easy multi-thread API are available [here](https://github.com/hasindu2008/slow5lib/tree/master/examples/mt)
+
 
 ### pyslow5
 
@@ -124,11 +142,12 @@ A slow5 library for RUST programming language developed by [@bsaintjo](https://g
 
 ### Current limitations & future work
 
-slow5lib is a reference implementation for SLOW5 format. Depending on the interest from the community, the following limitations could be overcome and more performance optimisations can be performed. Open a GitHub issue if you are interested. Contributions are welcome.
+slow5lib is a reference implementation for SLOW5 format. Depending on the interest from the community, the following limitations could be overcome and more performance optimis  ations can be performed. Open a GitHub issue if you are interested. Contributions are welcome.
 
 - No native windows support: slow5lib works well on Windows through WSL, in fact, this is my primary development environment. I am not aware of anyone using native Windows for nanopore bioinformatics. However, if needed, [methods used for minimap2](https://github.com/lh3/minimap2/issues/19) can be adopted.
-- Does not support big-endian systems: Big-endian systems are rare nowadays and I do not have access to one to test. If necessary, it is a matter of writing a layer that swaps the bytes before/after writing to disk. Note: Not to be confused with big.LITTLE architecture which is something else on which slow5lib already works.
-- When running with >64 threads, malloc() calls could reduce the thread efficiency. If that is the case, frequent mallocs could be replaced with kalloc in [klib](https://github.com/attractivechaos/klib).
+- svb-zd compression does not big-endian systems: As of version 1.2.0, slow5lib supports big-endian systems (e.g., IBM Z), except for svb-zd compression that uses [StreamVByte](https://github.com/lemire/streamvbyte) that does not support big-endian.
+Note: Not to be confused with big.LITTLE architecture which is something else on which all features of slow5lib already works.
+- When running with >64 threads, malloc() calls could reduce the thread efficiency. If that is the case, frequent mallocs could be replaced with kalloc in [klib](https://github.com/attractivechaos/klib). Alternatively, preloading tcmalloc or jemalloc would do.
 - Aggressive compiler optimisations (e.g.,  -O3) and architecture-specific compiler optimisations (e.g., -march=native) are not used in the makefile. These flags will improve performance at the cost of limited portability. These could be provided in a separate make target.
 
 

@@ -33,6 +33,16 @@ jobs:
       run: make -j8
     - name: test
       run: make test
+  ubuntu_16_cmake:
+    name: Ubuntu 16 cmake
+    runs-on: ubuntu-20.04
+    container: ubuntu:16.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: install packages
+      run: apt-get update && apt-get install -y zlib1g-dev gcc g++ autoconf automake make cmake
+    - name: build
+      run:  mkdir build && cd build && cmake -DSLOW5_LINK_STATIC=ON -DSLOW5_USE_ZSTD=OFF -DSLOW5_ENABLE_MT=OFF .. && make -j8
   ubuntu_18:
     name: Ubuntu 18
     runs-on: ubuntu-20.04
@@ -120,6 +130,19 @@ jobs:
       run: make test
     - name: make mt
       run: examples/mt/build.sh
+  ubuntu_24:
+    name: Ubuntu 24
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: install packages
+      run: sudo apt-get update && sudo apt-get install zlib1g-dev
+    - name: build-gcc
+      run: make -j8
+    - name: test-gcc
+      run: make test
+    - name: make mt
+      run: examples/mt/build.sh
   os_x_11:
     name: OSX 11
     runs-on: macos-11
@@ -145,6 +168,28 @@ jobs:
   os_x_12:
     name: OSX 12
     runs-on: macos-12
+    steps:
+    - uses: actions/checkout@v2
+    - name: build
+      run: make -j8
+    - name: test
+      run: make test
+    - name: examples
+      run: make examples
+  os_x_13:
+    name: OSX 13
+    runs-on: macos-13
+    steps:
+    - uses: actions/checkout@v2
+    - name: build
+      run: make -j8
+    - name: test
+      run: make test
+    - name: examples
+      run: make examples
+  os_x_14:
+    name: OSX 14
+    runs-on: macos-14
     steps:
     - uses: actions/checkout@v2
     - name: build
