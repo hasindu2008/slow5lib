@@ -1774,6 +1774,11 @@ static inline uint8_t *ptr_compress_ex_zd_v0(const int16_t *ptr, size_t count, s
 }
 
 static uint8_t *ptr_compress_ex_zd(const int16_t *ptr, size_t count, size_t *n) {
+
+    if(slow5_bigend){
+        SLOW5_ERROR_EXIT("%s","Compression of EX-ZD on big-endian architectures is not supported yet.");
+    }
+
     return ptr_compress_ex_zd_v0(ptr, count, n);
 }
 
@@ -1815,6 +1820,10 @@ static inline int16_t *ptr_depress_ex_zd_v0(const uint8_t *ptr, size_t count, si
 
 
 static int16_t *ptr_depress_ex_zd(const uint8_t *ptr, size_t count, size_t *n){
+
+    if(slow5_bigend){
+        SLOW5_ERROR_EXIT("%s","Compression of EX-ZD on big-endian architectures is not supported yet.");
+    }
 
     uint64_t offset = 0;
     uint8_t exzd_ver = 0;
