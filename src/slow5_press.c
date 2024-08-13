@@ -1822,7 +1822,7 @@ static inline int16_t *ptr_depress_ex_zd_v0(const uint8_t *ptr, size_t count, si
 static int16_t *ptr_depress_ex_zd(const uint8_t *ptr, size_t count, size_t *n){
 
     if(slow5_bigend){
-        SLOW5_ERROR_EXIT("%s","Compression of EX-ZD on big-endian architectures is not supported yet.");
+        SLOW5_ERROR_EXIT("%s","Decompression of EX-ZD on big-endian architectures is not supported yet.");
     }
 
     uint64_t offset = 0;
