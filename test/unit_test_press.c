@@ -223,6 +223,11 @@ int press_ex_one_valid(void) {
 
 int press_ex_big_valid(void) {
 
+    if(is_big_endian()){
+        fprintf(stderr,"Not running as this feature is not there for big-endian\n");
+        return(EXIT_SUCCESS);
+    }
+
     const int16_t big[] = { 100, -100, 0, 10000, 3442, 234, 2326, 346, 213, 234 };
     size_t bytes_ex = 0;
     uint8_t *big_ex = slow5_ptr_compress_solo(SLOW5_COMPRESS_EX_ZD, big, sizeof big, &bytes_ex);
@@ -243,6 +248,11 @@ int press_ex_big_valid(void) {
 
 int press_ex_exp_valid(void) {
 
+    if(is_big_endian()){
+        fprintf(stderr,"Not running as this feature is not there for big-endian\n");
+        return(EXIT_SUCCESS);
+    }
+
     const int16_t big[] = { 1039, 588, 588, 593, 586, 574, 570, 585, 588, 586 };
     size_t bytes_ex = 0;
     uint8_t *big_ex = slow5_ptr_compress_solo(SLOW5_COMPRESS_EX_ZD, big, sizeof big, &bytes_ex);
@@ -261,6 +271,11 @@ int press_ex_exp_valid(void) {
 }
 
 int press_ex_huge_valid(void) {
+
+    if(is_big_endian()){
+        fprintf(stderr,"Not running as this feature is not there for big-endian\n");
+        return(EXIT_SUCCESS);
+    }
 
     const int16_t big[] = { 542,543,545,547,515,415,370,409,416,419,416,455,535,542,548,539,495,493,489,486,486,488,476,476,563,549,556,568,535,551,545,512,416,397,393};
     size_t bytes_ex = 0;
