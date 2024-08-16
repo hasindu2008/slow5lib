@@ -34,7 +34,6 @@ OBJ = $(BUILD_DIR)/slow5.o \
 		$(BUILD_DIR)/slow5_misc.o \
 		$(BUILD_DIR)/slow5_press.o \
 		$(BUILD_DIR)/slow5_mt.o \
-		$(BUILD_DIR)/slow5_deg.o \
 
 PREFIX = /usr/local
 VERSION = `git describe --tags`
@@ -69,9 +68,6 @@ $(BUILD_DIR)/slow5_press.o: src/slow5_press.c include/slow5/slow5_press.h src/sl
 	$(CC) $(CFLAGS) $(CPPFLAGS) $< -c -fpic -o $@
 
 $(BUILD_DIR)/slow5_mt.o: src/slow5_mt.c include/slow5/slow5_mt.h $(SLOW5_H)
-	$(CC) $(CFLAGS) $(CPPFLAGS) $< -c -fpic -o $@
-
-$(BUILD_DIR)/slow5_deg.o: src/slow5_deg.c src/slow5_deg.h include/slow5/slow5.h include/slow5/slow5_error.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) $< -c -fpic -o $@
 
 clean:

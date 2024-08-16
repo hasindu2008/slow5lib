@@ -2,7 +2,9 @@
 #define SLOW5_EXTRA_H
 
 #include <dirent.h>
+#include <stdint.h>
 #include <slow5/slow5.h>
+#include <slow5/slow5_error.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -18,6 +20,9 @@ If anyone is interested, please open a GitHub issue, rather than trying to figur
 Function prototypes can be changed without notice or completely removed. So do NOT use these functions in your code.
 these functions are used by slow5tools and pyslow5 - so any change to a function here means slow5tools and pyslow5 must be fixed.
 */
+
+extern enum slow5_log_level_opt slow5_log_level;
+extern enum slow5_exit_condition_opt slow5_exit_condition;
 
 // slow5 file
 slow5_file_t *slow5_init(FILE *fp, const char *pathname, enum slow5_fmt format);
@@ -141,6 +146,26 @@ const char *slow5_format_get_str(enum slow5_format format);
 // Get the slow5 version array from a version string
 //const uint8_t *str_get_slow5_version(const char *str);
 */
+
+/* Irreversible signal degradation (lossy compression) API */
+
+/*
+ * Return a suggestion for the number of bits to use with qts degradation given
+ * a slow5 file. Return 0 on error and set slow5_errno.
+ */
+int8_t slow5_suggest_qts(const struct slow5_file *p);
+
+/*
+ * For array a with length n, zero b LSB of each integer by rounding them to the
+ * nearest power of 2. Set slow5_errno on error.
+ */
+void slow5_arr_qts_round(int16_t *a, uint64_t n, uint8_t b);
+
+/*
+ * For the signal array in a slow5 record, zero b LSB of each integer by
+ * rounding them to the nearest power of 2. Set slow5_errno on error.
+ */
+void slow5_rec_qts_round(struct slow5_rec *r, uint8_t b);
 
 #ifdef __cplusplus
 }
