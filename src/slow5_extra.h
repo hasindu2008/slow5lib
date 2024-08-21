@@ -4,7 +4,6 @@
 #include <dirent.h>
 #include <stdint.h>
 #include <slow5/slow5.h>
-#include <slow5/slow5_error.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -20,9 +19,6 @@ If anyone is interested, please open a GitHub issue, rather than trying to figur
 Function prototypes can be changed without notice or completely removed. So do NOT use these functions in your code.
 these functions are used by slow5tools and pyslow5 - so any change to a function here means slow5tools and pyslow5 must be fixed.
 */
-
-extern enum slow5_log_level_opt slow5_log_level;
-extern enum slow5_exit_condition_opt slow5_exit_condition;
 
 // slow5 file
 slow5_file_t *slow5_init(FILE *fp, const char *pathname, enum slow5_fmt format);
