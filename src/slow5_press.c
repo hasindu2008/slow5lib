@@ -16,21 +16,6 @@
 #include "slow5_extra.h"
 #include "slow5_misc.h"
 
-#define PROMETHION_R10_DNA_DIGITISATION (2048)
-#define PROMETHION_R10_DNA_DEVICE_TYPE ("promethion")
-#define PROMETHION_R10_DNA_EXPERIMENT_TYPE ("genomic_dna")
-#define PROMETHION_R10_DNA_SAMPLE_FREQUENCY ("5000")
-#define PROMETHION_R10_DNA_SAMPLE_RATE (PROMETHION_R10_DNA_SAMPLE_FREQUENCY)
-#define PROMETHION_R10_DNA_SAMPLING_RATE (5000)
-#define PROMETHION_R10_DNA_SEQUENCING_KIT ("sqk-lsk114")
-#define SLOW5_HEADER_DEVICE_TYPE ("device_type")
-#define SLOW5_HEADER_EXPERIMENT_TYPE ("experiment_type")
-#define SLOW5_HEADER_SAMPLE_FREQUENCY ("sample_frequency")
-#define SLOW5_HEADER_SAMPLE_RATE ("sample_rate")
-#define SLOW5_HEADER_SAMPLING_RATE ("sampling_rate")
-#define SLOW5_HEADER_SEQUENCING_KIT ("sequencing_kit")
-#define SLOW5_SUGGEST_QTS_PROMETHION_R10_DNA (3)
-
 extern enum slow5_log_level_opt  slow5_log_level;
 extern enum slow5_exit_condition_opt  slow5_exit_condition;
 extern int8_t slow5_bigend;
@@ -61,20 +46,8 @@ static uint8_t *ptr_compress_ex_zd(const int16_t *ptr, size_t count, size_t *n);
 static int16_t *ptr_depress_ex_zd(const uint8_t *ptr, size_t count, size_t *n);
 
 /* other */
-static inline int slow5_is_prom_r10_dna(struct slow5_file *p);
-static inline int slow5_reccmp_digitisation(const struct slow5_rec *r,
-                                            const void *dig);
-static inline int slow5_reccmp_sampling_rate(const struct slow5_rec *r,
-                                             const void *sr);
 static int vfprintf_compress(struct __slow5_press *comp, FILE *fp, const char *format, va_list ap);
 static int round_to_power_of_2(int number, int number_of_bits);
-static int slow5_fseeko(const struct slow5_file *p, off_t offset);
-static int slow5_hdrcmp(const struct slow5_hdr *h, const char *a,
-                        const char *x);
-static int slow5_reccmp(struct slow5_file *p,
-                        int (*cmp)(const struct slow5_rec *, const void *),
-                        const void *x, uint64_t n);
-static int slow5_rewind(const struct slow5_file *p, off_t *offset);
 
 
 /* Convert the press method back an forth from the library format to spec format
@@ -1989,79 +1962,6 @@ unsigned char *z_inflate_buf(const char *comp_str, size_t *n) {
 /* Irreversible signal degradation (lossy compression) */
 
 /*
- * Return a suggestion for the number of bits to use with qts degradation given
- * a slow5 file. Return 0 on error and set slow5_errno.
- */
-uint8_t slow5_suggest_qts(struct slow5_file *p)
-{
-    if (!p) {
-        SLOW5_ERROR("Argument '%s' cannot be NULL.", SLOW5_TO_STR(p));
-        slow5_errno = SLOW5_ERR_ARG;
-        return 0;
-    }
-
-    if (!p->header) {
-        SLOW5_ERROR("Argument '%s' cannot be NULL.", SLOW5_TO_STR(p->header));
-        slow5_errno = SLOW5_ERR_ARG;
-        return 0;
-    }
-
-    if (slow5_is_prom_r10_dna(p)) {
-        SLOW5_INFO("%s", "Detected PromethION R10 DNA data.");
-        return SLOW5_SUGGEST_QTS_PROMETHION_R10_DNA;
-    }
-
-    SLOW5_ERROR("%s", "No suitable bits suggestion.");
-    slow5_errno = SLOW5_ERR_OTH;
-    return 0;
-}
-
-/*
- * Return whether or not a slow5 file represents a PromethION R10 DNA dataset.
- * p and p->header must not be NULL. Return 0 if false, 1 if true.
- */
-static inline int slow5_is_prom_r10_dna(struct slow5_file *p)
-{
-    double promethion_r10_dna_digitisation = PROMETHION_R10_DNA_DIGITISATION;
-    double promethion_r10_dna_sampling_rate = PROMETHION_R10_DNA_SAMPLING_RATE;
-
-    return slow5_hdrcmp(p->header, SLOW5_HEADER_DEVICE_TYPE,
-                        PROMETHION_R10_DNA_DEVICE_TYPE) &&
-           slow5_hdrcmp(p->header, SLOW5_HEADER_EXPERIMENT_TYPE,
-                        PROMETHION_R10_DNA_EXPERIMENT_TYPE) &&
-           (slow5_hdrcmp(p->header, SLOW5_HEADER_SAMPLE_FREQUENCY,
-                         PROMETHION_R10_DNA_SAMPLE_FREQUENCY) ||
-            slow5_hdrcmp(p->header, SLOW5_HEADER_SAMPLE_RATE,
-                         PROMETHION_R10_DNA_SAMPLE_RATE)) &&
-           slow5_hdrcmp(p->header, SLOW5_HEADER_SEQUENCING_KIT,
-                        PROMETHION_R10_DNA_SEQUENCING_KIT) &&
-           slow5_reccmp(p, slow5_reccmp_digitisation,
-                        (void *) &promethion_r10_dna_digitisation, 3) &&
-           slow5_reccmp(p, slow5_reccmp_sampling_rate,
-                        (void *) &promethion_r10_dna_sampling_rate, 3);
-}
-
-/*
- * Compare the digitisation of slow5 record r with dig.
- * r must not be NULL. Return 0 if unequal, 1 if equal.
- */
-static inline int slow5_reccmp_digitisation(const struct slow5_rec *r,
-                                            const void *dig)
-{
-    return r->digitisation == *((const double *) dig);
-}
-
-/*
- * Compare the sampling rate of slow5 record r with sr.
- * r must not be NULL. Return 0 if unequal, 1 if equal.
- */
-static inline int slow5_reccmp_sampling_rate(const struct slow5_rec *r,
-                                             const void *sr)
-{
-    return r->sampling_rate == *((const double *) sr);
-}
-
-/*
  * Zero number_of_bits LSB of number by rounding it to the nearest power of 2.
  * number_of_bits must be >= 1. Return the rounded number.
  * Taken from https://github.com/hasindu2008/sigtk src/qts.c.
@@ -2082,105 +1982,6 @@ static int round_to_power_of_2(int number, int number_of_bits) {
     } else {
         return (number & ~bit_mask) + (1 << number_of_bits); //round up to the nearest power of 2
     }
-}
-
-/*
- * Set the slow5 file position relative to the start of the file to offset.
- * p must not be NULL. Return -1 on error, 0 on success.
- */
-static int slow5_fseeko(const struct slow5_file *p, off_t offset)
-{
-    int ret;
-
-    ret = fseeko(p->fp, offset, SEEK_SET);
-    if (ret) {
-        SLOW5_ERROR("Could not fseeko SLOW5 file: %s.", strerror(errno));
-        slow5_errno = SLOW5_ERR_IO;
-        return -1;
-    }
-
-    return 0;
-}
-
-/*
- * Check if the header data at attribute a is equal to x for all read groups.
- * All arguments must not be NULL. Return 0 if unequal, 1 if equal.
- */
-static int slow5_hdrcmp(const struct slow5_hdr *h, const char *a,
-                        const char *x)
-{
-    const char *v;
-    uint32_t i;
-
-    for (i = 0; i < h->num_read_groups; i++) {
-        v = slow5_hdr_get(a, i, h);
-        if (!v || strcmp(v, x))
-            return 0;
-    }
-
-    return 1;
-}
-
-/*
- * Compare the first n reads with function cmp and x as input.
- * p and cmp must not be NULL. Return 0 if unequal, 1 if equal.
- */
-static int slow5_reccmp(struct slow5_file *p,
-                        int (*cmp)(const struct slow5_rec *, const void *),
-                        const void *x, uint64_t n)
-{
-    int eq;
-    int ret;
-    off_t offset;
-    struct slow5_rec *r;
-    uint64_t i;
-
-    ret = slow5_rewind(p, &offset);
-    if (ret)
-        return 0;
-
-    eq = 1;
-    i = 0;
-    r = NULL;
-    while (eq && i < n) {
-        ret = slow5_get_next(&r, p);
-        if (ret < 0 || !r || !(*cmp)(r, x))
-            eq = 0;
-        i++;
-    }
-    slow5_rec_free(r);
-
-    ret = slow5_fseeko(p, offset);
-    if (ret)
-        return 0;
-
-    return eq;
-}
-
-/*
- * Rewind the slow5 file pointer to the first record and store the previous
- * position in offset.
- * p and offset must not be NULL. Return -1 on error, 0 on success.
- */
-static int slow5_rewind(const struct slow5_file *p, off_t *offset)
-{
-    off_t tmp;
-
-    if (!p->meta.start_rec_offset) {
-        SLOW5_ERROR("%s", "First record offset is uninitialised.");
-        slow5_errno = SLOW5_ERR_OTH;
-        return -1;
-    }
-
-    tmp = ftello(p->fp);
-    if (tmp == -1) {
-        SLOW5_ERROR("Could not ftello SLOW5 file: %s.", strerror(errno));
-        slow5_errno = SLOW5_ERR_IO;
-        return -1;
-    }
-    *offset = tmp;
-
-    return slow5_fseeko(p, p->meta.start_rec_offset);
 }
 
 /*

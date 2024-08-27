@@ -146,12 +146,6 @@ const char *slow5_format_get_str(enum slow5_format format);
 /* Irreversible signal degradation (lossy compression) API */
 
 /*
- * Return a suggestion for the number of bits to use with qts degradation given
- * a slow5 file. Return 0 on error and set slow5_errno.
- */
-uint8_t slow5_suggest_qts(struct slow5_file *p);
-
-/*
  * For array a with length n, zero b LSB of each integer by rounding them to the
  * nearest power of 2. Set slow5_errno on error.
  */
