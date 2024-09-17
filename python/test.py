@@ -448,6 +448,47 @@ class TestEndReason(unittest.TestCase):
         file_end_reason_labels = self.s5.get_aux_enum_labels('end_reason')
         self.assertNotEqual(file_end_reason_labels, end_reason_labels)
 
+class TestExZd(unittest.TestCase):
+    def setUp(self):
+        self.s5 = slow5.Open('examples/example2.slow5','r', DEBUG=debug)
+        self.F = slow5.Open('examples/example_write_ex-zd.blow5','w', rec_press="zlib", sig_press="ex_zd", DEBUG=debug)
+    def tearDown(self):
+        self.s5.close()
+        self.F.close()
+    def test_write_records_aux_ex_zd(self):
+        results = [0]*8
+        ret_list = []
+        header = self.F.get_empty_header()
+        counter = 0
+        for i in header:
+            header[i] = "test_{}".format(counter)
+            counter += 1
+        ret = self.F.write_header(header)
+        reads = self.s5.seq_reads(aux='all')
+        for read in reads:
+            record, aux = self.F.get_empty_record(aux=True)
+            for i in read:
+                if i in record:
+                    record[i] = read[i]
+                if i in aux:
+                    aux[i] = read[i]
+            ret = self.F.write_record(record, aux)
+            ret_list.append(ret)
+        self.assertEqual(ret_list, results)
+
+class TestExZdRead(unittest.TestCase):
+    def setUp(self):
+        self.s5 = slow5.Open('examples/example_write_ex-zd.blow5','r', DEBUG=debug)
+        self.reads = self.s5.seq_reads()
+    def tearDown(self):
+        self.s5.close()
+    def test_seq_reads_ex_zd(self):
+        results = ['r0', 'r1', 'r2', 'r3', 'r4', 'r5', '0a238451-b9ed-446d-a152-badd074006c4', '0d624d4b-671f-40b8-9798-84f2ccc4d7fc']
+        for i, read in enumerate(self.reads):
+            with self.subTest(i=i, read=read['read_id']):
+                self.assertEqual(read['read_id'], results[i])
+    
+
 
 # def test_bad_type(self):
 #     data = "banana"
