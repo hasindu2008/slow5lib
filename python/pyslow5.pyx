@@ -1499,7 +1499,9 @@ cdef class Open:
                   "hublett_board_id": None,
                   "satellite_firmware_version": None}
 
-        end_reason_labels = ['unknown', 'partial', 'mux_change', 'unblock_mux_change', 'signal_positive', 'signal_negative']
+        # end_reason_labels = ['unknown', 'partial', 'mux_change', 'unblock_mux_change', 'signal_positive', 'signal_negative']
+        # update end_reason to be more likely compatible with current pod5 format & end_reasons
+        end_reason_labels = ["unknown", "mux_change", "unblock_mux_change", "data_service_unblock_mux_change", "signal_positive", "signal_negative", "api_request", "device_data_error"]
 
         if aux:
             return header, end_reason_labels
