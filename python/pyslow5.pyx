@@ -284,12 +284,15 @@ cdef class Open:
         #     SLOW5_COMPRESS_ZLIB,
         #     SLOW5_COMPRESS_SVB_ZD, /* streamvbyte zigzag delta */
         #     SLOW5_COMPRESS_ZSTD,
+        #     SLOW5_COMPRESS_EX_ZD,
         # };
         self.slow5_press_method = {"none": 0,
                                    "zlib": 1,
                                    "svb_zd": 2,
                                    "svb-zd": 2,
-                                   "zstd": 3}
+                                   "zstd": 3,
+                                   "ex-zd": 4,
+                                   "ex_zd": 4,}
 
         p = str.encode(pathname)
         self.path = pathname
