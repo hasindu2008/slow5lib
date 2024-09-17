@@ -435,6 +435,19 @@ class TestWriteAux(unittest.TestCase):
             ret_list.append(ret)
         self.assertEqual(ret_list, results)
 
+class TestEndReason(unittest.TestCase):
+    def setUp(self):
+        self.s5 = slow5.Open('examples/adv/example3.blow5','r', DEBUG=debug)
+        self.F = slow5.Open('examples/example_write2.blow5','w', DEBUG=debug)
+    def tearDown(self):
+        self.s5.close()
+        self.F.close()
+    def test_end_reason_mismatch(self):
+        # for newer versions
+        header, end_reason_labels = self.F.get_empty_header(aux=True)
+        file_end_reason_labels = self.s5.get_aux_enum_labels('end_reason')
+        self.assertNotEqual(file_end_reason_labels, end_reason_labels)
+
 
 # def test_bad_type(self):
 #     data = "banana"
