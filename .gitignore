@@ -79,6 +79,14 @@ examples/xample.slow5.idx
 /.eggs
 a.out
 /test.c
+MANIFEST
+/*.txt
+/*.csv
+/*.tsv
+/*.blow5
+/*.slow5
+/*.blow5.idx
+thirdparty/streamvbyte16
 
 # testing output
 *actual*
