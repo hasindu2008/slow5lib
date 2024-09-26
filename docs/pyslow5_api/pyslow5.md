@@ -139,7 +139,7 @@ Compression Options:
 `sig_press`:
 - "none"
 - "svb-zd" [default]
-- "ex-zd" [best compression]
+- "ex-zd" [best compression, available from v1.3.0]
 
 Example:
 

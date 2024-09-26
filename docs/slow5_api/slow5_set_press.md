@@ -21,6 +21,7 @@ slow5_set_press - sets the compression method for a BLOW5 file opened for writin
 *sig_press* can be one of the following:
 * `SLOW5_COMPRESS_NONE`		No compression
 * `SLOW5_COMPRESS_SVB_ZD`	Stream variable byte - zig-zag delta (default)
+* `SLOW5_COMPRESS_EX_ZD`	Exception coding - zig-zag delta (available from slow5lib v1.3.0)
 
 ## RETURN VALUE
 

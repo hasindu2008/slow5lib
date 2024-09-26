@@ -142,10 +142,10 @@ A slow5 library for RUST programming language developed by [@bsaintjo](https://g
 
 ### Current limitations & future work
 
-slow5lib is a reference implementation for SLOW5 format. Depending on the interest from the community, the following limitations could be overcome and more performance optimis  ations can be performed. Open a GitHub issue if you are interested. Contributions are welcome.
+slow5lib is a reference implementation for SLOW5 format. Depending on the interest from the community, the following limitations could be overcome and more performance optimisations can be performed. Open a GitHub issue if you are interested. Contributions are welcome.
 
 - No native windows support: slow5lib works well on Windows through WSL, in fact, this is my primary development environment. I am not aware of anyone using native Windows for nanopore bioinformatics. However, if needed, [methods used for minimap2](https://github.com/lh3/minimap2/issues/19) can be adopted.
-- svb-zd compression does not big-endian systems: As of version 1.2.0, slow5lib supports big-endian systems (e.g., IBM Z), except for svb-zd compression that uses [StreamVByte](https://github.com/lemire/streamvbyte) that does not support big-endian.
+- svb-zd and ex-zd compression does not support big-endian systems: As of version 1.2.0, slow5lib supports big-endian systems (e.g., IBM Z), except for svb-zd and ex-zd compression that uses [StreamVByte](https://github.com/lemire/streamvbyte) that does not support big-endian.
 Note: Not to be confused with big.LITTLE architecture which is something else on which all features of slow5lib already works.
 - When running with >64 threads, malloc() calls could reduce the thread efficiency. If that is the case, frequent mallocs could be replaced with kalloc in [klib](https://github.com/attractivechaos/klib). Alternatively, preloading tcmalloc or jemalloc would do.
 - Aggressive compiler optimisations (e.g.,  -O3) and architecture-specific compiler optimisations (e.g., -march=native) are not used in the makefile. These flags will improve performance at the cost of limited portability. These could be provided in a separate make target.
