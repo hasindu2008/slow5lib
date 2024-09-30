@@ -1964,23 +1964,17 @@ unsigned char *z_inflate_buf(const char *comp_str, size_t *n) {
 /*
  * Zero number_of_bits LSB of number by rounding it to the nearest power of 2.
  * number_of_bits must be >= 1. Return the rounded number.
- * Taken from https://github.com/hasindu2008/sigtk src/qts.c.
+ * Modified from https://github.com/hasindu2008/sigtk src/qts.c.
  */
 static int round_to_power_of_2(int number, int number_of_bits) {
     //create a binary mask with the specified number of bits
     int bit_mask = (1 << number_of_bits) - 1;
 
-    //extract out the value of the LSBs considered
-    int lsb_bits = number & bit_mask;
-
-
-    int round_threshold = (1 << (number_of_bits - 1));
-
     //check if the least significant bits are closer to 0 or 2^n
-    if (lsb_bits < round_threshold) {
-        return (number & ~bit_mask) + 0; //round down to the nearest power of 2
-    } else {
+    if (number & (1 << (number_of_bits - 1))) {
         return (number & ~bit_mask) + (1 << number_of_bits); //round up to the nearest power of 2
+    } else {
+        return (number & ~bit_mask) + 0; //round down to the nearest power of 2
     }
 }
 
