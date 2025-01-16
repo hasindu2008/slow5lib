@@ -21,7 +21,7 @@ jobs:
     steps:
     - name: nodejs
       run: |
-        apt-get install -y wget xz-utils
+        apt-get update && apt-get install -y wget xz-utils
         wget https://unofficial-builds.nodejs.org/download/release/v20.9.0/node-v20.9.0-linux-x64-glibc-217.tar.xz
         tar -xf node-v20.9.0-linux-x64-glibc-217.tar.xz --strip-components 1 -C /node20217
     - uses: actions/checkout@v2
@@ -44,7 +44,7 @@ jobs:
     steps:
     - name: nodejs
       run: |
-        apt-get install -y wget xz-utils
+        apt-get update && apt-get install -y wget xz-utils
         wget https://unofficial-builds.nodejs.org/download/release/v20.9.0/node-v20.9.0-linux-x64-glibc-217.tar.xz
         tar -xf node-v20.9.0-linux-x64-glibc-217.tar.xz --strip-components 1 -C /node20217
     - uses: actions/checkout@v2
@@ -65,7 +65,7 @@ jobs:
     steps:
     - name: nodejs
       run: |
-        apt-get install -y wget xz-utils
+        apt-get update && apt-get install -y wget xz-utils
         wget https://unofficial-builds.nodejs.org/download/release/v20.9.0/node-v20.9.0-linux-x64-glibc-217.tar.xz
         tar -xf node-v20.9.0-linux-x64-glibc-217.tar.xz --strip-components 1 -C /node20217
     - uses: actions/checkout@v2
@@ -84,7 +84,7 @@ jobs:
     steps:
     - name: nodejs
       run: |
-        apt-get install -y wget xz-utils
+        apt-get update && apt-get install -y wget xz-utils
         wget https://unofficial-builds.nodejs.org/download/release/v20.9.0/node-v20.9.0-linux-x64-glibc-217.tar.xz
         tar -xf node-v20.9.0-linux-x64-glibc-217.tar.xz --strip-components 1 -C /node20217
     - uses: actions/checkout@v2
@@ -109,7 +109,7 @@ jobs:
     steps:
     - name: nodejs
       run: |
-        apt-get install -y wget xz-utils
+        apt-get update &&  apt-get install -y wget xz-utils
         wget https://unofficial-builds.nodejs.org/download/release/v20.9.0/node-v20.9.0-linux-x64-glibc-217.tar.xz
         tar -xf node-v20.9.0-linux-x64-glibc-217.tar.xz --strip-components 1 -C /node20217
     - uses: actions/checkout@v2
@@ -203,16 +203,16 @@ jobs:
   #   - name: examples
   #     run: make examples
   os_x_13:
-  name: OSX 13
-  runs-on: macos-13
-  steps:
-  - uses: actions/checkout@v2
-  - name: build
-    run: make -j8
-  - name: test
-    run: make test
-  - name: examples
-    run: make examples
+    name: OSX 13
+    runs-on: macos-13
+    steps:
+    - uses: actions/checkout@v2
+    - name: build
+      run: make -j8
+    - name: test
+      run: make test
+    - name: examples
+      run: make examples
   os_x_13_zstd:
     name: OSX 13 zstd
     runs-on: macos-13
