@@ -12,7 +12,7 @@ env:
 jobs:
   ubuntu_14:
     name: ubuntu_14
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     container:
       image: ubuntu:14.04
       volumes:
@@ -35,7 +35,7 @@ jobs:
       run: make test
   ubuntu_16:
     name: Ubuntu 16
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     container:
       image: ubuntu:16.04
       volumes:
@@ -56,7 +56,7 @@ jobs:
       run: make test
   ubuntu_16_cmake:
     name: Ubuntu 16 cmake
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     container:
       image: ubuntu:16.04
       volumes:
@@ -75,7 +75,7 @@ jobs:
       run:  mkdir build && cd build && cmake -DSLOW5_LINK_STATIC=ON -DSLOW5_USE_ZSTD=OFF -DSLOW5_ENABLE_MT=OFF .. && make -j8
   ubuntu_18:
     name: Ubuntu 18
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     container:
       image: ubuntu:18.04
       volumes:
@@ -100,7 +100,7 @@ jobs:
       run: make examples
   ubuntu_18_zstd:
     name: Ubuntu 18 with zstd
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     container:
       image: ubuntu:18.04
       volumes:
@@ -123,11 +123,13 @@ jobs:
       run: ./test/test.sh mem
   ubuntu_20:
     name: Ubuntu 20
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
+    container:
+      image: ubuntu:20.04    
     steps:
     - uses: actions/checkout@v2
     - name: install packages
-      run: sudo apt-get update && sudo apt-get install zlib1g-dev
+      run: apt-get update && apt-get install zlib1g-dev gcc g++ autoconf automake make clang
     - name: build-gcc
       run: make -j8
     - name: test-gcc
@@ -138,7 +140,9 @@ jobs:
       run: make test
   ubuntu_20_icc:
     name: Ubuntu 20 icc
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
+    container:
+      image: ubuntu:20.04       
     steps:
     - uses: actions/checkout@v2
       with:
@@ -152,7 +156,7 @@ jobs:
         echo "deb https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
         sudo apt-get update
     - name: install packages
-      run: sudo apt-get install -y zlib1g-dev libzstd-dev intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic
+      run: apt-get update && apt-get install -y zlib1g-dev gcc g++ autoconf automake make libzstd-dev intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic
     - name: Setup Intel oneAPI environment
       run: |
         source /opt/intel/oneapi/setvars.sh
