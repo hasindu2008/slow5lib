@@ -153,7 +153,10 @@ Note: Not to be confused with big.LITTLE architecture which is something else on
 
 ### Notes
 
-*slow5lib* from version 0.3.0 onwards has built in [StreamVByte](https://github.com/lemire/streamvbyte) compression support to enable even smaller file sizes, which is applied to the raw signal by default when producing BLOW5 files.  *zlib* compression is then applied by default to each SLOW5 record. If *zstd* is used instead of *zlib* on top of *StreamVByte*, it is similar to ONT's latest [vbz](https://github.com/nanoporetech/vbz_compression) compression. BLOW5 files with *zstd+StreamVByte* are still about 25% smaller than vbz compressed FAST5 files.
+- *slow5lib* from version 0.3.0 onwards has built in [StreamVByte](https://github.com/lemire/streamvbyte) compression support to enable even smaller file sizes, which is applied to the raw signal by default when producing BLOW5 files.  *zlib* compression is then applied by default to each SLOW5 record. If *zstd* is used instead of *zlib* on top of *StreamVByte*, it is similar to ONT's latest [vbz](https://github.com/nanoporetech/vbz_compression) compression. BLOW5 files with *zstd+StreamVByte* are still about 25% smaller than vbz compressed FAST5 files.
+
+- While this repository is under the [MIT license](LICENSE), data files under `test/data` of this repository are under the CC0 public waiver.
+ 
 
 ## Acknowledgement
 slow5lib uses [klib](https://github.com/attractivechaos/klib) and [StreamVByte](https://github.com/lemire/streamvbyte). Some code snippets have been taken from [Minimap2](https://github.com/lh3/minimap2) and [Samtools](http://samtools.sourceforge.net/).
