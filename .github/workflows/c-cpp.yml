@@ -146,7 +146,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: install packages
-      run: apt-get update && apt-get install -y zlib1g-dev wget gcc g++ autoconf automake make libzstd-dev
+      run: apt-get update && apt-get install -y zlib1g-dev wget gcc g++ autoconf automake make libzstd-dev gnupg
     - name: Intel Apt repository
       timeout-minutes: 1
       run: |
