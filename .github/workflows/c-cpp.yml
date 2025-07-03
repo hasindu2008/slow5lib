@@ -145,6 +145,8 @@ jobs:
       image: ubuntu:20.04
     steps:
     - uses: actions/checkout@v2
+    - name: install packages
+      run: apt-get update && apt-get install -y zlib1g-dev wget gcc g++ autoconf automake make libzstd-dev
     - name: Intel Apt repository
       timeout-minutes: 1
       run: |
@@ -154,7 +156,7 @@ jobs:
         echo "deb https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
         sudo apt-get update
     - name: install packages
-      run: apt-get update && apt-get install -y zlib1g-dev wget gcc g++ autoconf automake make libzstd-dev intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic
+      run: apt-get update && apt-get install -y libzstd-dev intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic
     - name: Setup Intel oneAPI environment
       run: |
         source /opt/intel/oneapi/setvars.sh
