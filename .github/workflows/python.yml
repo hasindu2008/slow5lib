@@ -12,9 +12,18 @@ env:
 jobs:
   ubuntu_14:
     name: pyslow5 Ubuntu_14
-    runs-on: ubuntu-20.04
-    container: ubuntu:14.04
+    runs-on: ubuntu-24.04
+    container:
+      image: ubuntu:14.04
+      volumes:
+        - /node20217:/node20217:rw,rshared
+        - /node20217:/__e/node20:ro,rshared
     steps:
+    - name: nodejs
+      run: |
+        apt-get update && apt-get install -y wget xz-utils
+        wget https://unofficial-builds.nodejs.org/download/release/v20.9.0/node-v20.9.0-linux-x64-glibc-217.tar.xz
+        tar -xf node-v20.9.0-linux-x64-glibc-217.tar.xz --strip-components 1 -C /node20217
     - uses: actions/checkout@v2
     - name: install packages
       run: sudo apt-get update && sudo apt-get install -y zlib1g-dev python3-pip wget && wget --no-check-certificate https://bootstrap.pypa.io/pip/3.4/get-pip.py && python3 get-pip.py && pip3 install setuptools cython "numpy>=1.13.3,<1.15.0" --user
@@ -26,12 +35,21 @@ jobs:
       run: python3 -m unittest -v python/test.py
   ubuntu_16:
     name: pyslow5 Ubuntu 16
-    runs-on: ubuntu-20.04
-    container: ubuntu:16.04
+    runs-on: ubuntu-24.04
+    container:
+      image: ubuntu:16.04
+      volumes:
+        - /node20217:/node20217:rw,rshared
+        - /node20217:/__e/node20:ro,rshared
     steps:
+    - name: nodejs
+      run: |
+        apt-get update && apt-get install -y wget xz-utils
+        wget https://unofficial-builds.nodejs.org/download/release/v20.9.0/node-v20.9.0-linux-x64-glibc-217.tar.xz
+        tar -xf node-v20.9.0-linux-x64-glibc-217.tar.xz --strip-components 1 -C /node20217
     - uses: actions/checkout@v2
     - name: install packages
-      run: apt-get update && apt-get install -y lsb-release zlib1g-dev python3-pip python3-setuptools && pip3 install cython "numpy>=1.14.5,<1.19.0"
+      run: apt-get update && apt-get install -y lsb-release zlib1g-dev python3-pip python3-setuptools && pip3 install "cython<0.30.0" "numpy>=1.14.5,<1.19.0"
     - name: env
       run: lsb_release -a &&  ldd --version && gcc --version && g++ --version  && python3 --version
     - name: build
@@ -40,9 +58,18 @@ jobs:
       run: python3 -m unittest -v python/test.py
   pyslow5_ubuntu_18:
     name: pyslow5 Ubuntu 18
-    runs-on: ubuntu-20.04
-    container: ubuntu:18.04
+    runs-on: ubuntu-24.04
+    container:
+      image: ubuntu:18.04
+      volumes:
+        - /node20217:/node20217:rw,rshared
+        - /node20217:/__e/node20:ro,rshared
     steps:
+    - name: nodejs
+      run: |
+        apt-get update && apt-get install -y wget xz-utils
+        wget https://unofficial-builds.nodejs.org/download/release/v20.9.0/node-v20.9.0-linux-x64-glibc-217.tar.xz
+        tar -xf node-v20.9.0-linux-x64-glibc-217.tar.xz --strip-components 1 -C /node20217
     - uses: actions/checkout@v2
     - name: install packages
       run: apt-get update && apt-get install -y zlib1g-dev python3-pip && pip3 install setuptools cython numpy
@@ -52,11 +79,13 @@ jobs:
       run: python3 -m unittest -v python/test.py
   ubuntu_20:
     name: pyslow5 Ubuntu 20
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
+    container:
+      image: ubuntu:20.04
     steps:
     - uses: actions/checkout@v2
     - name: install packages
-      run: sudo apt-get update && sudo apt-get install -y zlib1g-dev python3-pip && pip3 install setuptools cython numpy
+      run: apt-get update && apt-get install -y zlib1g-dev python3-pip && pip3 install setuptools cython numpy
     - name: build
       run: make pyslow5
     - name: test
@@ -101,17 +130,17 @@ jobs:
           ldd --version && gcc --version && python3 --version &&
           make pyslow5 &&
           python3 -m unittest -v python/test.py"
-  os_x_12:
-    name: pyslow5 mac os 12
-    runs-on: macos-12
-    steps:
-    - uses: actions/checkout@v2
-    - name: install packages
-      run: pip3 install numpy setuptools
-    - name: build
-      run: make pyslow5
-    - name: test
-      run: python3 -m unittest -v python/test.py
+  # os_x_12:
+  #   name: pyslow5 mac os 12
+  #   runs-on: macos-12
+  #   steps:
+  #   - uses: actions/checkout@v2
+  #   - name: install packages
+  #     run: pip3 install numpy setuptools
+  #   - name: build
+  #     run: make pyslow5
+  #   - name: test
+  #     run: python3 -m unittest -v python/test.py
   os_x_13:
     name: pyslow5 mac os 13
     runs-on: macos-13
