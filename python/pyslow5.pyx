@@ -514,7 +514,7 @@ cdef class Open:
         self.shape_get[0] = <np.npy_intp> self.rec.len_raw_signal
         signal = copy.deepcopy(np.PyArray_SimpleNewFromData(1, self.shape_get,
                     np.NPY_INT16, <void *> self.rec.raw_signal))
-        np.PyArray_UpdateFlags(signal, signal.flags.num | np.NPY_OWNDATA)
+        np.PyArray_UpdateFlags(signal, signal.flags.num | np.NPY_ARRAY_OWNDATA)
         dic['signal'] = signal
 
         # if pA=True, convert signal to pA
@@ -644,7 +644,7 @@ cdef class Open:
                 self.shape_get[0] = <np.npy_intp> self.rec.len_raw_signal
                 signal = copy.deepcopy(np.PyArray_SimpleNewFromData(1, self.shape_get,
                             np.NPY_INT16, <void *> self.rec.raw_signal))
-                np.PyArray_UpdateFlags(signal, signal.flags.num | np.NPY_OWNDATA)
+                np.PyArray_UpdateFlags(signal, signal.flags.num | np.NPY_ARRAY_OWNDATA)
                 dic['signal'] = signal
 
                 # if pA=True, convert signal to pA
@@ -1214,7 +1214,7 @@ cdef class Open:
             self.shape_seq[0] = <np.npy_intp> self.read.len_raw_signal
             signal = copy.deepcopy(np.PyArray_SimpleNewFromData(1, self.shape_seq,
                         np.NPY_INT16, <void *> self.read.raw_signal))
-            np.PyArray_UpdateFlags(signal, signal.flags.num | np.NPY_OWNDATA)
+            np.PyArray_UpdateFlags(signal, signal.flags.num | np.NPY_ARRAY_OWNDATA)
             row['signal'] = signal
 
             # if pA=True, convert signal to pA
@@ -1317,7 +1317,7 @@ cdef class Open:
                 self.shape_seq[0] = <np.npy_intp> self.read.len_raw_signal
                 signal = copy.deepcopy(np.PyArray_SimpleNewFromData(1, self.shape_seq,
                             np.NPY_INT16, <void *> self.read.raw_signal))
-                np.PyArray_UpdateFlags(signal, signal.flags.num | np.NPY_OWNDATA)
+                np.PyArray_UpdateFlags(signal, signal.flags.num | np.NPY_ARRAY_OWNDATA)
                 row['signal'] = signal
                 timedic["signal_total_time"] = timedic["signal_total_time"] + (time.time() - signal_start_time)
                 timedic["primary_total_time"] = timedic["primary_total_time"] + (time.time() - primary_start_time)
