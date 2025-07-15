@@ -338,7 +338,7 @@ print(end_reason_labels)
 
 > ['unknown', 'partial', 'mux_change', 'unblock_mux_change', 'signal_positive', 'signal_negative']
 # or from newer datsets
-> ["unknown", "mux_change", "unblock_mux_change", "data_service_unblock_mux_change", "signal_positive", "signal_negative", "api_request", "device_data_error"]
+> ["unknown", "mux_change", "unblock_mux_change", "data_service_unblock_mux_change", "signal_positive", "signal_negative", "api_request", "device_data_error", "analysis_config_change", "paused"]
 
 readID = "r1"
 read = s5.get_read(readID, aux='all')

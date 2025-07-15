@@ -1504,7 +1504,7 @@ cdef class Open:
 
         # end_reason_labels = ['unknown', 'partial', 'mux_change', 'unblock_mux_change', 'signal_positive', 'signal_negative']
         # update end_reason to be more likely compatible with current pod5 format & end_reasons
-        end_reason_labels = ["unknown", "mux_change", "unblock_mux_change", "data_service_unblock_mux_change", "signal_positive", "signal_negative", "api_request", "device_data_error"]
+        end_reason_labels = ["unknown", "mux_change", "unblock_mux_change", "data_service_unblock_mux_change", "signal_positive", "signal_negative", "api_request", "device_data_error", "analysis_config_change", "paused"]
 
         if aux:
             return header, end_reason_labels
