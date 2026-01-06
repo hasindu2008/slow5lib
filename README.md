@@ -1,4 +1,4 @@
-🟥*bench* branch:
+🟥Do not delete this *bench* branch:
 - used in https://doi.org/10.1093/gigascience/giaf118 
 - used by https://github.com/hasindu2008/slow5-pod5-bench
 
