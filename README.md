@@ -1,3 +1,5 @@
+This branch has an experimental implementation not used anywhere as far as I remember. Can be potentially deleted if confimed not used anywhere.
+
 # slow5lib
 
 *slow5lib* is a software library for reading & writing SLOW5 files. *slow5lib* is designed to facilitate use of data in SLOW5 format by third-party software packages. Existing packages that read/write data in FAST5 format can be easily modified to support SLOW5.
