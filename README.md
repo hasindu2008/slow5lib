@@ -1,3 +1,7 @@
+🟥*bench* branch:
+- used in https://doi.org/10.1093/gigascience/giaf118 
+- used by https://github.com/hasindu2008/slow5-pod5-bench
+
 # slow5lib
 
 *slow5lib* is a software library for reading & writing SLOW5 files. *slow5lib* is designed to facilitate use of data in SLOW5 format by third-party software packages. Existing packages that read/write data in FAST5 or POD5 format can be easily modified to support SLOW5.
