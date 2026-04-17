@@ -830,7 +830,7 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
         } else if (fseek(fp, SLOW5_BINARY_HDR_SIZE_OFFSET, SEEK_SET) == -1) {
             SLOW5_WARNING("Failed to fseek() to offset %ld: %s.", SLOW5_BINARY_HDR_SIZE_OFFSET, strerror(errno));
             uint8_t padding[SLOW5_BINARY_HDR_SIZE_OFFSET];
-            if(SLOW5_FREAD(padding, 50, 1, fp) != 1) { //would not work for different slow5 versions.
+            if(SLOW5_FREAD(padding, 49, 1, fp) != 1) { //would not work for different slow5 versions. Also fix the slow5spec Reserved for future table
                 SLOW5_ERROR("Malformed blow5 header. Failed to read the padding.%s", feof(fp) ? " EOF reached." : "");
                 free(header);
                 slow5_errno = SLOW5_ERR_IO;
