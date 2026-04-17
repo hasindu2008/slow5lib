@@ -836,7 +836,8 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
                 slow5_errno = SLOW5_ERR_IO;
                 return NULL;
             }
-        } else if (SLOW5_FREAD(&header_size, sizeof header_size, 1, fp) != 1) {
+        }
+        if (SLOW5_FREAD(&header_size, sizeof header_size, 1, fp) != 1) {
             SLOW5_ERROR("Malformed blow5 header. Failed to read the ascii header size.%s", feof(fp) ? " EOF reached." : "");
             goto err_fread;
         }
