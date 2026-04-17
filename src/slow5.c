@@ -191,13 +191,14 @@ struct slow5_file *slow5_init(FILE *fp, const char *pathname, enum slow5_fmt for
 
     s5p->meta.pathname = pathname;
     if ((s5p->meta.start_rec_offset = ftello(fp)) == -1) {
-        SLOW5_ERROR("Obtaining file offset with ftello() failed: %s.", strerror(errno));
-        free(fread_buff);
-        slow5_press_free(s5p->compress);
-        slow5_hdr_free(header);
-        free(s5p);
-        slow5_errno = SLOW5_ERR_IO;
-        return NULL;
+        SLOW5_WARNING("Obtaining file offset with ftello() failed: %s. Seeking would not work.", strerror(errno));
+        // free(fread_buff);
+        // slow5_press_free(s5p->compress);
+        // slow5_hdr_free(header);
+        // free(s5p);
+        // slow5_errno = SLOW5_ERR_IO;
+        // return NULL;
+        // can manually set if required?
     }
 
     return s5p;
@@ -827,10 +828,14 @@ struct slow5_hdr *slow5_hdr_init(FILE *fp, enum slow5_fmt format, slow5_press_me
             SLOW5_ERROR("Malformed blow5 header. Failed to read the signal compression method.%s", feof(fp) ? " EOF reached." : "");
             goto err_fread;
         } else if (fseek(fp, SLOW5_BINARY_HDR_SIZE_OFFSET, SEEK_SET) == -1) {
-            SLOW5_ERROR("Failed to fseek() to offset %ld: %s.", SLOW5_BINARY_HDR_SIZE_OFFSET, strerror(errno));
-            free(header);
-            slow5_errno = SLOW5_ERR_IO;
-            return NULL;
+            SLOW5_WARNING("Failed to fseek() to offset %ld: %s.", SLOW5_BINARY_HDR_SIZE_OFFSET, strerror(errno));
+            uint8_t padding[SLOW5_BINARY_HDR_SIZE_OFFSET];
+            if(SLOW5_FREAD(padding, 50, 1, fp) != 1) { //would not work for different slow5 versions.
+                SLOW5_ERROR("Malformed blow5 header. Failed to read the padding.%s", feof(fp) ? " EOF reached." : "");
+                free(header);
+                slow5_errno = SLOW5_ERR_IO;
+                return NULL;
+            }
         } else if (SLOW5_FREAD(&header_size, sizeof header_size, 1, fp) != 1) {
             SLOW5_ERROR("Malformed blow5 header. Failed to read the ascii header size.%s", feof(fp) ? " EOF reached." : "");
             goto err_fread;
