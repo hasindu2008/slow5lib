@@ -3245,7 +3245,7 @@ void *slow5_get_next_mem(size_t *n, const struct slow5_file *s5p) {
             int is_eof = 0;
             if (bytes_read == sizeof eof) {
                 /* check if eof */
-                is_eof = slow5_is_eof(s5p->fp, eof, sizeof eof);
+                is_eof = slow5_is_eof_noseek(s5p->fp, eof, sizeof eof, &bytes_tmp, bytes_read);
                 if (is_eof == -1) { /* io/mem error */
                     SLOW5_ERROR("%s", "Internal error while checking for blow5 eof marker.");
                 } else if (is_eof == -2) {
@@ -4672,6 +4672,50 @@ int slow5_is_eof(FILE *fp, const char *eof, size_t n) {
 
     size_t itms_read = fread(buf_eof, sizeof *eof, n, fp);
     if (itms_read == n) {
+        if (memcmp(eof, buf_eof, sizeof *eof * n) == 0) { /* eof marker found */
+            if (getc(fp) != EOF || !feof(fp)) { /* not actually at end of file */
+                free(buf_eof);
+                slow5_errno = SLOW5_ERR_TRUNC;
+                return -2;
+            }
+            free(buf_eof);
+            return 1;
+        }
+    }
+
+    free(buf_eof);
+    return 0;
+}
+
+
+
+int slow5_is_eof_noseek(FILE *fp, const char *eof, size_t n, slow5_rec_size_t *bytes_tmp, size_t bytes_read) {
+    if (!fp) {
+        SLOW5_ERROR("Argument '%s' cannot be NULL.", SLOW5_TO_STR(fp));
+        slow5_errno = SLOW5_ERR_ARG;
+        return -1;
+    }
+
+    char *buf_eof = (char *) malloc(sizeof *eof * n);
+    if (!buf_eof) {
+        SLOW5_MALLOC_ERROR();
+        slow5_errno = SLOW5_ERR_MEM;
+        return -1;
+    }
+
+    memcpy(buf_eof, bytes_tmp, bytes_read);
+
+    // /* go back */
+    // if (fseek(fp, - sizeof *eof * n, SEEK_CUR) != 0) {
+    //     SLOW5_ERROR("Seeking back '%zu' bytes failed: %s.",
+    //             sizeof *eof * n, strerror(errno));
+    //     free(buf_eof);
+    //     slow5_errno = SLOW5_ERR_IO;
+    //     return -1;
+    // }
+
+    size_t itms_read = fread(buf_eof+bytes_read, sizeof *eof, n-bytes_read, fp);
+    if (itms_read == n-bytes_read) {
         if (memcmp(eof, buf_eof, sizeof *eof * n) == 0) { /* eof marker found */
             if (getc(fp) != EOF || !feof(fp)) { /* not actually at end of file */
                 free(buf_eof);

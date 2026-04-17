@@ -24,6 +24,7 @@ these functions are used by slow5tools and pyslow5 - so any change to a function
 slow5_file_t *slow5_init(FILE *fp, const char *pathname, enum slow5_fmt format);
 slow5_file_t *slow5_init_empty(FILE *fp, const char *pathname, enum slow5_fmt format);
 int slow5_is_eof(FILE *fp, const char *eof, size_t n);
+int slow5_is_eof_noseek(FILE *fp, const char *eof, size_t n, slow5_rec_size_t *bytes_tmp, size_t bytes_read);
 
 // slow5 header
 slow5_hdr_t *slow5_hdr_init_empty(void);
