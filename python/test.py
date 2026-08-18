@@ -410,7 +410,10 @@ class TestWriteAux(unittest.TestCase):
                "num_reads_since_mux_change": None,
                "time_since_mux_change": None,
                "num_minknow_events": None,
-               "open_pore_level": None,}
+               "open_pore_level": None,
+               "expected_open_pore_level": None,
+               "selected_read_level": None,
+        }
         _, aux = self.F.get_empty_record(aux=True)
         for i, rec in enumerate(aux):
             with self.subTest(i=i, attr=rec):
@@ -488,7 +491,7 @@ class TestExZdRead(unittest.TestCase):
         for i, read in enumerate(self.reads):
             with self.subTest(i=i, read=read['read_id']):
                 self.assertEqual(read['read_id'], results[i])
-    
+
 
 
 # def test_bad_type(self):
