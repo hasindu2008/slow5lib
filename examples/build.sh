@@ -1,8 +1,8 @@
 #!/bin/sh
 
-#exit on error
-set -x
 #prints the command to the console
+set -x
+#exit on error
 set -e
 
 gcc -Wall -O2 -I include/ examples/sequential_read.c lib/libslow5.a  -o examples/sequential_read -lm -lz

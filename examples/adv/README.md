@@ -1,7 +1,7 @@
 # slow5lib Advanced Examples
 
-This directory contains following advanced examples that uses low-level API.
-- *auxiliary_field_enum.c* demonstrates how to fetch a auxiliary field of enum data type from a slow5/blow5 file.
+This directory contains the following advanced examples that use low-level API.
+- *auxiliary_field_enum.c* demonstrates how to fetch an auxiliary field of enum data type from a slow5/blow5 file.
 - *sequential_read_pthreads.c* demonstrates how to sequentially read raw SLOW5 records from a slow5/blow5 file using a single thread and then decode those in parallel using *pthreads*.
 - *sequential_read_openmp.c* demonstrates how to sequentially read raw SLOW5 records from a slow5/blow5 file using a single thread and then decode those in parallel using *openMP*.
 - *get_all_read_ids.c* demonstrates how to get the list of all read IDs from a slow5/blow5 file.
@@ -9,5 +9,5 @@ This directory contains following advanced examples that uses low-level API.
 
 You can invoke [build.sh](build.sh) from slow5lib directory as `examples/adv/build.sh` to compile the example programmes. Have a look at the script to see the commands used for compiling and linking. Also make sure you get familiar with the basic examples first, before trying these advanced examples.
 
-A public template repository that demonstrates the advanced use of slow5lib is available at [https://github.com/hasindu2008/slow5-template-x].
+A public template repository that demonstrates the advanced use of slow5lib is available at [https://github.com/hasindu2008/slow5-template-x](https://github.com/hasindu2008/slow5-template-x).
 

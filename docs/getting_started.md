@@ -67,7 +67,7 @@ You can optionally enable [*zstd* compression](https://facebook.github.io/zstd) 
 
 ```sh
 On Debian/Ubuntu : sudo apt-get install libzstd1-dev # libzstd-dev on newer distributions if libzstd1-dev is unavailable
-On Fedora/CentOS : sudo yum libzstd-devel
+On Fedora/CentOS : sudo yum install libzstd-devel
 On OS X : brew install zstd
 ```
 

@@ -60,9 +60,9 @@ cd slow5lib
 make
 ```
 
-This will generate *lib/libslow5.a* for static linking and *libslow5.so* for dynamic linking.
+This will generate *lib/libslow5.a* for static linking and *lib/libslow5.so* for dynamic linking.
 
-The commands to zlib __development libraries__ on some popular distributions :
+The commands to install zlib __development libraries__ on some popular distributions :
 ```sh
 On Debian/Ubuntu : sudo apt-get install zlib1g-dev
 On Fedora/CentOS : sudo dnf/yum install zlib-devel
@@ -75,7 +75,7 @@ You can optionally enable [*zstd* compression](https://facebook.github.io/zstd) 
 
 ```sh
 On Debian/Ubuntu : sudo apt-get install libzstd1-dev # libzstd-dev on newer distributions if libzstd1-dev is unavailable
-On Fedora/CentOS : sudo yum libzstd-devel
+On Fedora/CentOS : sudo yum install libzstd-devel
 On OS X : brew install zstd
 ```
 
@@ -109,16 +109,16 @@ For the documentation of the C API visit [here](https://hasindu2008.github.io/sl
 
 ### Examples
 
-A public template repository is available at [https://github.com/hasindu2008/slow5-template] which you can directly use to setup your own repository that uses *slow5lib* to build a tool. Check the instructions and comments there.
+A public template repository is available at [https://github.com/hasindu2008/slow5-template](https://github.com/hasindu2008/slow5-template) which you can directly use to setup your own repository that uses *slow5lib* to build a tool. Check the instructions and comments there.
 
 Examples are provided under [examples](https://github.com/hasindu2008/slow5lib/tree/master/examples).
 - *sequential_read.c* demonstrates how to read a slow5/blow5 file, sequentially from start to end.
 - *random_read.c* demonstrates how to fetch a given read ID from a slow5/blow5 file.
 - *header_attribute.c* demonstrates how to fetch a header data attribute from a slow5/blow5 file.
-- *auxiliary_field.c* demonstrates how to fetch a auxiliary field from a slow5/blow5 file.
+- *auxiliary_field.c* demonstrates how to fetch an auxiliary field from a slow5/blow5 file.
 - *random_read_pthreads.c* demonstrates how to fetch given read IDs in parallel from a slow5/blow5 file using *pthreads*.
 - *random_read_openmp.c* demonstrates how to fetch given read IDs in parallel from a slow5/blow5 file using openMP.
-- *write.c* demonstrate how to write a new slow5/blow5 file.
+- *write.c* demonstrates how to write a new slow5/blow5 file.
 - *append.c* demonstrates how to append to an existing slow5/blow5 file.
 
 Some advanced examples are provided [here](https://github.com/hasindu2008/slow5lib/tree/master/examples/adv).
@@ -129,7 +129,7 @@ Following examples will be added upon request. If you are interested, open a Git
 
 You can invoke `examples/build.sh` to compile the example programmes. Have a look at the script to see the commands used for compiling and linking. If you compiled *slow5lib* with *zstd* support enabled, make sure you append `-lzstd` to the compilation commands.
 
-Some examples demonstrating t the use of easy multi-thread API are available [here](https://github.com/hasindu2008/slow5lib/tree/master/examples/mt)
+Some examples demonstrating the use of easy multi-thread API are available [here](https://github.com/hasindu2008/slow5lib/tree/master/examples/mt)
 
 
 ### pyslow5
@@ -147,7 +147,7 @@ slow5lib is a reference implementation for SLOW5 format. Depending on the intere
 
 - No native windows support: slow5lib works well on Windows through WSL, in fact, this is my primary development environment. I am not aware of anyone using native Windows for nanopore bioinformatics. However, if needed, [methods used for minimap2](https://github.com/lh3/minimap2/issues/19) can be adopted.
 - svb-zd and ex-zd compression does not support big-endian systems: As of version 1.2.0, slow5lib supports big-endian systems (e.g., IBM Z), except for svb-zd and ex-zd compression that uses [StreamVByte](https://github.com/lemire/streamvbyte) that does not support big-endian.
-Note: Not to be confused with big.LITTLE architecture which is something else on which all features of slow5lib already works.
+Note: Not to be confused with big.LITTLE architecture which is something else on which all features of slow5lib already work.
 - When running with >64 threads, malloc() calls could reduce the thread efficiency. If that is the case, frequent mallocs could be replaced with kalloc in [klib](https://github.com/attractivechaos/klib). Alternatively, preloading tcmalloc or jemalloc would do.
 - Aggressive compiler optimisations (e.g.,  -O3) and architecture-specific compiler optimisations (e.g., -march=native) are not used in the makefile. These flags will improve performance at the cost of limited portability. These could be provided in a separate make target.
 
@@ -157,7 +157,7 @@ Note: Not to be confused with big.LITTLE architecture which is something else on
 - *slow5lib* from version 0.3.0 onwards has built in [StreamVByte](https://github.com/lemire/streamvbyte) compression support to enable even smaller file sizes, which is applied to the raw signal by default when producing BLOW5 files.  *zlib* compression is then applied by default to each SLOW5 record. If *zstd* is used instead of *zlib* on top of *StreamVByte*, it is similar to ONT's latest [vbz](https://github.com/nanoporetech/vbz_compression) compression. BLOW5 files with *zstd+StreamVByte* are still about 25% smaller than vbz compressed FAST5 files.
 
 - While this repository is under the [MIT license](LICENSE), data files under `test/data` of this repository are under the CC0 public waiver.
- 
+
 
 ## Acknowledgement
 slow5lib uses [klib](https://github.com/attractivechaos/klib) and [StreamVByte](https://github.com/lemire/streamvbyte). Some code snippets have been taken from [Minimap2](https://github.com/lh3/minimap2) and [Samtools](http://samtools.sourceforge.net/).

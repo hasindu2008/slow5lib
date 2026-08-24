@@ -1,8 +1,8 @@
 #!/bin/sh
 
-#exit on error
-set -x
 #prints the command to the console
+set -x
+#exit on error
 set -e
 #make sure slow5lib is built with multi-threading API as `make slow5_mt=1`
 make clean && make slow5_mt=1

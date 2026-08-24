@@ -1,8 +1,8 @@
 #!/bin/sh
 
-#exit on error
-set -x
 #prints the command to the console
+set -x
+#exit on error
 set -e
 gcc -Wall -O2 -I include/ examples/adv/auxiliary_field_enum.c lib/libslow5.a  -o examples/adv/auxiliary_field_enum -lm -lz
 gcc -Wall -O2 -I include/ examples/adv/sequential_read_openmp.c lib/libslow5.a  -o examples/adv/sequential_read_openmp -lm -lz -fopenmp
